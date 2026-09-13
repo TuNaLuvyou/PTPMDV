@@ -43,3 +43,12 @@ build/
 **/ios/DerivedData/
 Podfile.lock
 Pods/
+
+# Node / Web artifacts
+node_modules/
+.next/
+out/
+dist/
+*.tsbuildinfo
+.env*
+

@@ -1,0 +1,63 @@
+"use client";
+
+import { IconPlus, IconPencil, IconTrash } from "@tabler/icons-react";
+import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import Table, { Column } from "@/components/ui/Table";
+import type { ShiftTemplate } from "@/features/hr/shifts/types";
+
+interface Props {
+  templates: ShiftTemplate[];
+  onAdd: () => void;
+  onEdit: (t: ShiftTemplate) => void;
+  onDelete: (id: string) => void;
+}
+
+export default function ShiftTemplateSection({ templates, onAdd, onEdit, onDelete }: Props) {
+  const columns: Column<ShiftTemplate>[] = [
+    { key: "name", header: "Tên Khung Ca", render: (t) => <span className="font-semibold text-gray-800">{t.name}</span> },
+    { key: "startTime", header: "Giờ Bắt Đầu", render: (t) => <span className="font-mono text-gray-600">{t.startTime}</span> },
+    { key: "endTime", header: "Giờ Kết Thúc", render: (t) => <span className="font-mono text-gray-600">{t.endTime}</span> },
+    {
+      key: "duration",
+      header: "Thời lượng",
+      render: (t) => {
+        const [sh, sm] = t.startTime.split(":").map(Number);
+        const [eh, em] = t.endTime.split(":").map(Number);
+        let hours = eh - sh;
+        let mins = em - sm;
+        if (mins < 0) { hours -= 1; mins += 60; }
+        if (hours < 0) hours += 24;
+        return <span className="text-sm text-gray-500">{hours}h {mins > 0 ? `${mins}m` : ""}</span>;
+      },
+    },
+    {
+      key: "actions",
+      header: "Thao tác",
+      render: (t) => (
+        <div className="flex items-center gap-1">
+          <button onClick={() => onEdit(t)} className="p-1 text-gray-400 hover:text-primary cursor-pointer transition-colors" title="Sửa khung ca">
+            <IconPencil size={16} />
+          </button>
+          <button onClick={() => onDelete(t.id)} className="p-1 text-gray-400 hover:text-danger cursor-pointer transition-colors" title="Xóa khung ca">
+            <IconTrash size={16} />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Khung giờ làm việc mẫu</CardTitle>
+        <Button variant="white" size="sm" onClick={onAdd}>
+          <IconPlus size={16} /> Thêm khung ca
+        </Button>
+      </CardHeader>
+      <CardBody className="pt-2">
+        <Table columns={columns} data={templates} rowKey={(t) => t.id} emptyMessage="Chưa có khung ca nào" />
+      </CardBody>
+    </Card>
+  );
+}
