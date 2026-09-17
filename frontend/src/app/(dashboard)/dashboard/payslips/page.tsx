@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faGear, faBuildingColumns } from "@fortawesome/free-solid-svg-icons";
+import { faGear } from "@fortawesome/free-solid-svg-icons";
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
 import { payslips, attendanceConfig } from "@/mock-data/portal";
@@ -57,18 +56,11 @@ export default function PayslipsPage() {
         title={isManager ? "Bảng lương Chi nhánh Hoàn Kiếm (HN-1)" : "Bảng lương & Chốt công Toàn công ty"}
         breadcrumb={[{ label: "HRM", href: "#" }, { label: "Phiếu lương" }]}
         actions={
-          <div className="flex items-center gap-2">
-            <Link href="/dashboard/bank">
-              <Button variant="white">
-                <FontAwesomeIcon icon={faBuildingColumns} fontSize={15} /> Chi lương Ngân hàng
-              </Button>
-            </Link>
-            {!isManager && (
-              <Button variant="white" onClick={() => setAttendanceOpen(true)}>
-                <FontAwesomeIcon icon={faGear} fontSize={15} /> Cấu hình chấm công
-              </Button>
-            )}
-          </div>
+          !isManager ? (
+            <Button variant="white" onClick={() => setAttendanceOpen(true)}>
+              <FontAwesomeIcon icon={faGear} fontSize={15} /> Cấu hình chấm công
+            </Button>
+          ) : undefined
         }
       />
 
