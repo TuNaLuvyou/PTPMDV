@@ -36,7 +36,7 @@ QLDAPM/
 │   │   ├── app/              # Route Groups: (auth)/login, (dashboard)/dashboard/...
 │   │   ├── components/       # UI Primitives & Dashboard Layout Shell
 │   │   ├── context/          # AuthContext, TopbarContext
-│   │   ├── features/         # Feature modules: hr (branches, employees, shifts, wifi, tasks, payslips...)
+│   │   ├── features/         # Feature modules: hr (branches, employees, shifts, wifi, tasks, payslips, bank...)
 │   │   ├── mock-data/        # Mock data trung tâm chuẩn doanh nghiệp
 │   │   └── types/            # TypeScript type definitions
 │   └── package.json
@@ -54,7 +54,7 @@ QLDAPM/
 │   │           ├── home/     # Trang chủ chấm công, ca hôm nay
 │   │           ├── schedule/ # Lịch làm cá nhân, xin nghỉ, nhờ làm thay
 │   │           ├── general_schedule/ # Lịch làm chung chi nhánh
-│   │           ├── operations/ # Danh mục tác vụ: giám sát, đổi ca, duyệt đơn, Wi-Fi
+│   │           ├── operations/ # Danh mục tác vụ: giám sát, đổi ca, duyệt đơn, Wi-Fi, SOAP Ngân hàng
 │   │           ├── tasks/    # Giao việc & nhiệm vụ theo ca
 │   │           ├── salary/   # Bảng lương & phiếu lương
 │   │           ├── notifications/ # Thông báo hệ thống
@@ -62,7 +62,7 @@ QLDAPM/
 │   ├── test/                 # Widget tests
 │   └── pubspec.yaml
 │
-└── agents/                   # Quy ước phân quyền & tài liệu định hướng
+└── AGENTS.md                 # Quy ước phân quyền, kiến trúc On-Premises SOA & hướng dẫn Agent
 ```
 
 ---

@@ -17,6 +17,7 @@ import '../../regulations/presentation/company_regulations_screen.dart';
 import '../../help/presentation/faq_help_screen.dart';
 import '../../shift_assignment/presentation/shift_assignment_screen.dart';
 import '../../tasks/presentation/task_list_screen.dart';
+import 'soap_bank_screen.dart';
 
 class OperationsScreen extends StatelessWidget {
   final UserModel currentUser;
@@ -134,6 +135,20 @@ class OperationsScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const WifiConfigScreen()),
+                );
+              },
+            ),
+            _buildFeatureCard(
+              title: 'Cổng Ngân hàng & SOAP API',
+              subtitle: 'Giám sát cổng SOAP API chi lương & tài khoản nguồn',
+              icon: FontAwesomeIcons.buildingColumns,
+              iconColor: const Color(0xFF1E3A8A),
+              badgeText: 'SOAP 1.2',
+              badgeColor: const Color(0xFF1E3A8A),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SoapBankScreen()),
                 );
               },
             ),
