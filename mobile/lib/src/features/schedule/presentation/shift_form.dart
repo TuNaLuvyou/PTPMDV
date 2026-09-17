@@ -410,7 +410,7 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
             isExpanded: true,
             initialValue: _selectedColleague,
             decoration: InputDecoration(
-              prefixIcon: const FaIcon(FontAwesomeIcons.user, color: Colors.orange, size: 20),
+              prefixIcon: const Icon(Icons.person_outline_rounded, color: Colors.orange, size: 22),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             ),
@@ -586,7 +586,7 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
                 initialValue: _selectedTargetShift,
                 hint: const Text('Chọn ca làm việc...'),
                 decoration: InputDecoration(
-                  prefixIcon: const FaIcon(FontAwesomeIcons.clock, color: AppColors.primary, size: 20),
+                  prefixIcon: const Icon(Icons.access_time_rounded, color: AppColors.primary, size: 22),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
@@ -650,7 +650,7 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
                 initialValue: _selectedSwapStaff,
                 hint: const Text('Chọn đồng nghiệp trong ca...'),
                 decoration: InputDecoration(
-                  prefixIcon: const FaIcon(FontAwesomeIcons.locationDot, color: AppColors.primary, size: 20),
+                  prefixIcon: const Icon(Icons.group_outlined, color: AppColors.primary, size: 22),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
@@ -770,7 +770,7 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
             isExpanded: true,
             initialValue: _selectedLeaveReason,
             decoration: InputDecoration(
-              prefixIcon: const FaIcon(FontAwesomeIcons.calendarXmark, color: Colors.red, size: 20),
+              prefixIcon: const Icon(Icons.event_busy_outlined, color: Colors.red, size: 22),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             ),

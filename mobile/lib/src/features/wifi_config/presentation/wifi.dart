@@ -404,8 +404,8 @@ class _WifiConfigScreenState extends State<WifiConfigScreen> {
             controller: entry.ssidController,
             decoration: InputDecoration(
               labelText: 'Tên mạng (SSID)',
-              prefixIcon: const FaIcon(FontAwesomeIcons.wifi, color: AppColors.primary),
-              hintText: 'Ví dụ: SAAS_WIFI_01',
+              prefixIcon: const Icon(Icons.wifi_rounded, color: AppColors.primary, size: 22),
+              hintText: 'Ví dụ: HRM_OFFICE_01',
               filled: true,
               fillColor: AppColors.background,
               border: OutlineInputBorder(
@@ -424,11 +424,12 @@ class _WifiConfigScreenState extends State<WifiConfigScreen> {
             obscureText: entry.obscurePassword,
             decoration: InputDecoration(
               labelText: 'Mật khẩu',
-              prefixIcon: const FaIcon(FontAwesomeIcons.lock, color: AppColors.primary),
+              prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.primary, size: 22),
               suffixIcon: IconButton(
-                icon: FaIcon(
-                  entry.obscurePassword ? FontAwesomeIcons.eyeSlash : FontAwesomeIcons.eye,
+                icon: Icon(
+                  entry.obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                   color: AppColors.textSecondary,
+                  size: 22,
                 ),
                 onPressed: () => setState(() => entry.obscurePassword = !entry.obscurePassword),
               ),

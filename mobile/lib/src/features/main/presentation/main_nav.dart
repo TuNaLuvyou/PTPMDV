@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/state/user_scope.dart';
 import '../../../core/models/user.dart';
@@ -96,13 +95,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               onTap: _setTabIndex,
               items: [
                 const BottomNavigationBarItem(
-                  icon: FaIcon(FontAwesomeIcons.house),
-                  activeIcon: FaIcon(FontAwesomeIcons.house),
+                  icon: Icon(Icons.home_outlined),
+                  activeIcon: Icon(Icons.home_rounded),
                   label: 'Trang chủ',
                 ),
                 const BottomNavigationBarItem(
-                  icon: FaIcon(FontAwesomeIcons.grip),
-                  activeIcon: FaIcon(FontAwesomeIcons.grip),
+                  icon: Icon(Icons.grid_view_outlined),
+                  activeIcon: Icon(Icons.grid_view_rounded),
                   label: 'Tác vụ',
                 ),
                 BottomNavigationBarItem(
@@ -112,7 +111,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     backgroundColor: const Color(0xFFDC2626),
                     textColor: Colors.white,
                     textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-                    child: const FaIcon(FontAwesomeIcons.bell),
+                    child: const Icon(Icons.notifications_none_rounded),
                   ),
                   activeIcon: Badge.count(
                     count: unreadCount,
@@ -120,13 +119,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     backgroundColor: const Color(0xFFDC2626),
                     textColor: Colors.white,
                     textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-                    child: const FaIcon(FontAwesomeIcons.bell),
+                    child: const Icon(Icons.notifications_rounded),
                   ),
                   label: 'Thông báo',
                 ),
                 const BottomNavigationBarItem(
-                  icon: FaIcon(FontAwesomeIcons.user),
-                  activeIcon: FaIcon(FontAwesomeIcons.person),
+                  icon: Icon(Icons.person_outline_rounded),
+                  activeIcon: Icon(Icons.person_rounded),
                   label: 'Tài khoản',
                 ),
               ],

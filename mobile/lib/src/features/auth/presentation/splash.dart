@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import 'login.dart';
 
@@ -47,7 +46,9 @@ class _SplashScreenState extends State<SplashScreen> {
                     ),
                   ],
                 ),
-                child: const FaIcon(FontAwesomeIcons.utensils, size: 44, color: Colors.white),
+                child: const Center(
+                  child: Icon(Icons.badge_outlined, size: 44, color: Colors.white),
+                ),
               ),
               const SizedBox(height: 20),
               const Text(

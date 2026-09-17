@@ -641,7 +641,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                     labelText: 'Tiêu đề công việc *',
                     hintText: 'Ví dụ: Kiểm tra quầy bar, đối chiếu hoá đơn...',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    prefixIcon: const FaIcon(FontAwesomeIcons.clipboardList),
+                    prefixIcon: const Icon(Icons.assignment_outlined, size: 22),
                   ),
                 ),
                 const SizedBox(height: 12),

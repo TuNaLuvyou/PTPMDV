@@ -113,7 +113,7 @@ class OperationsScreen extends StatelessWidget {
             _buildFeatureCard(
               title: 'Giao việc & Quản lý nhiệm vụ',
               subtitle: 'Giao việc trực tiếp cho nhân sự và theo dõi tiến độ hoàn thành',
-              icon: FontAwesomeIcons.calendarPlus,
+              icon: FontAwesomeIcons.listCheck,
               iconColor: const Color(0xFF8E1B2F),
               badgeText: 'Giao việc',
               badgeColor: const Color(0xFF8E1B2F),

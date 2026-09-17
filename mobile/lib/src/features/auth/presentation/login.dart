@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/models/branch.dart';
 import '../../../core/state/branch_scope.dart';
@@ -109,7 +108,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ),
-                    child: const FaIcon(FontAwesomeIcons.idCard, size: 40, color: Colors.white),
+                    child: const Center(
+                      child: Icon(Icons.badge_outlined, size: 40, color: Colors.white),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -136,7 +137,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: _usernameController,
                   decoration: InputDecoration(
                     labelText: 'Email hoặc số điện thoại',
-                    prefixIcon: const FaIcon(FontAwesomeIcons.user, size: 20),
+                    prefixIcon: const Icon(Icons.person_outline_rounded, size: 22, color: AppColors.textSecondary),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
@@ -148,9 +149,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     labelText: 'Mật khẩu',
-                    prefixIcon: const FaIcon(FontAwesomeIcons.lock, size: 20),
+                    prefixIcon: const Icon(Icons.lock_outline_rounded, size: 22, color: AppColors.textSecondary),
                     suffixIcon: IconButton(
-                      icon: FaIcon(_obscurePassword ? FontAwesomeIcons.eyeSlash : FontAwesomeIcons.eye, size: 20),
+                      icon: Icon(
+                        _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        size: 22,
+                        color: AppColors.textSecondary,
+                      ),
                       onPressed: () {
                         setState(() {
                           _obscurePassword = !_obscurePassword;

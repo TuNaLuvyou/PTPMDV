@@ -100,11 +100,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       obscureText: _obscureCurrent,
                       decoration: InputDecoration(
                         hintText: 'Nhập mật khẩu hiện tại',
-                        prefixIcon: const FaIcon(FontAwesomeIcons.lock, size: 20),
+                        prefixIcon: const Icon(Icons.lock_outline_rounded, size: 22, color: AppColors.textSecondary),
                         suffixIcon: IconButton(
-                          icon: FaIcon(
-                            _obscureCurrent ? FontAwesomeIcons.eyeSlash : FontAwesomeIcons.eye,
-                            size: 20,
+                          icon: Icon(
+                            _obscureCurrent ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                            size: 22,
                             color: Colors.grey,
                           ),
                           onPressed: () {
@@ -136,11 +136,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       obscureText: _obscureNew,
                       decoration: InputDecoration(
                         hintText: 'Nhập mật khẩu mới (tối thiểu 6 ký tự)',
-                        prefixIcon: const FaIcon(FontAwesomeIcons.key, size: 20),
+                        prefixIcon: const Icon(Icons.key_rounded, size: 22, color: AppColors.textSecondary),
                         suffixIcon: IconButton(
-                          icon: FaIcon(
-                            _obscureNew ? FontAwesomeIcons.eyeSlash : FontAwesomeIcons.eye,
-                            size: 20,
+                          icon: Icon(
+                            _obscureNew ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                            size: 22,
                             color: Colors.grey,
                           ),
                           onPressed: () {
@@ -178,11 +178,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       obscureText: _obscureConfirm,
                       decoration: InputDecoration(
                         hintText: 'Xác nhận lại mật khẩu mới',
-                        prefixIcon: const FaIcon(FontAwesomeIcons.circleCheck, size: 20),
+                        prefixIcon: const Icon(Icons.check_circle_outline_rounded, size: 22, color: AppColors.textSecondary),
                         suffixIcon: IconButton(
-                          icon: FaIcon(
-                            _obscureConfirm ? FontAwesomeIcons.eyeSlash : FontAwesomeIcons.eye,
-                            size: 20,
+                          icon: Icon(
+                            _obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                            size: 22,
                             color: Colors.grey,
                           ),
                           onPressed: () {
