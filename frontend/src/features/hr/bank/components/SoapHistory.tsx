@@ -172,7 +172,7 @@ export default function SoapTransactionsTable({
           data={filtered}
           columns={columns}
           rowKey={(item) => item.id}
-          emptyMessage="Chưa có lệnh chi lương SOAP nào phù hợp."
+          emptyMessage="Chưa có lệnh chi lương nào phù hợp."
         />
       </CardBody>
     </Card>

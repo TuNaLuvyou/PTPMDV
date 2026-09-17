@@ -60,7 +60,7 @@ export default function PayslipsPage() {
           <div className="flex items-center gap-2">
             <Link href="/dashboard/bank">
               <Button variant="white">
-                <FontAwesomeIcon icon={faBuildingColumns} fontSize={15} /> Chi lương Ngân hàng (SOAP)
+                <FontAwesomeIcon icon={faBuildingColumns} fontSize={15} /> Chi lương Ngân hàng
               </Button>
             </Link>
             {!isManager && (
