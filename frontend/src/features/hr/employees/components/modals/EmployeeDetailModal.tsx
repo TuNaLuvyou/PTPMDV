@@ -751,40 +751,20 @@ export default function EmployeeDetailModal({
                     </div>
 
                     {employee.salaryType === "hourly" ? (
-                      <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+                      <div className="flex justify-between items-center py-1.5">
                         <span className="text-gray-500 text-xs">Đơn giá giờ làm:</span>
                         <span className="font-bold text-amber-700 text-sm">
                           {(employee.hourlySalary ?? 35_000).toLocaleString("vi-VN")} ₫ / giờ
                         </span>
                       </div>
                     ) : (
-                      <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+                      <div className="flex justify-between items-center py-1.5">
                         <span className="text-gray-500 text-xs">Lương cơ bản tháng:</span>
                         <span className="font-bold text-emerald-700 text-sm">
                           {(employee.baseSalary ?? 8_500_000).toLocaleString("vi-VN")} ₫ / tháng
                         </span>
                       </div>
                     )}
-
-                    <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 text-xs text-amber-900 leading-relaxed space-y-1">
-                      <div className="font-bold flex items-center gap-1.5 text-amber-800">
-                        <FontAwesomeIcon icon={faInfoCircle} />
-                        Quy tắc checkout tính lương:
-                      </div>
-                      {employee.salaryType === "hourly" ? (
-                        <p className="text-[11px] text-amber-800">
-                          Khi nhân viên hoàn tất <strong>Checkout ca làm</strong>, hệ thống tự động
-                          nhân số giờ làm thực tế với đơn giá giờ làm để cộng thù lao trực tiếp vào
-                          bảng công ca đó.
-                        </p>
-                      ) : (
-                        <p className="text-[11px] text-amber-800">
-                          Nhân viên hưởng <strong>lương cơ bản tháng cố định</strong>. Khi checkout
-                          ca làm, hệ thống không cộng/trừ giờ mà chỉ ghi nhận trừ tiền nếu có phát
-                          sinh phạt vi phạm quy chế.
-                        </p>
-                      )}
-                    </div>
                   </div>
                 </div>
 
