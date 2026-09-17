@@ -93,7 +93,47 @@ backend/<service-name>/
    - `server.js`: Entry point nạp env, kết nối DB/infrastructure, khởi động HTTP server khi `require.main === module`, export `app` để test.
    - Bắt buộc luôn có endpoint `GET /health` trả về `{ status: "ok", service: "<service-name>", time: new Date().toISOString() }`.
 
-### 2.3. Quy tắc nghiệp vụ Backend chung
+### 2.3. Bảng phân bổ Port cố định (Tránh xung đột khi chạy song song)
+
+Mỗi service BẮT BUỘC sử dụng Port mặc định được phân bổ sẵn trong bảng sau, khai báo trong `.env.example`:
+
+| Service | Thư mục | Port mặc định | Trách nhiệm chính |
+|---|---|---|---|
+| **API Gateway** (tuỳ chọn) | `backend/gateway/` | `4000` | Reverse proxy, gom route, routing tập trung |
+| **Auth & Employee Service** | `backend/employee-service/` | `4001` | Đăng nhập, nhân sự, chi nhánh, phòng ban |
+| **Attendance Service** | `backend/attendance-service/` | `4002` | Ca làm việc, check-in/out, tính tiền phạt |
+| **Payroll Service** | `backend/payroll-service/` | `4003` | Tính lương, phiếu lương, cổng SOAP ngân hàng |
+| **Request & Notification Service** | `backend/request-service/` | `4004` | Đơn từ, phê duyệt, thông báo nội bộ |
+| **Frontend Web** | `frontend/` | `3000` | Next.js 16 Web Portal |
+
+> *Nếu tạo thêm service mới, Agent BẮT BUỘC đăng ký Port tiếp theo (`4005`, `4006`,...) vào bảng này trong `AGENTS.md`.*
+
+### 2.4. Chuẩn định dạng Response HTTP & Mã lỗi
+
+Mọi controller của tất cả service bắt buộc trả về cấu trúc JSON đồng nhất:
+
+- **Thành công (200 OK, 201 Created)**:
+  ```json
+  {
+    "data": { ... },
+    "message": "Thực hiện thành công" // tuỳ chọn
+  }
+  ```
+- **Thất bại (400, 401, 403, 404, 422, 500)**:
+  ```json
+  {
+    "error": {
+      "code": "EMPLOYEE_NOT_FOUND",
+      "message": "Không tìm thấy thông tin nhân sự trên hệ thống"
+    }
+  }
+  ```
+
+### 2.5. Giao tiếp giữa các Service (Inter-service Communication)
+- Service này gọi service khác **BẮT BUỘC** thông qua adapter tại `src/infrastructure/external-clients/` (sử dụng `fetch` hoặc `axios` với timeout tối đa 5000ms).
+- Tuyệt đối **KHÔNG** require trực tiếp file nội bộ của service khác qua đường dẫn tương đối (vd: `require("../../other-service/...")` là **NGHIÊM CẤM**).
+
+### 2.6. Quy tắc nghiệp vụ Backend chung
 - Tạo lệnh chi (payroll) phải kiểm tra số dư tài khoản trích nợ, trừ tiền, sinh mã `TXN-*` + `BANK-*`, và chống trùng bằng `idempotencyKey` (nếu trùng trả lại bản ghi cũ kèm `deduped: true`).
 - Single-tenant: Tuyệt đối không thêm `tenantId`, `tenantSlug` vào bất kỳ code, schema hay URL nào.
 
@@ -121,8 +161,27 @@ lib/src/
 - Theme: `AppColors.primary #8E1B2F`, `AppTheme.lightTheme`, typography Public Sans (`AppTypography`). Không dùng `.withOpacity`, dùng `.withValues(alpha:)`. Không hardcode mã màu, dùng `AppColors`.
 - Kiểm tra: `flutter analyze` (0 issues), `flutter test`.
 
-## 5. Quy ước chung
+## 5. Quy tắc Vibe Coding cho AI Agents (BẮT BUỘC ĐỂ TRÁNH XUNG ĐỘT)
 
-- Không banner/callout hướng dẫn dư thừa trong giao diện doanh nghiệp.
-- Dữ liệu người dùng nhập luôn bảo toàn trọn vẹn.
-- Backend chạy trước khi demo Web (`http://localhost:4000/health` phải `ok`).
+Để nhiều người và nhiều AI Agent cùng phát triển mà không đè code, không phá vỡ logic của nhau:
+
+### 5.1. Nguyên tắc cách ly không gian làm việc (Work Isolation)
+1. **Chỉ sửa trong thư mục được giao**: Khi làm việc trên service nào, Agent chỉ được tạo/sửa file trong `backend/<service-name>/`. Tuyệt đối không tự ý sửa file của service khác, `frontend/` hoặc `mobile/` trừ khi có chỉ định rõ ràng.
+2. **Quy tắc Git Branch**:
+   - Không bao giờ commit trực tiếp lên `main` hay `dev`.
+   - Bắt buộc tạo nhánh feature: `git checkout -b feat/<service-name>-<tên-dev>` từ `dev`.
+   - Trước khi tạo PR: `git pull origin dev` và resolve conflict cục bộ.
+3. **Không commit file môi trường thực**: File `.env` phải luôn được gitignore. Chỉ commit `.env.example`.
+
+### 5.2. Quy thức BẮT BUỘC cập nhật `AGENTS.md` sau khi hoàn thành (Agent Handover Protocol)
+- **KHI NÀO PHẢI CẬP NHẬT**:
+  - Khi Agent tạo một **Service mới** -> Phải cập nhật Service đó và Port vào bảng **Service Registry (mục 2.3)**.
+  - Khi Agent bổ sung một **API Contract chính** hoặc thay đổi cấu trúc Data Schema chung.
+- **KHI NÀO KHÔNG ĐƯỢC CẬP NHẬT**:
+  - Không ghi nhật ký commit, task cá nhân, code nháp hay các chỉnh sửa nhỏ vào `AGENTS.md`. File này chỉ chứa **Hiến pháp & Kiến trúc dùng chung**.
+
+### 5.3. Checklist nghiệm thu trước khi bàn giao
+- [ ] Service chạy độc lập được: `cd backend/<service-name> && npm install && npm run dev`.
+- [ ] `GET /health` trả về đúng format `{ status: "ok", service: "<service-name>", time: "..." }`.
+- [ ] Đúng 100% cấu trúc Clean Architecture: `config/`, `src/api/`, `src/domain/`, `src/services/`, `src/infrastructure/`.
+- [ ] Cập nhật bảng Service Registry trong `AGENTS.md` (nếu có service/port mới).
