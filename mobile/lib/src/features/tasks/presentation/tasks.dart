@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/widgets/branch_selector.dart';
 import '../../../core/models/user.dart';
@@ -146,7 +145,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                       color: const Color(0xFFDC2626).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const FaIcon(FontAwesomeIcons.camera, color: Color(0xFFDC2626), size: 22),
+                    child: const Icon(Icons.photo_camera_rounded, color: Color(0xFFDC2626), size: 24),
                   ),
                   const SizedBox(width: 12),
                   const Expanded(
@@ -219,7 +218,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                             color: Colors.white,
                             shape: BoxShape.circle,
                           ),
-                          child: const FaIcon(FontAwesomeIcons.camera, color: Color(0xFFDC2626), size: 32),
+                          child: const Icon(Icons.photo_camera_rounded, color: Color(0xFFDC2626), size: 32),
                         ),
                         const SizedBox(height: 10),
                         const Text(
@@ -251,7 +250,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                               height: 180,
                               color: Colors.grey.shade200,
                               alignment: Alignment.center,
-                              child: const FaIcon(FontAwesomeIcons.image, size: 40, color: Colors.grey),
+                              child: const Icon(Icons.image_outlined, size: 40, color: Colors.grey),
                             ),
                           ),
                         ),
@@ -267,7 +266,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                FaIcon(FontAwesomeIcons.circleCheck, color: Colors.white, size: 14),
+                                Icon(Icons.check_circle_rounded, color: Colors.white, size: 15),
                                 SizedBox(width: 4),
                                 Text(
                                   'Đã chụp ảnh kết quả',
@@ -284,7 +283,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                             backgroundColor: Colors.black54,
                             radius: 16,
                             child: IconButton(
-                              icon: const FaIcon(FontAwesomeIcons.rotateRight, color: Colors.white, size: 16),
+                              icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 18),
                               onPressed: () {
                                 setSheetState(() => tempPhotoUrl = null);
                               },
@@ -297,7 +296,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                     const SizedBox(height: 8),
                     TextButton.icon(
                       onPressed: () => setSheetState(() => tempPhotoUrl = null),
-                      icon: const FaIcon(FontAwesomeIcons.camera, size: 16, color: AppColors.primary),
+                      icon: const Icon(Icons.photo_camera_outlined, size: 16, color: AppColors.primary),
                       label: const Text('Chụp lại ảnh khác', style: TextStyle(color: AppColors.primary, fontSize: 13)),
                     ),
                   ],
@@ -328,7 +327,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                           ),
                         );
                       },
-                icon: const FaIcon(FontAwesomeIcons.check, size: 18),
+                icon: const Icon(Icons.check_rounded, size: 20),
                 label: Text(
                   tempPhotoUrl != null
                       ? 'Xác nhận & Hoàn thành nhiệm vụ'
@@ -420,7 +419,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        FaIcon(FontAwesomeIcons.camera, size: 12, color: Color(0xFFDC2626)),
+                        Icon(Icons.photo_camera_outlined, size: 13, color: Color(0xFFDC2626)),
                         SizedBox(width: 4),
                         Text(
                           'Cần ảnh',
@@ -467,24 +466,24 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
             const SizedBox(height: 20),
             const Divider(height: 1),
             const SizedBox(height: 14),
-            _buildDetailRow(FontAwesomeIcons.locationDot, 'Giao bởi', task.assignedByName),
+            _buildDetailRow(Icons.person_outline_rounded, 'Giao bởi', task.assignedByName),
             if (task.shiftName != null)
-              _buildDetailRow(FontAwesomeIcons.calendarDays, 'Ca làm việc', task.shiftName!),
+              _buildDetailRow(Icons.calendar_today_outlined, 'Ca làm việc', task.shiftName!),
             _buildDetailRow(
-              FontAwesomeIcons.clock,
+              Icons.access_time_rounded,
               'Hạn hoàn thành',
               '${task.dueDate.hour.toString().padLeft(2, '0')}:${task.dueDate.minute.toString().padLeft(2, '0')} ngày ${task.dueDate.day}/${task.dueDate.month}/${task.dueDate.year}',
               highlight: task.isOverdue,
             ),
             _buildDetailRow(
-              FontAwesomeIcons.camera,
+              Icons.photo_camera_outlined,
               'Yêu cầu ảnh chụp',
               task.requirePhoto ? 'Bắt buộc chụp ảnh kết quả' : 'Không bắt buộc',
               valueColor: task.requirePhoto ? const Color(0xFFDC2626) : Colors.grey.shade700,
             ),
             if (task.completedAt != null)
               _buildDetailRow(
-                FontAwesomeIcons.circleCheck,
+                Icons.check_circle_outline_rounded,
                 'Đã hoàn thành lúc',
                 '${task.completedAt!.hour.toString().padLeft(2, '0')}:${task.completedAt!.minute.toString().padLeft(2, '0')} ngày ${task.completedAt!.day}/${task.completedAt!.month}',
                 valueColor: AppColors.success,
@@ -532,7 +531,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                     Navigator.pop(ctx);
                     _handleCompleteTask(task);
                   },
-                  icon: FaIcon(task.requirePhoto ? FontAwesomeIcons.camera : FontAwesomeIcons.check, color: Colors.white),
+                  icon: Icon(task.requirePhoto ? Icons.photo_camera_rounded : Icons.check_rounded, color: Colors.white),
                   label: Text(
                     task.requirePhoto ? 'Chụp ảnh & Hoàn thành' : 'Đã hoàn thành',
                     style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
@@ -550,7 +549,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      FaIcon(FontAwesomeIcons.circleCheck, color: AppColors.success, size: 20),
+                      Icon(Icons.check_circle_rounded, color: AppColors.success, size: 20),
                       SizedBox(width: 8),
                       Text('Công việc đã được hoàn tất thành công!', style: TextStyle(color: AppColors.success, fontWeight: FontWeight.bold)),
                     ],
@@ -563,12 +562,12 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildDetailRow(FaIconData icon, String label, String value, {bool highlight = false, Color? valueColor}) {
+  Widget _buildDetailRow(IconData icon, String label, String value, {bool highlight = false, Color? valueColor}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         children: [
-          FaIcon(icon, size: 16, color: Colors.grey.shade600),
+          Icon(icon, size: 16, color: Colors.grey.shade600),
           const SizedBox(width: 8),
           Text('$label:', style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary)),
           const SizedBox(width: 6),
@@ -741,8 +740,8 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                       'Bắt buộc nhân viên chụp ảnh kết quả mới được bấm hoàn thành',
                       style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
                     ),
-                    secondary: FaIcon(
-                      FontAwesomeIcons.camera,
+                    secondary: Icon(
+                      Icons.photo_camera_outlined,
                       color: requirePhoto ? const Color(0xFFDC2626) : Colors.grey.shade500,
                     ),
                     value: requirePhoto,
@@ -823,7 +822,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const FaIcon(FontAwesomeIcons.chevronLeft, size: 18, color: AppColors.textPrimary),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -854,7 +853,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
           ? FloatingActionButton.extended(
               onPressed: _showCreateTaskDialog,
               backgroundColor: AppColors.primary,
-              icon: const FaIcon(FontAwesomeIcons.calendarPlus, color: Colors.white),
+              icon: const Icon(Icons.add_task_rounded, color: Colors.white, size: 20),
               label: const Text('Giao việc', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             )
           : null,
@@ -874,7 +873,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                       color: AppColors.primary.withValues(alpha: 0.08),
                       shape: BoxShape.circle,
                     ),
-                    child: FaIcon(FontAwesomeIcons.listCheck, size: 44, color: AppColors.primary.withValues(alpha: 0.7)),
+                    child: Icon(Icons.playlist_add_check_rounded, size: 48, color: AppColors.primary.withValues(alpha: 0.7)),
                   ),
                   const SizedBox(height: 14),
                   const Text(
@@ -969,7 +968,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 if (task.priority == TaskPriority.urgent) ...[
-                                  const FaIcon(FontAwesomeIcons.fire, size: 11, color: Color(0xFFDC2626)),
+                                  const Icon(Icons.local_fire_department_rounded, size: 13, color: Color(0xFFDC2626)),
                                   const SizedBox(width: 2),
                                 ],
                                 Text(
@@ -991,7 +990,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                FaIcon(FontAwesomeIcons.camera, size: 11, color: Color(0xFFDC2626)),
+                                Icon(Icons.photo_camera_outlined, size: 12, color: Color(0xFFDC2626)),
                                 SizedBox(width: 3),
                                 Text(
                                   'Cần ảnh',
@@ -1016,7 +1015,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          FaIcon(FontAwesomeIcons.triangleExclamation, size: 12, color: Color(0xFFDC2626)),
+                          Icon(Icons.warning_amber_rounded, size: 13, color: Color(0xFFDC2626)),
                           SizedBox(width: 3),
                           Text(
                             'Quá giờ',
@@ -1057,14 +1056,17 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                         color: isDone ? AppColors.success : Colors.transparent,
                         borderRadius: BorderRadius.circular(7),
                         border: Border.all(
-                          color: isDone ? AppColors.success : (task.requirePhoto ? const Color(0xFFDC2626) : Colors.grey.shade400),
+                          color: isDone
+                              ? AppColors.success
+                              : (task.requirePhoto ? const Color(0xFFDC2626) : Colors.grey.shade400),
                           width: 1.8,
                         ),
                       ),
+                      alignment: Alignment.center,
                       child: isDone
-                          ? const FaIcon(FontAwesomeIcons.check, size: 17, color: Colors.white)
+                          ? const Icon(Icons.check_rounded, size: 18, color: Colors.white)
                           : (task.requirePhoto
-                              ? const FaIcon(FontAwesomeIcons.camera, size: 13, color: Color(0xFFDC2626))
+                              ? const Icon(Icons.photo_camera_rounded, size: 14, color: Color(0xFFDC2626))
                               : null),
                     ),
                   ),
@@ -1100,7 +1102,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
               // Thông tin giao & hạn chót
               Row(
                 children: [
-                  FaIcon(FontAwesomeIcons.user, size: 14, color: Colors.grey.shade600),
+                  const Icon(Icons.person_outline_rounded, size: 15, color: AppColors.textSecondary),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
@@ -1109,7 +1111,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  FaIcon(FontAwesomeIcons.clock, size: 14, color: isOverdue ? const Color(0xFFDC2626) : Colors.grey.shade600),
+                  Icon(Icons.access_time_rounded, size: 14, color: isOverdue ? const Color(0xFFDC2626) : Colors.grey.shade600),
                   const SizedBox(width: 4),
                   Text(
                     '${task.dueDate.hour.toString().padLeft(2, '0')}:${task.dueDate.minute.toString().padLeft(2, '0')}',
