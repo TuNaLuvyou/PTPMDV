@@ -6,24 +6,50 @@
 - Single-tenant nội bộ. Tuyệt đối không thêm `tenantId`, `tenantSlug` vào code, schema hay URL.
 - Màu chủ đạo đỏ đô `#8E1B2F`. Toàn bộ giao diện tiếng Việt.
 
-## 2. Backend (`backend/`, Express, port 4000)
+## 2. Backend (`backend/`, Multi-service SOA, Node.js + Express)
 
+Backend được xây dựng theo kiến trúc đa dịch vụ (Multi-service SOA). **Mọi AI Agent và lập trình viên khi tạo hoặc phát triển bất kỳ service nào đều BẮT BUỘC tuân thủ 100% các quy tắc đồng bộ sau:**
+
+### 2.1. Quy chuẩn cấu trúc một Service (BẮT BUỘC)
+
+Mỗi service phải là một thư mục riêng biệt nằm trong `backend/<service-name>/`. Môi trường Node.js nằm độc lập trong từng thư mục service đó (có `package.json` và `node_modules/` riêng).
+
+Cấu trúc bắt buộc của một service:
 ```text
-backend/
-├── package.json          # scripts: start (node src/index.js), dev (node --watch)
+backend/<service-name>/
+├── package.json          # Quản lý dependencies & scripts riêng (start, dev)
+├── .env.example          # Mẫu biến môi trường (PORT, SERVICE_NAME, DB_URL, ...)
+├── server.js             # Entry point khởi động HTTP server (cùng cấp với src)
 └── src/
-    ├── index.js          # Khởi tạo app, mount routes, error handler
-    ├── data/store.js     # Dữ liệu mẫu trong bộ nhớ (branches, users, bankAccounts, payouts)
-    ├── routes/health.js  # GET /health
-    ├── routes/catalog.js # GET /api/branches, /api/employees
-    ├── routes/payroll.js # GET /api/payroll/bank-accounts, GET/POST /api/payroll/payouts
-    ├── routes/soap.js    # GET /soap/payroll?wsdl, POST /soap/payroll
-    └── soap/wsdl.js      # WSDL + build envelope request/response/fault
+    ├── config/           # Cấu hình môi trường, hằng số constants, cấu hình kết nối DB
+    ├── data/             # In-memory mock store, schemas dữ liệu, mock models
+    ├── controllers/      # Logic nghiệp vụ xử lý request/response
+    ├── middleware/       # Middleware xác thực (auth), validate dữ liệu, error handler
+    └── routes/           # Định nghĩa endpoint Express Router, map vào controller
 ```
 
-- Entry kiểm tra: `require.main === module` mới `listen`, export `app` để test.
-- Tạo lệnh chi kiểm tra số dư, trừ tiền, sinh `TXN-*` + `BANK-*`, chống trùng bằng `idempotencyKey` (trả lại bản ghi cũ kèm `deduped: true`).
-- Dữ liệu đồng bộ với `frontend/src/mock-data/portal.ts` và mock users mobile.
+### 2.2. Chi tiết trách nhiệm của từng thành phần trong Service
+
+1. **Môi trường Node độc lập**:
+   - Chạy lệnh cài đặt và khởi động ngay tại thư mục của service: `cd backend/<service-name> && npm install && npm run dev`.
+   - Không khai báo phụ thuộc dùng chung chéo thư mục ngoài.
+
+2. **File `server.js` (Root của Service)**:
+   - Load `require("dotenv").config()`.
+   - Import Express app từ `src/` hoặc khởi tạo app, áp dụng middleware từ `src/middleware/` và mount routes từ `src/routes/`.
+   - Phải có điều kiện: `if (require.main === module) { app.listen(PORT, ...); }` và `module.exports = app;` để phục vụ test.
+   - Bắt buộc luôn có route `GET /health` trả về `{ status: "ok", service: "<service-name>", time: new Date().toISOString() }`.
+
+3. **5 thư mục bắt buộc trong `src/`**:
+   - `src/config/`: File `index.js` hoặc `env.js` đọc biến môi trường từ `process.env`, định nghĩa port mặc định, JWT secrets, configs.
+   - `src/data/`: File `store.js` chứa dữ liệu mẫu in-memory (hoặc DB connection). Dữ liệu nhân sự, chi nhánh, ngân hàng phải luôn đồng bộ với schema của Web (`frontend/src/mock-data/portal.ts`) và Mobile (`mobile/lib/src/core/models/`).
+   - `src/controllers/`: Tuyệt đối không viết logic trực tiếp trong route. Controller nhận `(req, res, next)`, xử lý nghiệp vụ, gọi `data/` và trả về JSON chuẩn `{ data: ... }` (thành công) hoặc `{ error: ... }` (thất bại).
+   - `src/middleware/`: Chứa `auth.js` (kiểm tra token/session), `validate.js` (kiểm tra input), `errorHandler.js` (xử lý lỗi tập trung).
+   - `src/routes/`: Tạo các file route theo domain nghiệp vụ (vd: `auth.routes.js`, `catalog.routes.js`), gom lại ở `src/routes/index.js` trước khi mount vào app.
+
+### 2.3. Quy tắc nghiệp vụ Backend chung
+- Tạo lệnh chi (payroll) phải kiểm tra số dư tài khoản trích nợ, trừ tiền, sinh mã `TXN-*` + `BANK-*`, và chống trùng bằng `idempotencyKey` (nếu trùng trả lại bản ghi cũ kèm `deduped: true`).
+- Single-tenant: Tuyệt đối không thêm `tenantId`, `tenantSlug` vào bất kỳ code, schema hay URL nào.
 
 ## 3. Frontend (`frontend/`, Next.js 16 + React 19 + Tailwind v4)
 
