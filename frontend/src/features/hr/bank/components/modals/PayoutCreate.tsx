@@ -206,7 +206,7 @@ export default function CreatePayrollDisbursementModal({
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
             disabled={loading}
-            placeholder="Nội dung hiển thị trên thông báo tin nhắn / ứng dụng của nhân viên..."
+            placeholder="Nội dung hiển thị trên sao kê tài khoản ngân hàng (Memo)..."
           />
         </Field>
 

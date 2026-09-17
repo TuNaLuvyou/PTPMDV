@@ -16,7 +16,10 @@
 
 ### 1.2. Mục tiêu chuyển đổi
 - **1-Click Chi lương Trực tiếp**: Bấm nút tạo lệnh trực tiếp trên giao diện HRM, tiền được chuyển thẳng từ tài khoản doanh nghiệp vào tài khoản nhân viên trong vài giây.
-- **Khép kín & Tự động hóa**: Bảng lương chốt $\rightarrow$ Lệnh chi tự động sinh $\rightarrow$ Ngân hàng hạch toán $\rightarrow$ Sinh Ủy nhiệm chi điện tử $\rightarrow$ Phiếu lương trên app Mobile nhân viên lập tức báo "Đã nhận lương".
+- **Khép kín & Tự động hóa**: Bảng lương chốt $\rightarrow$ Lệnh chi trực tiếp sang Core Banking $\rightarrow$ Ngân hàng hạch toán thành công $\rightarrow$ Tự động sinh Ủy nhiệm chi điện tử lưu trữ và đối soát kế toán.
+- **Phân định rõ ràng trách nhiệm thông báo**: 
+  - **Không tự động bắn thông báo mobile khi chuyển tiền qua API**: Tránh rủi ro thông báo trước khi tiền thực tế vào tài khoản nhân viên (độ trễ liên ngân hàng NAPAS hoặc nghẽn mạng). Nhân viên tự theo dõi biến động số dư qua dịch vụ SMS Banking / App ngân hàng cá nhân của mình.
+  - **Thông báo nội bộ do Admin/Manager chủ động**: Khi cần thông báo chung về kỳ lương, Admin hoặc Quản lý chi nhánh sẽ chủ động tạo bản tin trên phân hệ **Bảng tin & Thông báo** (`/dashboard/news`) để gửi đến toàn thể nhân sự.
 - **Giao diện thân thiện**: Được thiết kế tinh giản cho người dùng quản trị/kế toán doanh nghiệp, ẩn đi các thuật ngữ kỹ thuật phức tạp nhưng vẫn đảm bảo tính chính xác và an toàn tuyệt đối.
 
 ---
@@ -27,12 +30,12 @@
 ┌────────────────────────────────────────────────────────────────┐
 │             HẠ TẦNG NỘI BỘ DOANH NGHIỆP (ON-PREMISES)          │
 │                                                                │
-│   ┌─────────────────────┐             ┌─────────────────────┐  │
-│   │   Web HRM Portal    │             │   App Mobile HRM    │  │
-│   │  (Admin / Manager)  │             │     (Nhân viên)     │  │
-│   └──────────┬──────────┘             └──────────▲──────────┘  │
-│              │ (HTTPS)                           │ (WebSocket) │
-│   ┌──────────▼───────────────────────────────────┴──────────┐  │
+│   ┌─────────────────────┐                                      │
+│   │   Web HRM Portal    │                                      │
+│   │  (Admin / Manager)  │                                      │
+│   └──────────┬──────────┘                                      │
+│              │ (HTTPS)                                         │
+│   ┌──────────▼──────────────────────────────────────────────┐  │
 │   │             HRM Core Server (SOA Gateway)               │  │
 │   │      - Module Bảng lương (Payroll Calculation)          │  │
 │   │      - Quản lý tài khoản ngân hàng & số dư              │  │
@@ -69,7 +72,6 @@ sequenceDiagram
     participant Web as Giao diện HRM Web
     participant Server as HRM Core Server
     participant Bank as Hệ thống Core Banking
-    actor Staff as Nhân viên (Mobile App)
 
     HR->>Web: Kiểm tra & Khóa Bảng lương tháng (/dashboard/payslips)
     Web->>Server: Chốt số liệu công ca, phụ cấp, thưởng/phạt
@@ -84,9 +86,11 @@ sequenceDiagram
         Bank->>Bank: Trích nợ TK công ty, ghi có vào TK nhân viên
         Bank-->>Server: Trả về kết quả Thành công + Mã đối soát (Bank Ref)
         Server->>Server: Cập nhật trạng thái đợt chi "Thành công"
-        Server->>Server: Sinh "Phiếu Ủy Nhiệm Chi Điện Tử"
-        Server-->>Staff: Bắn thông báo biến động lương: "Lương tháng đã được chuyển"
-        Staff->>Staff: Mở app xem phiếu lương trạng thái "Đã thanh toán"
+        Server->>Server: Sinh "Phiếu Ủy Nhiệm Chi Điện Tử" (lưu trữ & in ấn kế toán)
+        Note over Bank,HR: Nhân viên tự tra cứu số dư/tin nhắn qua App hoặc SMS Ngân hàng cá nhân.
+        opt Khi Quản trị viên/Quản lý muốn thông báo chính thức
+            HR->>Web: Tạo thông báo nội bộ gửi vào ứng dụng nhân viên (/dashboard/news)
+        end
     else Số dư không đủ / Lỗi kết nối
         Bank-->>Server: Từ chối giao dịch kèm mã lỗi
         Server-->>Web: Cảnh báo Kế toán kiểm tra số dư / đường truyền
@@ -152,4 +156,5 @@ sequenceDiagram
   - Không có quyền thay đổi cấu hình tài khoản ngân hàng doanh nghiệp.
 - **Nhân viên (Staff)**:
   - Không truy cập phân hệ Ngân hàng.
-  - Nhận thông báo lương về và xem phiếu lương cá nhân trên ứng dụng Mobile.
+  - Tự chủ động theo dõi biến động số dư qua SMS Banking hoặc ứng dụng Ngân hàng cá nhân; xem phiếu lương chi tiết trên ứng dụng Mobile.
+  - Nhận các thông báo chung về kỳ lương nếu Admin hoặc Quản lý chi nhánh chủ động đăng trên Bảng tin công ty.
