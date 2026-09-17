@@ -3,11 +3,24 @@ class UserModel {
   final String id;
   final String name;
   final String email;
+  final String phone;
   final String role; // 'admin', 'manager', 'staff'
   final String roleTitle;
 
   /// Chi nhánh được gán cho nhân sự (Admin và Manager cũng thuộc chi nhánh/HQ).
   final String? assignedBranchId;
+
+  /// Thông tin cá nhân & Địa chỉ cư trú (đồng bộ hệ thống)
+  final String gender;
+  final String birthDate;
+  final String province;
+  final String ward;
+  final String street;
+
+  /// Thông tin Căn cước công dân (CCCD)
+  final String cccd;
+  final String issueDate;
+  final String issuePlace;
 
   /// Cấu hình tính lương & Tài khoản ngân hàng
   final String salaryType; // 'hourly' (Lương theo giờ) hoặc 'monthly' (Lương cơ bản tháng)
@@ -21,9 +34,18 @@ class UserModel {
     this.id = '1',
     required this.name,
     required this.email,
+    this.phone = '0912345678',
     required this.role,
     required this.roleTitle,
     this.assignedBranchId = '01',
+    this.gender = 'Nữ',
+    this.birthDate = '24/08/1999',
+    this.province = 'Hà Nội',
+    this.ward = 'Phường Hàng Bài',
+    this.street = '15 Phố Hàng Bài, Q. Hoàn Kiếm',
+    this.cccd = '001199014567',
+    this.issueDate = '10/05/2021',
+    this.issuePlace = 'Cục CS QLHC về TTXH',
     this.salaryType = 'hourly',
     this.hourlySalary = 35000.0,
     this.baseSalary = 8500000.0,

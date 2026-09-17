@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/models/user.dart';
 import '../../../core/state/branch_scope.dart';
 import '../../../core/state/user_scope.dart';
 
@@ -9,6 +10,7 @@ class PersonalInfoScreen extends StatefulWidget {
   final String email;
   final String phone;
   final bool isManager;
+  final UserModel? user;
 
   const PersonalInfoScreen({
     super.key,
@@ -16,6 +18,7 @@ class PersonalInfoScreen extends StatefulWidget {
     required this.email,
     required this.phone,
     required this.isManager,
+    this.user,
   });
 
   @override
@@ -28,23 +31,32 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   late TextEditingController _cccdCtrl;
   bool _isEditing = false;
 
-  // mock values — sau này lấy từ API /profile
-  String _birthDate = '15/03/1998';
-  final String _gender = 'Nam';
-  final String _province = 'TP. Hồ Chí Minh';
-  final String _ward = 'Phường Bến Nghé';
-  final String _street = '123 Đường Nguyễn Trãi';
-  final String _bankAcc = '9876 5432 10';
-  final String _bankName = 'Vietcombank';
-  String _cccd = '079098012345';
-  String _issueDate = '20/05/2021';
-  final String _issuePlace = 'Cục CS QLHC về TTXH';
+  late String _birthDate;
+  late String _gender;
+  late String _province;
+  late String _ward;
+  late String _street;
+  late String _bankAcc;
+  late String _bankName;
+  late String _cccd;
+  late String _issueDate;
+  late String _issuePlace;
 
   @override
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.name);
     _phoneCtrl = TextEditingController(text: widget.phone);
+    _birthDate = widget.user?.birthDate ?? '24/08/1999';
+    _gender = widget.user?.gender ?? 'Nữ';
+    _province = widget.user?.province ?? 'Hà Nội';
+    _ward = widget.user?.ward ?? 'Phường Hàng Bài';
+    _street = widget.user?.street ?? '15 Phố Hàng Bài, Q. Hoàn Kiếm';
+    _bankAcc = widget.user?.bankAccountNumber ?? '108876543210';
+    _bankName = widget.user?.bankName ?? 'VietinBank';
+    _cccd = widget.user?.cccd ?? '001199014567';
+    _issueDate = widget.user?.issueDate ?? '10/05/2021';
+    _issuePlace = widget.user?.issuePlace ?? 'Cục CS QLHC về TTXH';
     _cccdCtrl = TextEditingController(text: _cccd);
   }
 

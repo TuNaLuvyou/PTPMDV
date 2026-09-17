@@ -10,7 +10,7 @@ interface ModalProps {
   open: boolean;
   onClose: () => void;
   title?: string;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl" | "2xl";
   children: React.ReactNode;
   footer?: React.ReactNode;
 }
@@ -20,6 +20,7 @@ const sizeClasses = {
   md: "max-w-xl",
   lg: "max-w-3xl",
   xl: "max-w-5xl",
+  "2xl": "max-w-6xl",
 };
 
 export default function Modal({

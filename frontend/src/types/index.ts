@@ -8,13 +8,31 @@ export interface Employee {
   id: string;
   name: string;
   email: string;
+  phone: string;
+  gender?: "Nam" | "Nữ" | "Khác" | string;
+  birthDate?: string; // e.g. "15/03/1998"
+
+  // Địa chỉ hiện tại (đồng bộ mobile)
+  province?: string;  // Tỉnh / Thành phố
+  ward?: string;      // Xã / Phường
+  street?: string;    // Số nhà / Tên đường
+
+  // Thông tin CCCD / Định danh (đồng bộ mobile)
+  cccd?: string;        // Số CCCD (12 chữ số)
+  issueDate?: string;   // Ngày cấp
+  issuePlace?: string;  // Nơi cấp
+  cccdFront?: string | boolean; // Trạng thái ảnh mặt trước
+  cccdBack?: string | boolean;  // Trạng thái ảnh mặt sau
+
+  // Công tác & Phân quyền
   branch: string;
   department: string;
   role: "Quản trị viên" | "Quản lý" | "Nhân sự" | "Kế toán" | "Lễ tân" | "Kỹ thuật" | string;
   systemRole: UserRole;
   status: "đang làm" | "vô hiệu hóa";
-  phone: string;
   joinDate?: string;
+
+  // Tiền lương & Ngân hàng
   baseSalary?: number;
   salaryType?: "hourly" | "monthly";
   hourlySalary?: number;

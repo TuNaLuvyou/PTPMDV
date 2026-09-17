@@ -72,6 +72,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   email: widget.currentUser.email,
                   phone: _phoneController.text,
                   isManager: canManage,
+                  user: widget.currentUser,
                 ),
               ),
             ),
