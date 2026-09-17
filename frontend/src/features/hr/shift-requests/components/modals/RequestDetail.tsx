@@ -73,13 +73,13 @@ export default function RequestDetailModal({
       case "đổi ca":
       default:
         return {
-          title: "Yêu cầu đổi ca làm việc",
+          title: "Yêu cầu đổi ca / Nhờ làm thay",
           badge: (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
-              <FontAwesomeIcon icon={faArrowRightArrowLeft} fontSize={15} /> Đổi ca
+              <FontAwesomeIcon icon={faArrowRightArrowLeft} fontSize={15} /> Đổi ca / Nhờ làm thay
             </span>
           ),
-          desc: "Nhân viên đề xuất đổi ca làm việc với nhân sự khác hoặc dời ca trực",
+          desc: "Hai nhân viên tự gửi và xác nhận đồng ý với nhau trên app; Quản lý chi nhánh có quyền duyệt đồng ý hộ",
         };
     }
   };
@@ -114,7 +114,7 @@ export default function RequestDetailModal({
                 className="shadow-xs"
               >
                 <FontAwesomeIcon icon={faCheck} fontSize={16} className="mr-1 inline" />
-                Phê duyệt
+                {request.type === "đổi ca" ? "Duyệt đồng ý hộ" : "Phê duyệt"}
               </Button>
             </div>
           ) : (

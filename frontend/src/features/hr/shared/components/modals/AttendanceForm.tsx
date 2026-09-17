@@ -76,12 +76,18 @@ export default function AttendanceConfigModal({ open, onClose, config, setConfig
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Field label="Chế độ duyệt đổi ca" required>
-              <Select defaultValue={config.shiftSwapMode}><option>Tự động</option><option>Admin duyệt</option></Select>
+              <Select defaultValue={config.shiftSwapMode}>
+                <option>Nhân viên tự xác nhận (Quản lý duyệt hộ)</option>
+                <option>Quản lý chi nhánh duyệt trực tiếp</option>
+              </Select>
             </Field>
             <Field label="Số lần đổi ca tối đa / tháng" required>
               <Select defaultValue="3"><option>1 lần</option><option>3 lần</option><option>5 lần</option><option>Không giới hạn</option></Select>
             </Field>
           </div>
+          <p className="text-[11px] text-gray-500 mt-2 mb-3">
+            * Đổi ca / Nhờ làm thay: Hai nhân viên tự gửi và xác nhận đồng ý với nhau trên app; trường hợp đột xuất thì Quản lý chi nhánh sẽ duyệt đồng ý hộ.
+          </p>
           <div className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
             <span className="text-sm text-gray-700">Bắt buộc nhập lý do khi đổi ca</span><Toggle checked={config.requireReasonSwap} onChange={setFlag("requireReasonSwap")} />
           </div>

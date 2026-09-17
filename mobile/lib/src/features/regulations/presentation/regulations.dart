@@ -38,7 +38,7 @@ class CompanyRegulationsScreen extends StatelessWidget {
             content:
                 '• Nghỉ phép năm: Nộp đơn trên ứng dụng trước ít nhất 48 giờ để Quản lý sắp xếp người làm thay.\n'
                 '• Nghỉ ốm đột xuất: Báo ngay cho Quản lý chi nhánh trước ca trực 2 giờ và bổ sung giấy chỉ định y tế khi đi làm lại.\n'
-                '• Đổi ca / Nhờ làm thay: Hai bên tự thỏa thuận trên app, hệ thống chuyển đơn sang Quản lý duyệt trước 12 giờ.',
+                '• Đổi ca / Nhờ làm thay: Hai nhân viên tự thỏa thuận và xác nhận đồng ý với nhau trên ứng dụng là hoàn tất đổi ca. Trường hợp phát sinh gấp hoặc bận, Quản lý chi nhánh có quyền duyệt đồng ý hộ.',
           ),
           _buildSection(
             number: '3',

@@ -26,7 +26,7 @@ class FaqHelpScreen extends StatelessWidget {
     FaqItem(
       question: 'Quy trình đổi ca hoặc nhờ người khác làm thay?',
       answer:
-          'Vào tab "Trang chủ" hoặc "Lịch làm việc" > Bấm vào ca muốn đổi > Chọn "Yêu cầu đổi ca" hoặc "Nhờ làm thay" > Chọn đồng nghiệp nhận ca và gửi yêu cầu. Sau khi đồng nghiệp đồng ý, Quản lý sẽ duyệt chính thức.',
+          'Vào tab "Trang chủ" hoặc "Lịch làm việc" > Bấm vào ca muốn đổi > Chọn "Yêu cầu đổi ca" hoặc "Nhờ làm thay" > Chọn đồng nghiệp nhận ca và gửi yêu cầu. Khi đồng nghiệp xác nhận "Đồng ý", lịch ca sẽ tự động cập nhật ngay mà không qua admin. Trường hợp đồng nghiệp bận hoặc có việc gấp, Quản lý chi nhánh có thể vào duyệt đồng ý hộ.',
     ),
     FaqItem(
       question: 'Quản trị viên và Quản lý có cần chấm công không?',

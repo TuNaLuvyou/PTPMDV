@@ -130,10 +130,13 @@ class _ShiftRequestScreenState extends State<ShiftRequestScreen>
 
   void _approve(ShiftRequest request) {
     setState(() => request.status = ShiftRequestStatus.approved);
+    final text = request.type == ShiftRequestType.swap
+        ? '✅ Quản lý đã duyệt đồng ý hộ đổi ca cho ${request.staffName}'
+        : '✅ Đã duyệt yêu cầu của ${request.staffName}';
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: Colors.green,
-        content: Text('✅ Đã duyệt yêu cầu của ${request.staffName}'),
+        content: Text(text),
       ),
     );
   }
@@ -423,7 +426,7 @@ class _ShiftRequestScreenState extends State<ShiftRequestScreen>
                           _approve(request);
                         },
                         icon: const FaIcon(FontAwesomeIcons.check, size: 16),
-                        label: const Text('Phê duyệt'),
+                        label: Text(request.type == ShiftRequestType.swap ? 'Duyệt đồng ý hộ' : 'Phê duyệt'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
                           foregroundColor: Colors.white,

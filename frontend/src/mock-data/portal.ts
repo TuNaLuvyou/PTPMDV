@@ -327,7 +327,7 @@ export const attendanceConfig = {
   earlyPenalty: "20.000đ / lần về sớm",
   gracePeriod: "5 phút",
   autoCloseShift: true,
-  shiftSwapMode: "Quản lý duyệt",
+  shiftSwapMode: "Nhân viên tự xác nhận (Quản lý duyệt hộ)",
 };
 
 // ---------- Thông báo hệ thống ----------
