@@ -110,7 +110,7 @@ Hệ thống phân quyền chuẩn gồm **3 cấp vai trò**:
 ### Tech Stack
 - **Framework**: Flutter 3.x (Dart 3.x)
 - **Kiến trúc**: Feature-Driven Architecture
-- **Routing**: `go_router` (`core/router/app_router.dart`)
+- **Routing**: `go_router` (`core/router/router.dart`)
 - **Theme**: Material 3, `AppColors.primary` (`#8E1B2F`)
 
 ### Cấu trúc Modules (`mobile/lib/src/features/`)

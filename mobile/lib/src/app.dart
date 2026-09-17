@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'core/models/branch.dart';
 import 'core/state/branch_scope.dart';
 import 'core/state/user_scope.dart';
-import 'core/theme/app_theme.dart';
+import 'core/theme/theme.dart';
 import 'core/models/user.dart';
-import 'features/auth/presentation/splash_screen.dart';
+import 'features/auth/presentation/splash.dart';
 
 class HRMApp extends StatefulWidget {
   const HRMApp({super.key});

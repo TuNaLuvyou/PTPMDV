@@ -7,8 +7,8 @@ import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
 import { shiftRequests, attendanceConfig } from "@/mock-data/portal";
 import type { ShiftRequest } from "@/types";
-import ShiftRequestSection from "@/features/hr/shift-requests/components/ShiftRequestSection";
-import AttendanceConfigModal, { type AttendanceConfigState } from "@/features/hr/shared/components/modals/AttendanceConfigModal";
+import ShiftRequestSection from "@/features/hr/shift-requests/components/RequestList";
+import AttendanceConfigModal, { type AttendanceConfigState } from "@/features/hr/shared/components/modals/AttendanceForm";
 import { useCurrentUser } from "@/context/AuthContext";
 
 export default function RequestsPage() {

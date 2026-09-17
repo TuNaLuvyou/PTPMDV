@@ -6,14 +6,14 @@ import { faCalendarDay, faCalendarWeek, faGear } from "@fortawesome/free-solid-s
 import PageHeader from "@/components/ui/PageHeader";
 import { employees } from "@/mock-data/portal";
 import type { ShiftTemplate, WorkShift, WeeklyRegistration } from "@/features/hr/shifts/types";
-import ShiftTemplateSection from "@/features/hr/shifts/components/ShiftTemplateSection";
-import WorkShiftSection from "@/features/hr/shifts/components/WorkShiftSection";
-import WeeklyRegistrationSection from "@/features/hr/shifts/components/WeeklyRegistrationSection";
-import GeneralScheduleSection from "@/features/hr/shifts/components/GeneralScheduleSection";
-import RegistrationTimetableSection from "@/features/hr/shifts/components/RegistrationTimetableSection";
-import TemplateModal from "@/features/hr/shifts/components/modals/TemplateModal";
-import AssignShiftModal from "@/features/hr/shifts/components/modals/AssignShiftModal";
-import ExportModal from "@/features/hr/shifts/components/modals/ExportModal";
+import ShiftTemplateSection from "@/features/hr/shifts/components/ShiftTemplates";
+import WorkShiftSection from "@/features/hr/shifts/components/ShiftList";
+import WeeklyRegistrationSection from "@/features/hr/shifts/components/WeekWishes";
+import GeneralScheduleSection from "@/features/hr/shifts/components/ScheduleOverview";
+import RegistrationTimetableSection from "@/features/hr/shifts/components/RegTimetable";
+import TemplateModal from "@/features/hr/shifts/components/modals/TemplateForm";
+import AssignShiftModal from "@/features/hr/shifts/components/modals/ShiftAssign";
+import ExportModal from "@/features/hr/shifts/components/modals/ShiftExport";
 import { useCurrentUser } from "@/context/AuthContext";
 
 const initialTemplates: ShiftTemplate[] = [

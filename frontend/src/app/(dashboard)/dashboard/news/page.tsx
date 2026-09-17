@@ -5,11 +5,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
-import { initialNews } from "@/features/hr/news/mockData";
+import { initialNews } from "@/features/hr/news/mock";
 import type { NewsItem } from "@/features/hr/news/types";
-import NewsSection from "@/features/hr/news/components/NewsSection";
-import NewsDetailModal from "@/features/hr/news/components/modals/NewsDetailModal";
-import CreateNewsModal from "@/features/hr/news/components/modals/CreateNewsModal";
+import NewsSection from "@/features/hr/news/components/NewsList";
+import NewsDetailModal from "@/features/hr/news/components/modals/NewsDetail";
+import CreateNewsModal from "@/features/hr/news/components/modals/NewsForm";
 
 export default function NewsPage() {
   const [newsList, setNewsList] = useState<NewsItem[]>(initialNews);
