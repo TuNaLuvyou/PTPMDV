@@ -17,7 +17,6 @@ import '../../regulations/presentation/regulations.dart';
 import '../../help/presentation/help.dart';
 import '../../shift_assignment/presentation/assignment.dart';
 import '../../tasks/presentation/tasks.dart';
-import 'bank.dart';
 
 class OperationsScreen extends StatelessWidget {
   final UserModel currentUser;
@@ -135,20 +134,6 @@ class OperationsScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const WifiConfigScreen()),
-                );
-              },
-            ),
-            _buildFeatureCard(
-              title: 'Tài khoản & Chi lương Ngân hàng',
-              subtitle: 'Tài khoản nguồn chi trả & lịch sử chuyển tiền tự động',
-              icon: FontAwesomeIcons.buildingColumns,
-              iconColor: AppColors.primary,
-              badgeText: 'Trực tiếp',
-              badgeColor: const Color(0xFF065F46),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SoapBankScreen()),
                 );
               },
             ),

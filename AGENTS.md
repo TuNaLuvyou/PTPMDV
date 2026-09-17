@@ -118,7 +118,7 @@ Hệ thống phân quyền chuẩn gồm **3 cấp vai trò**:
 - `home`: Check-in / Check-out Wi-Fi, hiển thị ca hôm nay, tác vụ nhanh
 - `schedule`: Xem ca cá nhân, điều hướng đổi ca / xin nghỉ
 - `general_schedule`: Xem lịch tổng thể nhân sự chi nhánh theo ngày/tuần
-- `operations`: Danh mục tiện ích vận hành (chấm công, giám sát, duyệt ca, Wi-Fi, Cổng SOAP Ngân hàng...)
+- `operations`: Danh mục tiện ích vận hành (chấm công, giám sát, duyệt ca, Wi-Fi...)
 - `approvals`: Màn hình duyệt đơn đề xuất đổi ca / nghỉ phép cho Quản lý
 - `staff_monitor`: Giám sát quân số trực ca thời gian thực
 - `wifi_config`: Cấu hình SSID / BSSID Wi-Fi chi nhánh (Admin / Manager)

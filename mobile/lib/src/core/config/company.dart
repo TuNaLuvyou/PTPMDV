@@ -5,5 +5,4 @@ class CompanyConfig {
   static const String brandCode = 'HRM';
   static const String supportPhone = '1900 1234';
   static const String apiBaseUrl = 'https://hrm.company.local/api';
-  static const String soapPayrollEndpoint = 'https://hrm.company.local/soap/payroll';
 }
