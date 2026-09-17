@@ -82,8 +82,7 @@ export default function EmployeeSection({
       header: "Phòng ban",
       render: (e) =>
         e.department ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-            <FontAwesomeIcon icon={faSitemap} fontSize={11} className="text-blue-500" />
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
             {e.department}
           </span>
         ) : (
