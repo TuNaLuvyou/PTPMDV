@@ -146,28 +146,59 @@ export default function CreatePayrollDisbursementModal({
           </div>
         </div>
 
-        {/* Form lựa chọn */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Field label="Kỳ bảng lương cần chi trả" required>
-            <Select value={period} onChange={(e) => setPeriod(e.target.value)} disabled={loading}>
-              <option value="08/2026">Tháng 08/2026 (Bảng lương đã chốt)</option>
-              <option value="07/2026">Tháng 07/2026 (Bảng lương đã chốt)</option>
-            </Select>
-          </Field>
+        {/* 1. Chọn Kỳ bảng lương */}
+        <Field label="Kỳ bảng lương cần chi trả" required>
+          <Select value={period} onChange={(e) => setPeriod(e.target.value)} disabled={loading}>
+            <option value="08/2026">Tháng 08/2026 (Bảng lương đã chốt — 18 nhân viên)</option>
+            <option value="07/2026">Tháng 07/2026 (Bảng lương đã chốt — 18 nhân viên)</option>
+          </Select>
+        </Field>
 
-          <Field label="Tài khoản Doanh nghiệp nguồn trích tiền" required>
-            <Select
-              value={selectedBankId}
-              onChange={(e) => setSelectedBankId(e.target.value)}
-              disabled={loading}
-            >
-              {partners.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.shortName} — {p.accountNumber} (Khả dụng: {formatVND(p.balance)})
-                </option>
-              ))}
-            </Select>
-          </Field>
+        {/* 2. Tài khoản Doanh nghiệp: Tách thành 3 tab riêng biệt (Ngân hàng, STK, Số dư khả dụng) */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-gray-700 block">
+            Tài khoản Doanh nghiệp nguồn trích tiền <span className="text-red-500">*</span>
+          </label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Tab 1: Ngân hàng */}
+            <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-2xs hover:border-gray-300 transition-colors">
+              <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">
+                1. Ngân hàng
+              </label>
+              <Select
+                value={selectedBankId}
+                onChange={(e) => setSelectedBankId(e.target.value)}
+                disabled={loading}
+                className="text-xs font-bold text-gray-900"
+              >
+                {partners.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.shortName}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            {/* Tab 2: STK */}
+            <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-2xs">
+              <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">
+                2. Số tài khoản (STK)
+              </label>
+              <div className="h-9 px-3 rounded-lg bg-gray-50 border border-gray-200 flex items-center font-mono font-bold text-xs text-primary">
+                {selectedBank.accountNumber}
+              </div>
+            </div>
+
+            {/* Tab 3: Số dư khả dụng */}
+            <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-2xs">
+              <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">
+                3. Số dư khả dụng
+              </label>
+              <div className="h-9 px-3 rounded-lg bg-emerald-50/60 border border-emerald-200 flex items-center font-bold text-xs text-emerald-700">
+                {formatVND(selectedBank.balance)}
+              </div>
+            </div>
+          </div>
         </div>
 
         <Field label="Nội dung chuyển khoản (Memo)">
