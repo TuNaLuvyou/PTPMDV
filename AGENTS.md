@@ -93,20 +93,25 @@ backend/<service-name>/
    - `server.js`: Entry point nạp env, kết nối DB/infrastructure, khởi động HTTP server khi `require.main === module`, export `app` để test.
    - Bắt buộc luôn có endpoint `GET /health` trả về `{ status: "ok", service: "<service-name>", time: new Date().toISOString() }`.
 
-### 2.3. Bảng phân bổ Port cố định (Tránh xung đột khi chạy song song)
+### 2.3. Quy tắc phân bổ Port & Quản lý Service (Tránh xung đột khi chạy song song)
 
-Mỗi service BẮT BUỘC sử dụng Port mặc định được phân bổ sẵn trong bảng sau, khai báo trong `.env.example`:
+Số lượng và tên gọi của các service sẽ do nhóm tự quyết định theo phân công nghiệp vụ. Để đảm bảo các service có thể khởi chạy song song trên môi trường local mà không xung đột:
 
-| Service | Thư mục | Port mặc định | Trách nhiệm chính |
+1. **Dải Port quy ước**:
+   - `3000`: Dành riêng cho Frontend Web (`frontend/`).
+   - `4000`: Dành cho API Gateway (nếu có sử dụng).
+   - `4001 - 4099`: Dành cho các Backend Services (`backend/<service-name>/`).
+2. **Quy tắc đăng ký Port**:
+   - Khi tạo một service mới, Agent/Dev **tự chọn một Port chưa bị chiếm** trong dải `4001+` (ví dụ service đầu tiên `4001`, service tiếp theo `4002`, `4003`...), cấu hình vào `.env.example`.
+   - Cập nhật tên service và Port vừa chọn vào bảng **Service Registry** bên dưới để các Agent/thành viên khác tránh dùng trùng.
+
+#### Bảng Service Registry (Cập nhật khi tạo service mới)
+
+| Service Name | Thư mục | Port | Trách nhiệm chính |
 |---|---|---|---|
-| **API Gateway** (tuỳ chọn) | `backend/gateway/` | `4000` | Reverse proxy, gom route, routing tập trung |
-| **Auth & Employee Service** | `backend/employee-service/` | `4001` | Đăng nhập, nhân sự, chi nhánh, phòng ban |
-| **Attendance Service** | `backend/attendance-service/` | `4002` | Ca làm việc, check-in/out, tính tiền phạt |
-| **Payroll Service** | `backend/payroll-service/` | `4003` | Tính lương, phiếu lương, cổng SOAP ngân hàng |
-| **Request & Notification Service** | `backend/request-service/` | `4004` | Đơn từ, phê duyệt, thông báo nội bộ |
 | **Frontend Web** | `frontend/` | `3000` | Next.js 16 Web Portal |
-
-> *Nếu tạo thêm service mới, Agent BẮT BUỘC đăng ký Port tiếp theo (`4005`, `4006`,...) vào bảng này trong `AGENTS.md`.*
+| *(Service 1)* | `backend/<service-name>/` | `4001` | *(Đăng ký khi tạo)* |
+| *(Service 2)* | `backend/<service-name>/` | `4002` | *(Đăng ký khi tạo)* |
 
 ### 2.4. Chuẩn định dạng Response HTTP & Mã lỗi
 
