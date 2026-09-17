@@ -50,9 +50,13 @@ export default function AttendanceConfigModal({ open, onClose, config, setConfig
             <Field label="Giới hạn phạt tối đa / tháng" required>
               <Select defaultValue="10"><option>5 lần</option><option>10 lần</option><option>20 lần</option><option>Không giới hạn</option></Select>
             </Field>
-            <Field label="Tự khấu trừ vào lương">
+            <Field label="Thời điểm khấu trừ">
               <div className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
-                <span className="text-sm text-gray-700">Tự động khấu trừ khi chốt lương</span><input type="checkbox" defaultChecked className="w-4 h-4 accent-primary" />
+                <div>
+                  <span className="text-sm font-medium text-gray-800 block">Khấu trừ ngay khi kết thúc ca (Check-out)</span>
+                  <span className="text-[11px] text-gray-400 block mt-0.5">Tính theo giờ làm thực tế × lương cơ bản và trừ thẳng vào ca</span>
+                </div>
+                <input type="checkbox" defaultChecked className="w-4 h-4 accent-primary shrink-0 ml-2" />
               </div>
             </Field>
           </div>
