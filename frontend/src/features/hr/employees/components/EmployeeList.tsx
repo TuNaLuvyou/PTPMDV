@@ -165,16 +165,16 @@ export default function EmployeeSection({
 
           {/* Lọc Phòng ban (Toàn công ty) */}
           <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs">
-            <FontAwesomeIcon icon={faSitemap} fontSize={13} className="text-primary" />
+            <FontAwesomeIcon icon={faSitemap} fontSize={13} className="text-gray-500" />
             <select
               value={departmentFilter}
               onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="bg-transparent border-none text-xs font-bold text-gray-800 focus:outline-hidden cursor-pointer"
+              className="bg-transparent border-none text-xs font-bold text-gray-800 focus:outline-hidden cursor-pointer max-w-[135px] truncate"
             >
               <option value="all">Tất cả phòng ban</option>
               {departments.map((d) => (
                 <option key={d.id} value={d.name}>
-                  {d.name} ({d.code})
+                  {d.name}
                 </option>
               ))}
             </select>
