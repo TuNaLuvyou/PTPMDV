@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 
 class WorkLogItem {
@@ -129,7 +130,7 @@ class _SalaryScreenState extends State<SalaryScreen> {
                     (m) => m.startsWith(_selectedMonth),
                     orElse: () => _months.first,
                   ),
-                  icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.primary),
+                  icon: const FaIcon(FontAwesomeIcons.chevronDown, color: AppColors.primary),
                   items: _months.map((m) {
                     return DropdownMenuItem<String>(
                       value: m,
@@ -320,7 +321,7 @@ class _SalaryScreenState extends State<SalaryScreen> {
                 onPressed: () {
                   _showSupportSheet(context);
                 },
-                icon: const Icon(Icons.report_problem_outlined, size: 18),
+                icon: const FaIcon(FontAwesomeIcons.triangleExclamation, size: 18),
                 label: const Text(
                   'Khiếu nại phiếu lương',
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),

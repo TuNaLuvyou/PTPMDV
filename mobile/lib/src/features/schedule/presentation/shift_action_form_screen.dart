@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 import 'schedule_screen.dart';
 
@@ -132,14 +133,14 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
     }
   }
 
-  IconData get _actionIcon {
+  FaIconData get _actionIcon {
     switch (widget.actionType) {
       case ShiftActionType.cover:
-        return Icons.person_add_alt_1_outlined;
+        return FontAwesomeIcons.userPlus;
       case ShiftActionType.swap:
-        return Icons.swap_horiz_rounded;
+        return FontAwesomeIcons.arrowsLeftRight;
       case ShiftActionType.leave:
-        return Icons.event_busy_outlined;
+        return FontAwesomeIcons.calendarXmark;
     }
   }
 
@@ -243,7 +244,7 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: AppColors.textPrimary),
+          icon: const FaIcon(FontAwesomeIcons.chevronLeft, size: 20, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
           tooltip: 'Quay lại',
         ),
@@ -282,7 +283,7 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
                             color: color.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Icon(_actionIcon, color: color, size: 22),
+                          child: FaIcon(_actionIcon, color: color, size: 22),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -311,14 +312,14 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
                       children: [
                         Expanded(
                           child: _buildShiftBadge(
-                            Icons.calendar_today_outlined,
+                            FontAwesomeIcons.calendarDay,
                             'Thời gian',
                             '${widget.dayOfWeek}, ${widget.date}/2026',
                           ),
                         ),
                         Expanded(
                           child: _buildShiftBadge(
-                            Icons.access_time,
+                            FontAwesomeIcons.clock,
                             'Khung giờ',
                             shift.timeRange,
                           ),
@@ -330,14 +331,14 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
                       children: [
                         Expanded(
                           child: _buildShiftBadge(
-                            Icons.storefront_outlined,
+                            FontAwesomeIcons.store,
                             'Chi nhánh',
                             shift.branch,
                           ),
                         ),
                         Expanded(
                           child: _buildShiftBadge(
-                            Icons.badge_outlined,
+                            FontAwesomeIcons.idCard,
                             'Vị trí',
                             shift.role,
                           ),
@@ -362,7 +363,7 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
                 height: 50,
                 child: ElevatedButton.icon(
                   onPressed: _submitForm,
-                  icon: const Icon(Icons.send_rounded, size: 18),
+                  icon: const FaIcon(FontAwesomeIcons.paperPlane, size: 18),
                   label: Text(
                     widget.actionType == ShiftActionType.leave ? 'Gửi đơn xin nghỉ' : 'Gửi yêu cầu',
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -409,7 +410,7 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
             isExpanded: true,
             initialValue: _selectedColleague,
             decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.person_outline, color: Colors.orange, size: 20),
+              prefixIcon: const FaIcon(FontAwesomeIcons.user, color: Colors.orange, size: 20),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             ),
@@ -444,28 +445,6 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
               }
               return null;
             },
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.orange.shade50,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.orange.shade200),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.info_outline, color: Colors.orange.shade800, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Đồng nghiệp được chọn sẽ nhận được thông báo yêu cầu và có thể bấm Chấp nhận hoặc Từ chối.',
-                    style: TextStyle(fontSize: 12, color: Colors.orange.shade900, height: 1.35),
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
       ),
@@ -546,7 +525,7 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.calendar_month, color: _swapDate != null ? AppColors.primary : AppColors.textSecondary, size: 20),
+                  FaIcon(FontAwesomeIcons.calendarDays, color: _swapDate != null ? AppColors.primary : AppColors.textSecondary, size: 20),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -559,9 +538,9 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
                     ),
                   ),
                   if (_swapDate != null)
-                    const Icon(Icons.check_circle, color: AppColors.primary, size: 18)
+                    const FaIcon(FontAwesomeIcons.circleCheck, color: AppColors.primary, size: 18)
                   else
-                    const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
+                    const FaIcon(FontAwesomeIcons.caretDown, color: AppColors.textSecondary),
                 ],
               ),
             ),
@@ -607,7 +586,7 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
                 initialValue: _selectedTargetShift,
                 hint: const Text('Chọn ca làm việc...'),
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.access_time_filled, color: AppColors.primary, size: 20),
+                  prefixIcon: const FaIcon(FontAwesomeIcons.clock, color: AppColors.primary, size: 20),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
@@ -671,7 +650,7 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
                 initialValue: _selectedSwapStaff,
                 hint: const Text('Chọn đồng nghiệp trong ca...'),
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.person_pin, color: AppColors.primary, size: 20),
+                  prefixIcon: const FaIcon(FontAwesomeIcons.locationDot, color: AppColors.primary, size: 20),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
@@ -757,7 +736,7 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, color: Colors.orange.shade800, size: 18),
+          FaIcon(FontAwesomeIcons.circleInfo, color: Colors.orange.shade800, size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -791,7 +770,7 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
             isExpanded: true,
             initialValue: _selectedLeaveReason,
             decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.event_busy, color: Colors.red, size: 20),
+              prefixIcon: const FaIcon(FontAwesomeIcons.calendarXmark, color: Colors.red, size: 20),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             ),
@@ -827,40 +806,18 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
               return null;
             },
           ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.red.shade50,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.red.shade200),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.red.shade800, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Đơn xin nghỉ ca cần gửi trước giờ bắt đầu ca tối thiểu 4 tiếng để Quản lý kịp thời sắp xếp người thay thế.',
-                    style: TextStyle(fontSize: 12, color: Colors.red.shade900, height: 1.35),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildShiftBadge(IconData icon, String label, String value) {
+  Widget _buildShiftBadge(FaIconData icon, String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 15, color: AppColors.textSecondary),
+          FaIcon(icon, size: 15, color: AppColors.textSecondary),
           const SizedBox(width: 6),
           Expanded(
             child: Column(

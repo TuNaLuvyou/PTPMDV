@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 import 'login_screen.dart';
 
-/// Màn hình khởi động (splash) — hiển thị brand của **PLATFORM** (chúng ta),
-/// không phải của tenant nào. Sau một khoảng ngắn tự chuyển sang màn Đăng nhập.
+/// Màn hình khởi động (splash) — hiển thị thương hiệu hệ thống HRM On-Premises.
+/// Sau một khoảng ngắn tự chuyển sang màn Đăng nhập.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -46,11 +47,11 @@ class _SplashScreenState extends State<SplashScreen> {
                     ),
                   ],
                 ),
-                child: const Icon(Icons.restaurant_menu, size: 44, color: Colors.white),
+                child: const FaIcon(FontAwesomeIcons.utensils, size: 44, color: Colors.white),
               ),
               const SizedBox(height: 20),
               const Text(
-                'F&B Platform',
+                'HRM Enterprise',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -59,7 +60,7 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
               const SizedBox(height: 6),
               const Text(
-                'Nền tảng quản lý F&B',
+                'Hệ thống Quản lý Nhân sự & Vận hành',
                 style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 32),

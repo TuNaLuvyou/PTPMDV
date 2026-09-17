@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/state/user_scope.dart';
 import 'schedule_screen.dart';
 import 'shift_action_form_screen.dart';
 
@@ -69,7 +71,7 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
         centerTitle: true,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: AppColors.textPrimary),
+          icon: const FaIcon(FontAwesomeIcons.chevronLeft, size: 20, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
           tooltip: 'Quay lại',
         ),
@@ -104,7 +106,7 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
                       color: AppColors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.access_time_filled, color: AppColors.primary, size: 28),
+                    child: const FaIcon(FontAwesomeIcons.clock, color: AppColors.primary, size: 28),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -155,23 +157,24 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
               ),
               child: Column(
                 children: [
-                  _buildInfoRow(Icons.calendar_today_outlined, 'Ngày tính công',
+                  _buildInfoRow(FontAwesomeIcons.calendarDay, 'Ngày tính công',
                       '${widget.date}/08/2026 (${widget.dayOfWeek})'),
                   _divider(),
-                  _buildInfoRow(Icons.person_outline, 'Nhân viên', 'Nguyễn Văn A'),
+                  _buildInfoRow(FontAwesomeIcons.user, 'Nhân viên',
+                      UserScope.currentUser(context)?.name ?? 'Nguyễn Văn A'),
                   _divider(),
-                  _buildInfoRow(Icons.work_outline, 'Ca làm việc', shift.shiftName),
+                  _buildInfoRow(FontAwesomeIcons.briefcase, 'Ca làm việc', shift.shiftName),
                   _divider(),
-                  _buildInfoRow(Icons.login, 'Giờ check-in tính công', checkIn),
+                  _buildInfoRow(FontAwesomeIcons.rightToBracket, 'Giờ check-in tính công', checkIn),
                   _divider(),
-                  _buildInfoRow(Icons.logout, 'Giờ check-out tính công', checkOut),
+                  _buildInfoRow(FontAwesomeIcons.rightFromBracket, 'Giờ check-out tính công', checkOut),
                   _divider(),
-                  _buildInfoRow(Icons.timer_outlined, 'Số giờ tính công', tongGioTinhCong),
+                  _buildInfoRow(FontAwesomeIcons.stopwatch, 'Số giờ tính công', tongGioTinhCong),
                   _divider(),
-                  _buildInfoRow(Icons.flag_outlined, 'Trạng thái', statusText,
+                  _buildInfoRow(FontAwesomeIcons.flag, 'Trạng thái', statusText,
                       valueColor: statusColor),
                   _divider(),
-                  _buildInfoRow(Icons.source_outlined, 'Nguồn công', nguonCong),
+                  _buildInfoRow(FontAwesomeIcons.fileLines, 'Nguồn công', nguonCong),
                 ],
               ),
             ),
@@ -186,7 +189,7 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
               const SizedBox(height: 10),
               _buildActionButton(
                 title: 'Nhờ làm thay',
-                icon: Icons.person_add_alt_1_outlined,
+                icon: FontAwesomeIcons.userPlus,
                 color: Colors.orange.shade800,
                 bgColor: Colors.orange.shade50,
                 onTap: () => _navigateToForm(ShiftActionType.cover),
@@ -194,7 +197,7 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
               const SizedBox(height: 8),
               _buildActionButton(
                 title: 'Đổi ca làm việc',
-                icon: Icons.swap_horiz_rounded,
+                icon: FontAwesomeIcons.arrowsLeftRight,
                 color: AppColors.primary,
                 bgColor: AppColors.primary.withValues(alpha: 0.08),
                 onTap: () => _navigateToForm(ShiftActionType.swap),
@@ -202,10 +205,20 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
               const SizedBox(height: 8),
               _buildActionButton(
                 title: 'Xin nghỉ ca',
-                icon: Icons.event_busy_outlined,
+                icon: FontAwesomeIcons.calendarXmark,
                 color: Colors.red.shade700,
                 bgColor: Colors.red.shade50,
                 onTap: () => _navigateToForm(ShiftActionType.leave),
+              ),
+            ] else if (shift.status == 'missed') ...[
+              _buildActionButton(
+                title: 'Bổ sung chấm công',
+                icon: FontAwesomeIcons.calendarPlus,
+                color: Colors.orange.shade700,
+                bgColor: Colors.orange.shade50,
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Đã gửi yêu cầu bổ sung chấm công tới quản lý'), backgroundColor: Color(0xFFEA580C)));
+                },
               ),
             ] else ...[
               Container(
@@ -218,8 +231,8 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      shift.status == 'completed' ? Icons.check_circle_outline : Icons.info_outline,
+                    FaIcon(
+                      shift.status == 'completed' ? FontAwesomeIcons.circleCheck : FontAwesomeIcons.circleInfo,
                       color: shift.status == 'completed' ? AppColors.success : AppColors.primary,
                     ),
                     const SizedBox(width: 12),
@@ -244,12 +257,12 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
 
   Widget _divider() => const Divider(height: 1, indent: 16, endIndent: 16);
 
-  Widget _buildInfoRow(IconData icon, String label, String value, {Color? valueColor}) {
+  Widget _buildInfoRow(FaIconData icon, String label, String value, {Color? valueColor}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
       child: Row(
         children: [
-          Icon(icon, size: 17, color: AppColors.textSecondary),
+          FaIcon(icon, size: 17, color: AppColors.textSecondary),
           const SizedBox(width: 10),
           SizedBox(
             width: 155,
@@ -276,7 +289,7 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
 
   Widget _buildActionButton({
     required String title,
-    required IconData icon,
+    required FaIconData icon,
     required Color color,
     required Color bgColor,
     required VoidCallback onTap,
@@ -293,7 +306,7 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
         ),
         child: Row(
           children: [
-            Icon(icon, color: color, size: 20),
+            FaIcon(icon, color: color, size: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -301,7 +314,7 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color),
               ),
             ),
-            Icon(Icons.chevron_right, color: color.withValues(alpha: 0.6), size: 20),
+            FaIcon(FontAwesomeIcons.chevronRight, color: color.withValues(alpha: 0.6), size: 20),
           ],
         ),
       ),

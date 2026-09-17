@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/config/company_config.dart';
 import '../../../core/state/branch_scope.dart';
-import '../../../core/state/tenant_scope.dart';
-import '../../auth/presentation/login_screen.dart';
-import '../../revenue/presentation/revenue_screen.dart';
+import '../../../core/models/user.dart';
 import '../../schedule/presentation/schedule_screen.dart';
 import '../../salary/presentation/salary_screen.dart';
+import '../../leave_request/presentation/leave_request_screen.dart';
+import '../../schedule_registration/presentation/schedule_registration_screen.dart';
+import '../../tasks/data/task_service.dart';
+import '../../tasks/presentation/task_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final UserModel currentUser;
@@ -14,8 +18,8 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
     this.currentUser = const UserModel(
-      name: 'Nguyễn Văn A',
-      email: 'nhanvien@highlands.vn',
+      name: 'Nguyễn Thu Hà',
+      email: 'nhanvien@company.com',
       role: 'staff',
       roleTitle: 'Nhân viên',
     ),
@@ -36,145 +40,94 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text(
-          'Trang chủ',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        title: const Text('Trang chủ'),
+        backgroundColor: Colors.white,
         centerTitle: true,
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+            icon: const FaIcon(FontAwesomeIcons.bell, color: AppColors.textPrimary),
             onPressed: () {
               if (widget.onNavigateToTab != null) widget.onNavigateToTab!(2); // Switch to Notifications
             },
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          // ── Nửa trên: Ảnh background quán cafe fade dần từ nút chấm công lên ──
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 420,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                // Ảnh không gian quán (ảnh demo chung cho mọi doanh nghiệp)
-                Image.network(
-                  'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?q=80&w=1000&auto=format&fit=crop',
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFF5B1115), Color(0xFF8B1E22), Color(0xFF2C0A0C)],
-                      ),
-                    ),
-                  ),
-                ),
-                // Lớp gradient chuyển màu mượt mà (Fade từ nút chấm công lên trên)
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.65),
-                        Colors.black.withValues(alpha: 0.35),
-                        AppColors.primary.withValues(alpha: 0.20),
-                        AppColors.background.withValues(alpha: 0.85),
-                        AppColors.background,
-                      ],
-                      stops: const [0.0, 0.35, 0.65, 0.88, 1.0],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(context),
+              const SizedBox(height: 20),
+              _buildCheckInOutButton(context),
+              const SizedBox(height: 24),
 
-          // ── Nội dung cuộn trang ──────────────────────────────────
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(context),
-                  const SizedBox(height: 60),
-                  _buildCheckInOutButton(context),
-                  const SizedBox(height: 36),
-
+                  // Lưới tác vụ nhanh 2x2 chuẩn HRM (Lịch làm việc, Đăng ký nghỉ, Kỳ lương, Bảng tin)
                   Row(
                     children: [
                       Expanded(
                         child: _buildQuickActionCard(
                           title: 'Lịch làm việc',
                           subtitle: 'Xem ca & phân công',
-                          icon: Icons.calendar_month,
+                          icon: FontAwesomeIcons.calendarDays,
                           color: const Color(0xFF2563EB),
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const ScheduleScreen()),
-                            );
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => const ScheduleScreen()));
                           },
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: _buildQuickActionCard(
-                          title: 'Doanh thu',
-                          subtitle: currentUser.isManager ? 'Báo cáo ca/ngày' : '🔒 Chỉ Quản lý',
-                          icon: Icons.insights,
-                          color: const Color(0xFF10B981),
+                          title: 'Đăng ký nghỉ',
+                          subtitle: 'Nghỉ ngày/ Nghỉ ca',
+                          icon: FontAwesomeIcons.umbrellaBeach,
+                          color: const Color(0xFFF59E0B),
                           onTap: () {
-                            if (currentUser.isManager) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const RevenueScreen()),
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Chỉ Quản lý mới xem được báo cáo doanh thu.'),
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                            }
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaveRequestScreen()));
                           },
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
-
-                  const Text(
-                    'Thông tin cá nhân & ca làm',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildQuickActionCard(
+                          title: 'Kỳ lương',
+                          subtitle: 'Tạm tính thu nhập',
+                          icon: FontAwesomeIcons.moneyBill,
+                          color: const Color(0xFF10B981),
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const SalaryScreen()));
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildQuickActionCard(
+                          title: 'Đăng ký ca làm',
+                          subtitle: 'Chọn ca tuần tới',
+                          icon: FontAwesomeIcons.calendarCheck,
+                          color: const Color(0xFF0EA5E9),
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const ScheduleRegistrationScreen()));
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  _buildScheduleWidget(context),
-                  const SizedBox(height: 12),
-                  _buildSalaryWidget(context),
+                  const SizedBox(height: 20),
+                  _buildTodoSection(context),
                   const SizedBox(height: 20),
                 ],
               ),
             ),
           ),
-        ],
-      ),
     );
   }
 
@@ -186,30 +139,22 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
       child: Row(
         children: [
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 1.5),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.25),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: CircleAvatar(
-              radius: 26,
-              backgroundColor: Colors.white.withValues(alpha: 0.2),
-              child: Icon(
-                currentUser.isManager ? Icons.admin_panel_settings : Icons.person,
-                color: Colors.white,
-                size: 28,
-              ),
+          CircleAvatar(
+            radius: 26,
+            backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+            child: FaIcon(
+              currentUser.canManage ? FontAwesomeIcons.userShield : FontAwesomeIcons.person,
+              color: AppColors.primary,
+              size: 28,
             ),
           ),
           const SizedBox(width: 14),
@@ -219,13 +164,10 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Text(
                   _greeting(),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 13,
-                    color: Colors.white.withValues(alpha: 0.85),
+                    color: AppColors.textSecondary,
                     fontWeight: FontWeight.w500,
-                    shadows: const [
-                      Shadow(color: Colors.black54, blurRadius: 4, offset: Offset(0, 1)),
-                    ],
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -234,28 +176,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    shadows: [
-                      Shadow(color: Colors.black54, blurRadius: 6, offset: Offset(0, 1)),
-                    ],
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 3),
-                Row(
+                const Row(
                   children: [
-                    Icon(Icons.storefront, size: 14, color: Colors.white.withValues(alpha: 0.9)),
-                    const SizedBox(width: 4),
+                    FaIcon(FontAwesomeIcons.store, size: 14, color: AppColors.textSecondary),
+                    SizedBox(width: 4),
                     Flexible(
                       child: Text(
-                        TenantScope.label(context),
+                        CompanyConfig.shortName,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.95),
+                          color: AppColors.textSecondary,
                           fontSize: 12.5,
                           fontWeight: FontWeight.bold,
-                          shadows: const [
-                            Shadow(color: Colors.black54, blurRadius: 4, offset: Offset(0, 1)),
-                          ],
                         ),
                       ),
                     ),
@@ -272,7 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildQuickActionCard({
     required String title,
     required String subtitle,
-    required IconData icon,
+    required FaIconData icon,
     required Color color,
     required VoidCallback onTap,
   }) {
@@ -299,7 +235,7 @@ class _HomeScreenState extends State<HomeScreen> {
             CircleAvatar(
               radius: 20,
               backgroundColor: color.withValues(alpha: 0.12),
-              child: Icon(icon, color: color, size: 22),
+              child: FaIcon(icon, color: color, size: 22),
             ),
             const SizedBox(height: 12),
             Text(
@@ -339,7 +275,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ? 'Đang làm: ${_checkedInShift!.shiftName} (${_checkedInShift!.timeRange})'
         : 'Chạm để xác thực Wi-Fi chi nhánh';
 
-    final IconData mainIcon = isCheckedIn ? Icons.timer_outlined : Icons.touch_app_outlined;
+    final FaIconData mainIcon = isCheckedIn ? FontAwesomeIcons.stopwatch : FontAwesomeIcons.handPointer;
 
     return Container(
       width: double.infinity,
@@ -382,7 +318,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: Colors.white.withValues(alpha: 0.35), width: 1.5),
                   ),
-                  child: Icon(mainIcon, color: Colors.white, size: 30),
+                  child: FaIcon(mainIcon, color: Colors.white, size: 30),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -420,7 +356,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Colors.white.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.arrow_forward, color: Colors.white, size: 18),
+                  child: const FaIcon(FontAwesomeIcons.arrowRight, color: Colors.white, size: 18),
                 ),
               ],
             ),
@@ -435,10 +371,8 @@ class _HomeScreenState extends State<HomeScreen> {
   String _getShiftStatusLabel(String status) => ScheduleService.getStatusLabel(status);
 
   void _showCheckInSheet(BuildContext context) {
-    // Wi-Fi chi nhánh hiện theo tenant — tránh hardcode tên thương hiệu cụ thể.
-    final tenant = TenantScope.selectedTenant(context);
     final branch = BranchScope.selectedBranch(context);
-    final String wifiSsid = '${(tenant?.brandCode ?? 'SAAS').toUpperCase()}_${branch?.code ?? '01'}';
+    final String wifiSsid = '${CompanyConfig.brandCode}_${branch?.code ?? '01'}';
 
     // Lấy danh sách ca làm việc được phân công cho nhân viên trong hôm nay
     final assignedShifts = ScheduleService.getTodayAssignedShifts(
@@ -553,7 +487,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: const Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.event_busy_outlined, color: Color(0xFFD97706), size: 22),
+                                FaIcon(FontAwesomeIcons.calendarXmark, color: Color(0xFFD97706), size: 22),
                                 SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
@@ -649,9 +583,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showCheckOutSheet(BuildContext context) {
     if (_checkedInShift == null) return;
     final shift = _checkedInShift!;
-    final tenant = TenantScope.selectedTenant(context);
     final branch = BranchScope.selectedBranch(context);
-    final String wifiSsid = '${(tenant?.brandCode ?? 'SAAS').toUpperCase()}_${branch?.code ?? '01'}';
+    final String wifiSsid = '${CompanyConfig.brandCode}_${branch?.code ?? '01'}';
 
     final String checkInTimeStr = _checkedInTime != null
         ? '${_checkedInTime!.hour.toString().padLeft(2, '0')}:${_checkedInTime!.minute.toString().padLeft(2, '0')}'
@@ -810,15 +743,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildScheduleWidget(BuildContext context) {
-    final assignedShifts = ScheduleService.getTodayAssignedShifts(
-      user: currentUser,
-      activeCheckedInShift: _checkedInShift,
-    );
-
-    final String scheduleText = assignedShifts.isNotEmpty
-        ? 'Hôm nay: ${assignedShifts.map((s) => '${s.shiftName} (${s.timeRange})').join(', ')}'
-        : 'Hôm nay: Nghỉ (Không có ca làm việc)';
+  Widget _buildTodoSection(BuildContext context) {
+    final tasks = TaskService.getTasksForUser(userEmail: currentUser.email);
+    final activeTasks = tasks.where((t) => t.computedStatus != TaskStatus.completed).toList();
+    final displayTasks = activeTasks.take(3).toList();
 
     return Container(
       decoration: BoxDecoration(
@@ -826,83 +754,185 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.grey.shade200),
       ),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ScheduleScreen()),
-          );
-        },
-        borderRadius: BorderRadius.circular(14),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: Colors.blue.withValues(alpha: 0.1),
-                child: const Icon(Icons.calendar_month, color: Colors.blue),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
                   children: [
-                    const Text('Lịch làm việc trong tuần', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                    const SizedBox(height: 2),
-                    Text(
-                      scheduleText,
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                      overflow: TextOverflow.ellipsis,
+                    const Text('Công việc cần làm', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                    if (activeTasks.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDC2626).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '${activeTasks.length}',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFDC2626)),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                InkWell(
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => TaskListScreen(currentUser: currentUser)),
+                    );
+                    setState(() {});
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: const Row(children: [Text('Xem tất cả', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 12)), SizedBox(width: 2), FaIcon(FontAwesomeIcons.chevronRight, size: 16, color: AppColors.primary)]),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          if (displayTasks.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 14),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.08), shape: BoxShape.circle),
+                    child: FaIcon(FontAwesomeIcons.listCheck, size: 32, color: AppColors.primary.withValues(alpha: 0.7)),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text('Không có công việc tồn đọng', style: TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  const Text('Bạn đã hoàn thành tất cả nhiệm vụ được giao!', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                ],
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              itemCount: displayTasks.length,
+              separatorBuilder: (_, __) => const Divider(height: 12),
+              itemBuilder: (ctx, index) {
+                final task = displayTasks[index];
+                final isOverdue = task.computedStatus == TaskStatus.overdue;
+
+                return InkWell(
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => TaskListScreen(currentUser: currentUser)),
+                    );
+                    setState(() {});
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        GestureDetector(
+                          onTap: () async {
+                            if (task.requirePhoto) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('📸 Nhiệm vụ này bắt buộc chụp ảnh kết quả. Vui lòng chụp ảnh minh chứng!'),
+                                  backgroundColor: Color(0xFFDC2626),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => TaskListScreen(currentUser: currentUser)),
+                              );
+                              setState(() {});
+                            } else {
+                              TaskService.updateTaskStatus(task.id, TaskStatus.completed);
+                              setState(() {});
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('✓ Đã hoàn thành: ${task.title}'),
+                                  backgroundColor: AppColors.success,
+                                  duration: const Duration(seconds: 1),
+                                ),
+                              );
+                            }
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(top: 2, right: 10),
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: task.requirePhoto ? const Color(0xFFDC2626) : Colors.grey.shade400,
+                                width: 1.6,
+                              ),
+                            ),
+                            child: task.requirePhoto
+                                ? const FaIcon(FontAwesomeIcons.camera, size: 12, color: Color(0xFFDC2626))
+                                : null,
+                          ),
+                        ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: task.sourceColor.withValues(alpha: 0.10),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        FaIcon(task.sourceIcon, size: 10, color: task.sourceColor),
+                                        const SizedBox(width: 3),
+                                        Text(task.shortSourceLabel, style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: task.sourceColor)),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  if (isOverdue)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFDC2626).withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: const Text('Quá giờ', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFFDC2626))),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                task.title,
+                                style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${task.assignedByName} • Hạn: ${task.dueDate.hour.toString().padLeft(2, '0')}:${task.dueDate.minute.toString().padLeft(2, '0')}',
+                                style: TextStyle(fontSize: 11.5, color: isOverdue ? const Color(0xFFDC2626) : Colors.grey.shade600),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const FaIcon(FontAwesomeIcons.chevronRight, size: 16, color: AppColors.textSecondary),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right, size: 20, color: AppColors.textSecondary),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSalaryWidget(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const SalaryScreen()),
-          );
-        },
-        borderRadius: BorderRadius.circular(14),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: Colors.green.withValues(alpha: 0.1),
-                child: const Icon(Icons.payments, color: Colors.green),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Kỳ lương & Chi tiết công', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                    SizedBox(height: 2),
-                    Text('Đã làm: 22 công • Tạm tính: 6.800.000 đ', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right, size: 20, color: AppColors.textSecondary),
-            ],
-          ),
-        ),
+                  ),
+                );
+              },
+            ),
+        ],
       ),
     );
   }

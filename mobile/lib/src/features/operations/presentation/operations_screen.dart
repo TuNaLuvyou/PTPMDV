@@ -1,14 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/branch_selector.dart';
-import '../../auth/presentation/login_screen.dart';
-import '../../revenue/presentation/revenue_screen.dart';
-import '../../schedule/presentation/general_schedule_screen.dart';
+import '../../../core/models/user.dart';
+import '../../general_schedule/presentation/general_schedule_screen.dart';
 import '../../salary/presentation/salary_screen.dart';
-import 'staff_monitor_screen.dart';
-import 'shift_request_screen.dart';
-import 'menu_availability_screen.dart';
-import 'wifi_config_screen.dart';
+import '../../staff_monitor/presentation/staff_monitor_screen.dart';
+import '../../approvals/presentation/shift_request_screen.dart';
+import '../../wifi_config/presentation/wifi_config_screen.dart';
+import '../../leave_request/presentation/leave_request_screen.dart';
+import '../../schedule_registration/presentation/schedule_registration_screen.dart';
+import '../../attendance/presentation/attendance_adjustment_screen.dart';
+import '../../salary_advance/presentation/salary_advance_screen.dart';
+import '../../news/presentation/news_screen.dart';
+import '../../regulations/presentation/company_regulations_screen.dart';
+import '../../help/presentation/faq_help_screen.dart';
+import '../../shift_assignment/presentation/shift_assignment_screen.dart';
+import '../../tasks/presentation/task_list_screen.dart';
 
 class OperationsScreen extends StatelessWidget {
   final UserModel currentUser;
@@ -17,70 +25,18 @@ class OperationsScreen extends StatelessWidget {
   const OperationsScreen({
     super.key,
     this.currentUser = const UserModel(
-      name: 'Nguyễn Văn A',
-      email: 'nhanvien@highlands.vn',
+      name: 'Nguyễn Thu Hà',
+      email: 'nhanvien@company.com',
       role: 'staff',
       roleTitle: 'Nhân viên',
     ),
     this.onReturnHome,
   });
 
-  void _showLockedDialog(BuildContext context, String featureName) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.lock, color: AppColors.error, size: 24),
-            SizedBox(width: 8),
-            Text('Quyền bị khóa', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Tính năng "$featureName" chỉ dành cho cấp Quản lý / Quản trị viên chi nhánh.',
-              style: const TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.amber.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.amber.shade900, size: 18),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text(
-                      'Tài khoản Nhân viên không thể xem dữ liệu doanh thu & quản trị.',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Đóng'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final bool isManager = currentUser.isManager;
+    final bool isAdmin = currentUser.isAdmin;
+    final bool canManage = currentUser.canManage;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -89,164 +45,113 @@ class OperationsScreen extends StatelessWidget {
         centerTitle: true,
         elevation: 0,
         automaticallyImplyLeading: false,
-        title: const Text(
-          'Danh mục tác vụ',
-          style: TextStyle(
+        title: Text(
+          canManage ? 'Danh mục tác vụ quản trị' : 'Danh mục tác vụ nhân sự',
+          style: const TextStyle(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
         ),
         actions: [
-          if (isManager) const BranchSelector(includeAll: true),
+          if (isAdmin) const BranchSelector(includeAll: true),
         ],
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         children: [
-          // 1. Phân hệ Quản trị (Quản lý)
-          _buildSectionTitle(
-            'Phân hệ Quản trị',
-            'Dành cho Quản lý / Giám sát chi nhánh',
-            Icons.admin_panel_settings,
-            AppColors.primary,
-          ),
-          const SizedBox(height: 10),
-
-          // Action 1: Báo cáo doanh thu (Khoá khi là Nhân viên)
-          _buildFeatureCard(
-            title: 'Báo cáo doanh thu',
-            subtitle: isManager
-                ? 'Xem tổng doanh thu, biểu đồ giờ cao điểm & hóa đơn'
-                : '🔒 Đã khóa - Yêu cầu quyền Quản lý để xem doanh thu',
-            icon: Icons.bar_chart,
-            iconColor: Colors.green,
-            isLocked: !isManager,
-            badgeText: isManager ? 'Toàn quyền' : 'Chỉ Quản lý',
-            badgeColor: isManager ? AppColors.success : Colors.grey,
-            onTap: () {
-              if (isManager) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const RevenueScreen()),
-                );
-              } else {
-                _showLockedDialog(context, 'Báo cáo doanh thu');
-              }
-            },
-          ),
-
-          // Action 2: Giám sát nhân sự
-          _buildFeatureCard(
-            title: 'Giám sát nhân sự',
-            subtitle: isManager
-                ? 'Xem nhân viên đang có mặt trong ca & điểm danh'
-                : '🔒 Đã khóa - Yêu cầu quyền Quản lý',
-            icon: Icons.people_alt_outlined,
-            iconColor: Colors.indigo,
-            isLocked: !isManager,
-            badgeText: isManager ? '4 online' : 'Chỉ Quản lý',
-            badgeColor: isManager ? Colors.indigo : Colors.grey,
-            onTap: () {
-              if (isManager) {
+          // ── CỤM 1: QUẢN TRỊ (Chỉ hiển thị cho Quản trị viên & Quản lý) ──
+          if (canManage) ...[
+            _buildSubGroupLabel(
+              'Quản trị',
+              FontAwesomeIcons.userShield,
+              AppColors.primary,
+            ),
+            _buildFeatureCard(
+              title: 'Giám sát nhân sự trực tiếp',
+              subtitle: 'Theo dõi nhân viên đang có mặt trong ca và chấm công thực tế',
+              icon: FontAwesomeIcons.users,
+              iconColor: Colors.indigo,
+              badgeText: isAdmin ? 'Toàn hệ thống' : 'Chi nhánh',
+              badgeColor: Colors.indigo,
+              onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const StaffMonitorScreen()),
                 );
-              } else {
-                _showLockedDialog(context, 'Giám sát nhân sự');
-              }
-            },
-          ),
-
-          // Action 3: Duyệt yêu cầu chung
-          _buildFeatureCard(
-            title: 'Duyệt yêu cầu chung',
-            subtitle: isManager
-                ? 'Phê duyệt các yêu cầu xin nghỉ / pass ca từ nhân viên'
-                : '🔒 Đã khóa - Yêu cầu quyền Quản lý',
-            icon: Icons.check_circle_outline,
-            iconColor: Colors.orange,
-            isLocked: !isManager,
-            badgeText: isManager ? '2 chờ duyệt' : 'Chỉ Quản lý',
-            badgeColor: isManager ? Colors.orange : Colors.grey,
-            onTap: () {
-              if (isManager) {
+              },
+            ),
+            _buildFeatureCard(
+              title: 'Phê duyệt yêu cầu nhân sự',
+              subtitle: 'Duyệt đơn đổi ca, nghỉ phép, bổ sung công và tạm ứng',
+              icon: FontAwesomeIcons.circleCheck,
+              iconColor: Colors.orange.shade800,
+              badgeText: 'Chờ duyệt',
+              badgeColor: Colors.orange.shade800,
+              onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const ShiftRequestScreen()),
                 );
-              } else {
-                _showLockedDialog(context, 'Duyệt yêu cầu chung');
-              }
-            },
-          ),
-
-          // Action 4: Bật / Tắt món hết hàng
-          _buildFeatureCard(
-            title: 'Bật / Tắt món hết hàng',
-            subtitle: isManager
-                ? 'Cập nhật nhanh tình trạng còn/hết món trên menu'
-                : '🔒 Đã khóa - Yêu cầu quyền Quản lý',
-            icon: Icons.inventory_2_outlined,
-            iconColor: Colors.deepOrange,
-            isLocked: !isManager,
-            badgeText: isManager ? 'Sẵn sàng' : 'Chỉ Quản lý',
-            badgeColor: isManager ? Colors.deepOrange : Colors.grey,
-            onTap: () {
-              if (isManager) {
+              },
+            ),
+            _buildFeatureCard(
+              title: 'Xếp ca',
+              subtitle: 'Phân công ca làm việc theo ngày, quản lý nhân sự trực ca & lặp lại',
+              icon: FontAwesomeIcons.calendarPlus,
+              iconColor: const Color(0xFF8E1B2F),
+              badgeText: 'Xếp ca',
+              badgeColor: const Color(0xFF8E1B2F),
+              onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const MenuAvailabilityScreen()),
+                  MaterialPageRoute(builder: (context) => ShiftAssignmentScreen(currentUser: currentUser)),
                 );
-              } else {
-                _showLockedDialog(context, 'Bật / Tắt món hết hàng');
-              }
-            },
-          ),
-
-          // Action 5: Cấu hình Wi-Fi chi nhánh
-          _buildFeatureCard(
-            title: 'Cấu hình Wi-Fi',
-            subtitle: isManager
-                ? 'Đặt nhiều mạng & mật khẩu Wi-Fi cho từng chi nhánh'
-                : '🔒 Đã khóa - Yêu cầu quyền Quản lý',
-            icon: Icons.wifi,
-            iconColor: Colors.teal,
-            isLocked: !isManager,
-            badgeText: isManager ? 'Chấm công' : 'Chỉ Quản lý',
-            badgeColor: isManager ? Colors.teal : Colors.grey,
-            onTap: () {
-              if (isManager) {
+              },
+            ),
+            _buildFeatureCard(
+              title: 'Giao việc & Quản lý nhiệm vụ',
+              subtitle: 'Giao việc trực tiếp cho nhân sự và theo dõi tiến độ hoàn thành',
+              icon: FontAwesomeIcons.calendarPlus,
+              iconColor: const Color(0xFF8E1B2F),
+              badgeText: 'Giao việc',
+              badgeColor: const Color(0xFF8E1B2F),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => TaskListScreen(currentUser: currentUser)),
+                );
+              },
+            ),
+            _buildFeatureCard(
+              title: 'Cấu hình Wi-Fi chấm công',
+              subtitle: 'Thiết lập danh sách SSID Wi-Fi xác thực chấm công',
+              icon: FontAwesomeIcons.wifi,
+              iconColor: Colors.teal.shade700,
+              badgeText: 'Wi-Fi Check',
+              badgeColor: Colors.teal.shade700,
+              onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const WifiConfigScreen()),
                 );
-              } else {
-                _showLockedDialog(context, 'Cấu hình Wi-Fi');
-              }
-            },
+              },
+            ),
+            const SizedBox(height: 14),
+          ],
+
+          // ── CỤM 2: LỊCH LÀM VIỆC ──
+          _buildSubGroupLabel(
+            'Lịch làm việc',
+            FontAwesomeIcons.calendarDays,
+            const Color(0xFF1976D2),
           ),
-
-          const SizedBox(height: 24),
-
-          // 2. Phân hệ Nhân viên (Nghiệp vụ)
-          _buildSectionTitle(
-            'Phân hệ Nhân viên',
-            'Nghiệp vụ ca làm & cá nhân',
-            Icons.badge_outlined,
-            Colors.blue,
-          ),
-          const SizedBox(height: 10),
-
-          // Staff Action 2: Lịch làm việc chung
           _buildFeatureCard(
             title: 'Lịch làm việc chung',
-            subtitle: 'Xem phân ca toàn chi nhánh & danh sách nhân viên theo ca',
-            icon: Icons.calendar_month,
+            subtitle: 'Xem lịch phân công ca toàn bộ chi nhánh',
+            icon: FontAwesomeIcons.calendarDays,
             iconColor: Colors.blue,
-            isLocked: false,
-            badgeText: 'Toàn chi nhánh',
+            badgeText: 'Chi nhánh',
             badgeColor: Colors.blue,
             onTap: () {
               Navigator.push(
@@ -255,72 +160,190 @@ class OperationsScreen extends StatelessWidget {
               );
             },
           ),
-
-          // Staff Action 3: Kỳ lương & Chấm công
           _buildFeatureCard(
-            title: 'Kỳ lương & Chấm công',
-            subtitle: 'Xem số công, giờ làm thực tế và tạm tính thu nhập',
-            icon: Icons.payments,
-            iconColor: Colors.green,
-            isLocked: false,
-            badgeText: '22 công',
-            badgeColor: Colors.green,
+            title: 'Đăng ký ca làm việc',
+            subtitle: 'Đăng ký ca làm mong muốn cho tuần kế tiếp',
+            icon: FontAwesomeIcons.calendarPlus,
+            iconColor: const Color(0xFF1A73E8),
+            badgeText: 'Tuần tới',
+            badgeColor: const Color(0xFF1A73E8),
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const SalaryScreen()),
+                MaterialPageRoute(builder: (_) => const ScheduleRegistrationScreen()),
               );
             },
           ),
+          _buildFeatureCard(
+            title: 'Đăng ký nghỉ phép',
+            subtitle: 'Tạo đơn xin nghỉ phép năm, nghỉ ốm, việc riêng',
+            icon: FontAwesomeIcons.umbrellaBeach,
+            iconColor: Colors.orange,
+            badgeText: 'Phép năm',
+            badgeColor: Colors.orange,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const LeaveRequestScreen()),
+              );
+            },
+          ),
+          _buildFeatureCard(
+            title: 'Công việc cần làm theo ca',
+            subtitle: 'Xem danh sách nhiệm vụ được giao và quy trình theo ca',
+            icon: FontAwesomeIcons.listCheck,
+            iconColor: const Color(0xFF2563EB),
+            badgeText: 'Việc của tôi',
+            badgeColor: const Color(0xFF2563EB),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => TaskListScreen(currentUser: currentUser)),
+              );
+            },
+          ),
+          const SizedBox(height: 14),
 
+          // ── CỤM 3: CHẤM CÔNG ──
+          _buildSubGroupLabel(
+            'Chấm công',
+            FontAwesomeIcons.clock,
+            const Color(0xFF00897B),
+          ),
+          _buildFeatureCard(
+            title: 'Bổ sung / sửa chấm công',
+            subtitle: 'Gửi yêu cầu giải trình khi quên check-in / check-out',
+            icon: FontAwesomeIcons.penToSquare,
+            iconColor: Colors.teal,
+            badgeText: 'Bù công',
+            badgeColor: Colors.teal,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AttendanceAdjustmentScreen()),
+              );
+            },
+          ),
+          const SizedBox(height: 14),
+
+          // ── CỤM 4: LƯƠNG ──
+          _buildSubGroupLabel(
+            'Lương',
+            FontAwesomeIcons.moneyBill,
+            const Color(0xFF2E7D32),
+          ),
+          _buildFeatureCard(
+            title: 'Kỳ lương & Phiếu lương cá nhân',
+            subtitle: 'Xem chi tiết số công, giờ làm thực tế và thu nhập của tôi',
+            icon: FontAwesomeIcons.receipt,
+            iconColor: const Color(0xFF2E7D32),
+            badgeText: 'Phiếu lương',
+            badgeColor: const Color(0xFF2E7D32),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SalaryScreen()),
+              );
+            },
+          ),
+          _buildFeatureCard(
+            title: 'Tạm ứng lương',
+            subtitle: 'Nộp yêu cầu tạm ứng trước kỳ tính lương',
+            icon: FontAwesomeIcons.wallet,
+            iconColor: const Color(0xFFFB8C00),
+            badgeText: 'Tạm ứng',
+            badgeColor: const Color(0xFFFB8C00),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SalaryAdvanceScreen()),
+              );
+            },
+          ),
+          const SizedBox(height: 14),
+
+          // ── CỤM 5: TRUYỀN THÔNG ──
+          _buildSubGroupLabel(
+            'Truyền thông',
+            FontAwesomeIcons.bullhorn,
+            const Color(0xFFE53935),
+          ),
+          _buildFeatureCard(
+            title: 'Bảng tin nội bộ',
+            subtitle: 'Xem thông báo chung, lịch nghỉ lễ và khen thưởng',
+            icon: FontAwesomeIcons.newspaper,
+            iconColor: Colors.blueGrey,
+            badgeText: 'Bản tin',
+            badgeColor: Colors.blueGrey,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => NewsScreen(currentUser: currentUser)),
+              );
+            },
+          ),
+          _buildFeatureCard(
+            title: 'Nội quy công ty',
+            subtitle: 'Sổ tay quy định giờ giấc, tác phong và chế độ phúc lợi',
+            icon: FontAwesomeIcons.gavel,
+            iconColor: const Color(0xFF6A1B9A),
+            badgeText: 'Nội quy',
+            badgeColor: const Color(0xFF6A1B9A),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CompanyRegulationsScreen()),
+              );
+            },
+          ),
+          const SizedBox(height: 14),
+
+          // ── CỤM 6: HƯỚNG DẪN ──
+          _buildSubGroupLabel(
+            'Hướng dẫn',
+            FontAwesomeIcons.circleQuestion,
+            const Color(0xFF0288D1),
+          ),
+          _buildFeatureCard(
+            title: 'Câu hỏi thường gặp & Trợ giúp',
+            subtitle: 'Hướng dẫn chấm công, quy trình đổi ca và hỗ trợ nhân sự',
+            icon: FontAwesomeIcons.circleQuestion,
+            iconColor: const Color(0xFF0288D1),
+            badgeText: 'FAQ',
+            badgeColor: const Color(0xFF0288D1),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const FaqHelpScreen()),
+              );
+            },
+          ),
           const SizedBox(height: 30),
         ],
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title, String subtitle, IconData icon, Color color) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, size: 18, color: color),
-        ),
-        const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            Text(
-              subtitle,
-              style: const TextStyle(
-                fontSize: 11,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ],
+  Widget _buildSubGroupLabel(String title, FaIconData icon, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 2, bottom: 8, top: 4),
+      child: Row(
+        children: [
+          Container(width: 3.5, height: 14, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
+          const SizedBox(width: 8),
+          FaIcon(icon, size: 15, color: color),
+          const SizedBox(width: 6),
+          Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color, letterSpacing: 0.2)),
+        ],
+      ),
     );
   }
 
   Widget _buildFeatureCard({
     required String title,
     required String subtitle,
-    required IconData icon,
+    required FaIconData icon,
     required Color iconColor,
-    required bool isLocked,
     required String badgeText,
     required Color badgeColor,
     required VoidCallback onTap,
@@ -330,108 +353,43 @@ class OperationsScreen extends StatelessWidget {
       elevation: 0.5,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(
-          color: isLocked ? Colors.grey.shade200 : Colors.grey.shade300,
-        ),
+        side: BorderSide(color: Colors.grey.shade200),
       ),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: Container(
           padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: isLocked ? Colors.grey.shade50.withValues(alpha: 0.7) : Colors.white,
-            borderRadius: BorderRadius.circular(14),
-          ),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
           child: Row(
             children: [
-              // Icon with locked overlay
-              Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundColor: isLocked ? Colors.grey.shade200 : iconColor.withValues(alpha: 0.12),
-                    child: Icon(
-                      icon,
-                      color: isLocked ? Colors.grey.shade500 : iconColor,
-                      size: 22,
-                    ),
-                  ),
-                  if (isLocked)
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: const BoxDecoration(
-                          color: AppColors.error,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.lock, size: 10, color: Colors.white),
-                      ),
-                    ),
-                ],
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: iconColor.withValues(alpha: 0.12),
+                child: FaIcon(icon, color: iconColor, size: 22),
               ),
               const SizedBox(width: 14),
-              // Title & Subtitle
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          title,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: isLocked ? Colors.grey.shade700 : AppColors.textPrimary,
-                          ),
-                        ),
-                        if (isLocked) ...[
-                          const SizedBox(width: 6),
-                          const Icon(Icons.lock, size: 13, color: AppColors.error),
-                        ],
-                      ],
-                    ),
+                    Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary)),
                     const SizedBox(height: 3),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isLocked ? AppColors.error : AppColors.textSecondary,
-                        fontWeight: isLocked ? FontWeight.w500 : FontWeight.normal,
-                      ),
-                    ),
+                    Text(subtitle, style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary)),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              // Badge & Chevron
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: badgeColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      badgeText,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: badgeColor,
-                      ),
-                    ),
+                    decoration: BoxDecoration(color: badgeColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+                    child: Text(badgeText, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: badgeColor)),
                   ),
                   const SizedBox(height: 4),
-                  Icon(
-                    isLocked ? Icons.lock_outline : Icons.chevron_right,
-                    size: 18,
-                    color: isLocked ? AppColors.error : AppColors.textSecondary,
-                  ),
+                  const FaIcon(FontAwesomeIcons.chevronRight, size: 18, color: AppColors.textSecondary),
                 ],
               ),
             ],

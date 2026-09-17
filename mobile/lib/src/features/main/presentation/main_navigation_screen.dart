@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/state/user_scope.dart';
-import '../../auth/presentation/login_screen.dart';
+import '../../../core/models/user.dart';
 import '../../home/presentation/home_screen.dart';
 import '../../operations/presentation/operations_screen.dart';
 import '../../notifications/presentation/notifications_screen.dart';
@@ -15,8 +16,8 @@ class MainNavigationScreen extends StatefulWidget {
     super.key,
     this.initialIndex = 0,
     this.currentUser = const UserModel(
-      name: 'Nguyễn Văn A',
-      email: 'nhanvien@highlands.vn',
+      name: 'Nguyễn Thu Hà',
+      email: 'nhanvien@company.com',
       role: 'staff',
       roleTitle: 'Nhân viên',
     ),
@@ -80,38 +81,57 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             ),
           ],
         ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          backgroundColor: Colors.white,
-          selectedItemColor: AppColors.primary,
-          unselectedItemColor: AppColors.textSecondary,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 11),
-          elevation: 0,
-          type: BottomNavigationBarType.fixed,
-          onTap: _setTabIndex,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Trang chủ',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.grid_view_outlined),
-              activeIcon: Icon(Icons.grid_view),
-              label: 'Tác vụ',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.notifications_outlined),
-              activeIcon: Icon(Icons.notifications),
-              label: 'Thông báo',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Tài khoản',
-            ),
-          ],
+        child: ValueListenableBuilder<int>(
+          valueListenable: NotificationState.unreadCount,
+          builder: (context, unreadCount, _) {
+            return BottomNavigationBar(
+              currentIndex: _currentIndex,
+              backgroundColor: Colors.white,
+              selectedItemColor: AppColors.primary,
+              unselectedItemColor: AppColors.textSecondary,
+              selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 11),
+              elevation: 0,
+              type: BottomNavigationBarType.fixed,
+              onTap: _setTabIndex,
+              items: [
+                const BottomNavigationBarItem(
+                  icon: FaIcon(FontAwesomeIcons.house),
+                  activeIcon: FaIcon(FontAwesomeIcons.house),
+                  label: 'Trang chủ',
+                ),
+                const BottomNavigationBarItem(
+                  icon: FaIcon(FontAwesomeIcons.grip),
+                  activeIcon: FaIcon(FontAwesomeIcons.grip),
+                  label: 'Tác vụ',
+                ),
+                BottomNavigationBarItem(
+                  icon: Badge.count(
+                    count: unreadCount,
+                    isLabelVisible: unreadCount > 0,
+                    backgroundColor: const Color(0xFFDC2626),
+                    textColor: Colors.white,
+                    textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                    child: const FaIcon(FontAwesomeIcons.bell),
+                  ),
+                  activeIcon: Badge.count(
+                    count: unreadCount,
+                    isLabelVisible: unreadCount > 0,
+                    backgroundColor: const Color(0xFFDC2626),
+                    textColor: Colors.white,
+                    textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                    child: const FaIcon(FontAwesomeIcons.bell),
+                  ),
+                  label: 'Thông báo',
+                ),
+                const BottomNavigationBarItem(
+                  icon: FaIcon(FontAwesomeIcons.user),
+                  activeIcon: FaIcon(FontAwesomeIcons.person),
+                  label: 'Tài khoản',
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
@@ -66,7 +67,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         centerTitle: true,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: AppColors.textPrimary),
+          icon: const FaIcon(FontAwesomeIcons.chevronLeft, size: 20, color: AppColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -99,10 +100,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       obscureText: _obscureCurrent,
                       decoration: InputDecoration(
                         hintText: 'Nhập mật khẩu hiện tại',
-                        prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                        prefixIcon: const FaIcon(FontAwesomeIcons.lock, size: 20),
                         suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscureCurrent ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          icon: FaIcon(
+                            _obscureCurrent ? FontAwesomeIcons.eyeSlash : FontAwesomeIcons.eye,
                             size: 20,
                             color: Colors.grey,
                           ),
@@ -135,10 +136,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       obscureText: _obscureNew,
                       decoration: InputDecoration(
                         hintText: 'Nhập mật khẩu mới (tối thiểu 6 ký tự)',
-                        prefixIcon: const Icon(Icons.lock_reset_rounded, size: 20),
+                        prefixIcon: const FaIcon(FontAwesomeIcons.key, size: 20),
                         suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscureNew ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          icon: FaIcon(
+                            _obscureNew ? FontAwesomeIcons.eyeSlash : FontAwesomeIcons.eye,
                             size: 20,
                             color: Colors.grey,
                           ),
@@ -177,10 +178,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       obscureText: _obscureConfirm,
                       decoration: InputDecoration(
                         hintText: 'Xác nhận lại mật khẩu mới',
-                        prefixIcon: const Icon(Icons.check_circle_outline_rounded, size: 20),
+                        prefixIcon: const FaIcon(FontAwesomeIcons.circleCheck, size: 20),
                         suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          icon: FaIcon(
+                            _obscureConfirm ? FontAwesomeIcons.eyeSlash : FontAwesomeIcons.eye,
                             size: 20,
                             color: Colors.grey,
                           ),

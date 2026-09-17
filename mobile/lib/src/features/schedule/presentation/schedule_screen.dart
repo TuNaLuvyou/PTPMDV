@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 import '../data/schedule_service.dart';
 import 'shift_detail_screen.dart';
@@ -78,7 +79,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         centerTitle: true,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: AppColors.textPrimary),
+          icon: const FaIcon(FontAwesomeIcons.chevronLeft, size: 20, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -114,7 +115,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.replay, size: 12, color: AppColors.primary),
+                              FaIcon(FontAwesomeIcons.rotateLeft, size: 12, color: AppColors.primary),
                               SizedBox(width: 4),
                               Text(
                                 'Về tuần này',
@@ -141,8 +142,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         borderRadius: const BorderRadius.horizontal(left: Radius.circular(7)),
                         child: const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                          child: Icon(
-                            Icons.arrow_back_ios_new,
+                          child: FaIcon(
+                            FontAwesomeIcons.chevronLeft,
                             size: 13,
                             color: AppColors.primary,
                           ),
@@ -158,8 +159,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         borderRadius: const BorderRadius.horizontal(right: Radius.circular(7)),
                         child: const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                          child: Icon(
-                            Icons.arrow_forward_ios,
+                          child: FaIcon(
+                            FontAwesomeIcons.chevronRight,
                             size: 13,
                             color: AppColors.primary,
                           ),
@@ -412,8 +413,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   ),
 
                   // Arrow icon
-                  Icon(
-                    isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  FaIcon(
+                    isExpanded ? FontAwesomeIcons.chevronUp : FontAwesomeIcons.chevronDown,
                     color: isExpanded ? AppColors.primary : Colors.grey,
                     size: 22,
                   ),
@@ -512,7 +513,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(Icons.access_time, size: 14, color: AppColors.primary),
+                        const FaIcon(FontAwesomeIcons.clock, size: 14, color: AppColors.primary),
                         const SizedBox(width: 4),
                         Text(
                           shift.timeRange,
@@ -530,7 +531,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               ),
 
               // Chevron indicator
-              const Icon(Icons.chevron_right, size: 20, color: AppColors.textSecondary),
+              const FaIcon(FontAwesomeIcons.chevronRight, size: 20, color: AppColors.textSecondary),
             ],
           ),
         ),

@@ -10,16 +10,14 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ---
 
-# Hướng dẫn dự án — Frontend (PTPMDV)
+# Hướng dẫn dự án — Frontend HRM System (On-Premises SOA)
 
 ## Tổng quan
 
-UI/UX cho **2 Web** (thiết kế học từ `dasher-ui-1.0.0`, dựng lại bằng **Tailwind CSS v4 thuần**, màu chủ đạo **đỏ đô `#8e1b2f`**, font **Public Sans**):
+Hệ thống Quản trị Nhân sự & Ca kíp Nội bộ (**HRM System**) triển khai theo mô hình **On-Premises SOA** (cài đặt trực tiếp lên Server nội bộ của doanh nghiệp, Ngân hàng gọi SOAP API trực tiếp đến server nội bộ).
 
-- **Web 1 — Platform Admin** (`/platform-admin/*`): dashboard, gói cước, tenants, webhooks, báo cáo & sự cố, audit log.
-- **Web 2 — Restaurant Portal** (`/portal/*`): thu ngân (đơn hàng, trạng thái món, loyalty, báo cáo ca) + quản trị (dashboard, chi nhánh, thực đơn, kho, ca, HR, ngân hàng, Wi-Fi, hỗ trợ).
-
-Stack: **Next.js 16** (App Router) + **React 19** + **TypeScript** + **Tailwind v4** + `@tabler/icons-react`.
+- Thiết kế: Màu chủ đạo **đỏ đô `#8e1b2f`**, font **Public Sans**, Tailwind CSS v4 thuần.
+- Stack: **Next.js 16** (App Router) + **React 19** + **TypeScript** + **Tailwind v4** + Font Awesome (`@fortawesome/react-fontawesome`).
 
 ## Lệnh thường dùng
 
@@ -30,85 +28,73 @@ npm run lint       # eslint
 npx tsc --noEmit   # typecheck
 ```
 
-## Cấu trúc thư mục
+## Cấu trúc Route (Phẳng & Tinh gọn)
 
 ```
-app/
-  page.tsx                            # redirect → /platform-admin/login
-  globals.css                         # design tokens (@theme) + base styles
-  layout.tsx                          # font Public Sans + metadata
-  platform-admin/
-    login/page.tsx                    # Web 1 login (card giữa màn hình)
-    (admin)/layout.tsx                # DashboardShell (sidebar + topbar)
-    (admin)/dashboard|subscriptions|tenants|webhooks|reports|audit-logs/...
-  portal/
-    login/page.tsx                    # Web 2 login (chọn vai trò R2/R3)
-    [role]/[tenantSlug]/[branchSlug]/
-      layout.tsx                      # layout tối giản (chỉ nền)
-      shift/page.tsx                  # Mở ca FULLSCREEN (ngoài route group)
-      (portal)/layout.tsx             # DashboardShell
-      (portal)/orders|menu-status|loyalty|report/...        # Thu ngân
-      (portal)/management/dashboard|menu|stock|shifts|hr|bank|wifi|...  # Quản trị
-components/
-  ui/        # Button, Badge (+StatusBadge), Card, StatCard, Table, Modal,
-             # ConfirmDialog, PageHeader, Form (Field/Input/Select/Textarea/
-             # Checkbox/Toggle), Charts (Line/Donut)
-  layout/    # Sidebar, Topbar, NotificationPanel, DashboardShell
-lib/utils.ts # formatVND, formatNumber, cn
-mock-data/   # DỮ LIỆU GIẢ (types.ts, platform.ts, portal.ts)
-             # ⚠️ TẠM THỜI — user tự xóa sau khi test xong
+/                          → redirect → /login
+/login                     → Đăng nhập quản trị (Admin / Manager)
+/dashboard/employees       → Quản lý nhân sự
+/dashboard/shifts          → Phân ca làm việc & Quản lý đăng ký ca
+/dashboard/payslips        → Bảng lương & Chốt công
+/dashboard/requests        → Phê duyệt yêu cầu (đổi ca, nghỉ phép, tạm ứng)
+/dashboard/tasks           → Giao việc & Quản lý nhiệm vụ
+/dashboard/news            → Bảng tin & Thông báo nội bộ
+/dashboard/regulations     → Nội quy & Quy chế lao động
+/dashboard/wifi            → Cấu hình Wi-Fi chấm công
+/dashboard/branches        → Quản lý Chi nhánh doanh nghiệp
 ```
 
-## Quy ước routing (Next.js 16)
+## Cấu trúc thư mục (Chuẩn Next.js App Router với src/)
 
-- **Dynamic segments**: `params` là **Promise** — page/layout phải là `async` và dùng `await params`:
-
-```tsx
-export default async function Page({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-}
+```
+frontend/
+├── public/                        # Static assets (icons, fonts, images)
+├── src/                           # 🌟 Toàn bộ application code nằm trong src/
+│   ├── app/
+│   │   ├── (auth)/                # Route Group: Xác thực
+│   │   │   ├── layout.tsx         # Layout riêng cho Auth (căn giữa, không sidebar)
+│   │   │   └── login/page.tsx     # /login
+│   │   ├── (dashboard)/           # Route Group: Quản trị HRM
+│   │   │   └── dashboard/
+│   │   │       ├── layout.tsx     # DashboardShell (Sidebar + Topbar theo quyền hạn)
+│   │   │       ├── page.tsx       # /dashboard (Tổng quan quản trị)
+│   │   │       ├── employees/page.tsx
+│   │   │       ├── shifts/page.tsx
+│   │   │       ├── payslips/page.tsx
+│   │   │       ├── requests/page.tsx
+│   │   │       ├── tasks/page.tsx
+│   │   │       ├── news/page.tsx
+│   │   │       ├── regulations/page.tsx
+│   │   │       ├── wifi/page.tsx
+│   │   │       └── branches/page.tsx
+│   │   ├── globals.css            # Design tokens (@theme) + base styles
+│   │   ├── layout.tsx             # RootLayout bọc AuthProvider + font Public Sans
+│   │   └── page.tsx               # Redirect → /login
+│   ├── components/
+│   │   ├── ui/                    # Button, Badge, Card, StatCard, Table, Modal, ConfirmDialog...
+│   │   └── layout/                # Sidebar, Topbar, NotificationPanel, DashboardShell
+│   ├── features/                  # Module components nghiệp vụ HR (shifts, tasks, branches...)
+│   ├── context/                   # AuthContext, TopbarContext
+│   ├── hooks/                     # useCurrentUser
+│   ├── lib/                       # utils.ts, permissions.tsx
+│   ├── mock-data/                 # portal.ts (mock & enterprise initial data)
+│   ├── types/                     # TypeScript types (index.ts)
+│   └── middleware.ts              # Route protection middleware
+├── next.config.ts
+├── tsconfig.json                  # Path alias: "@/*": ["./src/*"]
+└── package.json
 ```
 
-- **Route group `(admin)` / `(portal)`**: bọc trang có sidebar/topbar; các trang **fullscreen** (login, mở ca) đặt **ngoài** group.
-- **Web 2 URL pattern**: `/portal/{role}/{tenantSlug}/{branchSlug}/...` — `role` là `tenant-admin` (R2) hoặc `cashier` (R3).
+## Phân quyền & Quản lý phiên
 
-## Design system (Tailwind v4)
-
-Tất cả token khai báo trong `@theme` của `app/globals.css` — **không hardcode màu/radius/shadow**:
-
-| Nhóm | Token |
-|---|---|
-| Màu chủ đạo | `primary` → `primary-50..900` (đỏ đô `#8e1b2f`) |
-| Xám | `gray-50..900` (bảng gray Dasher) |
-| Semantic | `success` (+100/700), `warning` (+100/700), `danger` (+100/700), `info` (+100/700), `secondary`, `light`, `dark` |
-| Radius | `rounded` (0.5rem), `rounded-xl` (1rem — card), `rounded-lg` (0.75rem) |
-| Shadow | `shadow-card` (0 12px 24px -4px rgba(145,158,171,.16)) |
-
-Ví dụ: `bg-primary`, `text-primary-600`, `bg-success-100 text-success-700`, `rounded-xl border border-gray-300 shadow-card`.
-
-## UI components (dùng chung)
-
-- `Button` — `variant`: primary | white | ghost | dark | link | danger | success | outline; `size`: sm/md/lg; `block`.
-- `Badge` — `tone`: primary/success/warning/danger/info/gray/dark; `dot`. Dùng `StatusBadge` để tự map trạng thái tiếng Việt (VD: "Hoạt động", "Bị khóa", "Đã thanh toán"...).
-- `Card` / `CardHeader` / `CardTitle` / `CardBody`.
-- `StatCard` — `title`, `value`, `icon`, `diff` (%), `tone`, `onClick`.
-- `Table` — generic: `columns` (`key`, `header`, `render`), `data`, `rowKey`, `onRowClick`.
-- `Modal` — `open`, `onClose`, `title`, `size` (sm/md/lg/xl), `footer`.
-- `ConfirmDialog` — `tone` danger/primary/warning, `children` để thêm ô nhập lý do.
-- `PageHeader` — `title`, `breadcrumb`, `actions`.
-- `Form` — `Field` (label + required + hint) bọc `Input` / `Select` / `Textarea` / `Checkbox` / `Toggle`.
-- `Charts` — `LineChart`, `DonutChart` (SVG thuần, màu mặc định `#8e1b2f`).
-
-## Layout
-
-- `DashboardShell` (client): Sidebar thu/mở (mặc định **thu nhỏ 72px**, bấm logo → mở rộng ~260px, nút mũi tên thu lại) + Topbar (thanh tìm kiếm, thông báo) + content.
-- `NotificationPanel`: offcanvas thông báo phải (kiểu Dasher).
-- Sidebar item tự nhận diện active theo pathname.
+- Phiên đăng nhập được quản lý qua `AuthContext` (`useCurrentUser()`), lưu vào `localStorage` và cookie `hrm-session`.
+- Tuyệt đối không đưa `role`, `branchSlug`, hay `tenant` vào URL params.
+- `middleware.ts` kiểm tra cookie và tự động chuyển hướng về `/login` nếu chưa đăng nhập.
+- Menu bên trái được xây dựng tự động qua `buildMenuItems(role)`.
 
 ## Quy ước code
 
-- Component có state/tương tác: thêm `"use client"` ở đầu file; trang/layout mặc định là server component.
-- Icon: `@tabler/icons-react` (`import { IconX } from "@tabler/icons-react"`).
+- Component có tương tác/state: thêm `"use client"` ở đầu file.
+- Icon: Font Awesome (`<FontAwesomeIcon icon={faX} fontSize={16} />`, import từ `@fortawesome/free-solid-svg-icons`).
 - Tiền tệ: `formatVND()` từ `@/lib/utils`; ghép class dùng `cn()`.
-- Nội dung UI bằng **tiếng Việt** (theo spec 2 Web).
-- Mock data import qua `@/mock-data/platform` và `@/mock-data/portal` (có alias `@` → project root, xem `tsconfig.json`).
+- Toàn bộ nội dung giao diện bằng **tiếng Việt**.

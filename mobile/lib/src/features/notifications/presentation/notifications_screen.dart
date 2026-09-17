@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 import 'shift_request_detail_screen.dart';
+
+// ─── State Quản lý số lượng thông báo chưa đọc ────────────────────────────────
+class NotificationState {
+  static final ValueNotifier<int> unreadCount = ValueNotifier<int>(4);
+
+  static void updateCount(int count) {
+    unreadCount.value = count;
+  }
+}
 
 // ─── Model ───────────────────────────────────────────────────────────────────
 
@@ -9,7 +19,7 @@ class NotificationItem {
   final String title;
   final String content;
   final String time;
-  final IconData icon;
+  final FaIconData icon;
   final Color iconColor;
   bool isRead;
 
@@ -86,7 +96,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         title: 'Trần Văn B nhờ bạn làm thay ca Sáng',
         content: 'Trần Văn B nhờ bạn nhận làm thay Ca Sáng (07:00 - 12:00) Thứ Bảy ngày 22/08 tại chi nhánh của bạn.',
         time: '5 phút trước',
-        icon: Icons.person_add_alt_1_outlined,
+        icon: FontAwesomeIcons.userPlus,
         iconColor: Colors.orange,
         isRead: false,
         requestType: 'cover',
@@ -107,7 +117,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         title: 'Lê Thị C gửi yêu cầu đổi ca',
         content: 'Lê Thị C muốn đổi Ca Chiều (12:00 - 17:00) ngày 23/08 lấy Ca Tối của bạn.',
         time: '25 phút trước',
-        icon: Icons.swap_horiz_rounded,
+        icon: FontAwesomeIcons.arrowsLeftRight,
         iconColor: AppColors.primary,
         isRead: false,
         requestType: 'swap',
@@ -134,7 +144,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         title: 'Phân công ca làm việc mới',
         content: 'Bạn được phân công Ca Sáng (07:00 - 12:00) ngày mai 21/08 tại chi nhánh của bạn.',
         time: '1 giờ trước',
-        icon: Icons.calendar_month,
+        icon: FontAwesomeIcons.calendarDays,
         iconColor: Colors.blue,
         isRead: false,
       ),
@@ -143,7 +153,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         title: 'Yêu cầu đổi ca đã được duyệt',
         content: 'Quản lý Trần Minh Tuấn đã phê duyệt yêu cầu đổi ca Thứ 5 với bạn Phạm Quỳnh Trang.',
         time: '3 giờ trước',
-        icon: Icons.check_circle_outline,
+        icon: FontAwesomeIcons.circleCheck,
         iconColor: Colors.green,
         isRead: false,
       ),
@@ -152,7 +162,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         title: 'Phiếu lương kỳ này đã cập nhật',
         content: 'Bảng tính công và tạm tính thu nhập kỳ 08/2026 đã sẵn sàng. Vui lòng vào mục Kỳ lương để đối soát.',
         time: 'Hôm qua, 18:30',
-        icon: Icons.payments_outlined,
+        icon: FontAwesomeIcons.moneyBill,
         iconColor: Colors.orange,
         isRead: true,
       ),
@@ -161,7 +171,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         title: 'Nhắc nhở ca làm sắp bắt đầu',
         content: 'Ca làm việc Chiều của bạn sẽ bắt đầu sau 15 phút. Vui lòng kết nối Wi-Fi chi nhánh để check-in đúng giờ.',
         time: '19/08, 11:45',
-        icon: Icons.access_time_rounded,
+        icon: FontAwesomeIcons.clock,
         iconColor: AppColors.primary,
         isRead: true,
       ),
@@ -170,11 +180,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         title: 'Cập nhật tình trạng món menu',
         content: 'Món "Cà phê Muối Huế" đã được cập nhật trạng thái mở bán trở lại.',
         time: '18/08, 08:10',
-        icon: Icons.restaurant_menu,
+        icon: FontAwesomeIcons.utensils,
         iconColor: Colors.teal,
         isRead: true,
       ),
     ];
+    _syncUnreadCount();
+  }
+
+  void _syncUnreadCount() {
+    final count = _notifications.where((n) => !n.isRead).length;
+    NotificationState.updateCount(count);
   }
 
   // ── Actions ─────────────────────────────────────────────────────────────────
@@ -185,6 +201,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         item.isRead = true;
       }
     });
+    _syncUnreadCount();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         backgroundColor: Colors.green,
@@ -222,6 +239,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       _isSelecting = false;
       _selectedIds.clear();
     });
+    _syncUnreadCount();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         backgroundColor: Colors.green,
@@ -253,6 +271,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 _isSelecting = false;
                 _selectedIds.clear();
               });
+              _syncUnreadCount();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   backgroundColor: AppColors.error,
@@ -278,6 +297,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     setState(() {
       _notifications.remove(item);
     });
+    _syncUnreadCount();
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -290,6 +310,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             setState(() {
               _notifications.insert(index, item);
             });
+            _syncUnreadCount();
           },
         ),
         duration: const Duration(seconds: 3),
@@ -297,67 +318,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  void _respondToRequest(NotificationItem item, ShiftRequestStatus status) {
-    setState(() {
-      item.isRead = true;
-      item.requestStatus = status;
-    });
-
-    final isAccept = status == ShiftRequestStatus.accepted;
-    final message = isAccept
-        ? (item.requestType == 'cover'
-            ? '✅ Bạn đã đồng ý nhận làm thay ca cho ${item.senderName}!'
-            : '✅ Bạn đã đồng ý đổi ca với ${item.senderName}!')
-        : '❌ Bạn đã từ chối yêu cầu từ ${item.senderName}.';
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: isAccept ? AppColors.success : AppColors.error,
-        content: Text(message),
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
   void _showNotificationDetail(NotificationItem item) {
     setState(() => item.isRead = true);
-
-    if (item.requestType != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ShiftRequestDetailScreen(
-            requestId: item.id,
-            title: item.title,
-            senderName: item.senderName ?? 'Đồng nghiệp',
-            senderRole: item.senderRole ?? 'Nhân viên',
-            senderPhone: item.senderPhone ?? '0987.654.321',
-            requestType: item.requestType!,
-            requestTime: item.time,
-            shiftName: item.shiftName ?? 'Ca làm việc',
-            shiftTime: item.shiftTime ?? '07:00 - 12:00',
-            shiftHours: item.shiftHours ?? '5.0 giờ',
-            shiftDate: item.shiftDate ?? 'Hôm nay',
-            branch: item.branch ?? 'Chi nhánh 01',
-            shiftRole: item.shiftRole ?? 'Nhân viên',
-            swapShiftName: item.swapShiftName,
-            swapShiftTime: item.swapShiftTime,
-            swapShiftHours: item.swapShiftHours ?? '5.0 giờ',
-            swapShiftDate: item.swapShiftDate,
-            swapShiftBranch: item.swapShiftBranch,
-            swapShiftRole: item.swapShiftRole ?? 'Phục vụ',
-            reason: item.reason ?? item.content,
-            initialStatus: item.requestStatus,
-            onStatusChanged: (newStatus) {
-              setState(() {
-                item.requestStatus = newStatus;
-              });
-            },
-          ),
-        ),
-      );
-      return;
-    }
+    _syncUnreadCount();
 
     showModalBottomSheet(
       context: context,
@@ -385,7 +348,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 CircleAvatar(
                   radius: 20,
                   backgroundColor: item.iconColor.withValues(alpha: 0.12),
-                  child: Icon(item.icon, color: item.iconColor, size: 22),
+                  child: FaIcon(item.icon, color: item.iconColor, size: 22),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -416,7 +379,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       Navigator.pop(context);
                       _deleteSingle(item);
                     },
-                    icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+                    icon: const FaIcon(FontAwesomeIcons.trashCan, size: 18, color: AppColors.error),
                     label: const Text('Xoá thông báo', style: TextStyle(color: AppColors.error)),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: AppColors.error),
@@ -461,7 +424,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.notifications_off_outlined, size: 64, color: Colors.grey.shade400),
+                  FaIcon(FontAwesomeIcons.bellSlash, size: 64, color: Colors.grey.shade400),
                   const SizedBox(height: 12),
                   const Text(
                     'Không có thông báo nào',
@@ -490,31 +453,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   PreferredSizeWidget _buildNormalAppBar(int unreadCount) {
     return AppBar(
-      title: Row(
-        children: [
-          const Text('Thông báo'),
-          if (unreadCount > 0) ...[
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '$unreadCount mới',
-                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ],
-      ),
+      title: const Text('Thông báo'),
       backgroundColor: Colors.white,
       centerTitle: true,
       elevation: 0,
       actions: [
         PopupMenuButton<String>(
-          icon: const Icon(Icons.done_all, color: AppColors.textPrimary),
+          icon: const FaIcon(FontAwesomeIcons.checkDouble, color: AppColors.textPrimary),
           tooltip: 'Tùy chọn thông báo',
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           onSelected: (value) {
@@ -529,7 +474,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               value: 'read_all',
               child: Row(
                 children: [
-                  Icon(Icons.mark_email_read_outlined, size: 20, color: AppColors.primary),
+                  FaIcon(FontAwesomeIcons.envelopeOpen, size: 20, color: AppColors.primary),
                   SizedBox(width: 10),
                   Text('Đọc hết (Tất cả đã đọc)'),
                 ],
@@ -539,7 +484,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               value: 'select_mode',
               child: Row(
                 children: [
-                  Icon(Icons.checklist_rounded, size: 20, color: AppColors.textPrimary),
+                  FaIcon(FontAwesomeIcons.listCheck, size: 20, color: AppColors.textPrimary),
                   SizedBox(width: 10),
                   Text('Đánh dấu & Chọn'),
                 ],
@@ -557,7 +502,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     return AppBar(
       leading: IconButton(
-        icon: const Icon(Icons.close, color: AppColors.textPrimary),
+        icon: const FaIcon(FontAwesomeIcons.xmark, color: AppColors.textPrimary),
         onPressed: _toggleSelectionMode,
       ),
       title: Text(
@@ -600,7 +545,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: count > 0 ? _markSelectedAsRead : null,
-                icon: const Icon(Icons.mark_email_read_outlined, size: 18),
+                icon: const FaIcon(FontAwesomeIcons.envelopeOpen, size: 18),
                 label: const Text('Đọc các mục chọn'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -612,7 +557,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: count > 0 ? _deleteSelected : null,
-                icon: const Icon(Icons.delete_outline, size: 18),
+                icon: const FaIcon(FontAwesomeIcons.trashCan, size: 18),
                 label: Text('Xoá ($count)'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.error,
@@ -645,7 +590,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Icon(Icons.delete_outline, color: Colors.white, size: 24),
+            FaIcon(FontAwesomeIcons.trashCan, color: Colors.white, size: 24),
             SizedBox(width: 6),
             Text('Xoá', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ],
@@ -718,7 +663,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               CircleAvatar(
                 radius: 20,
                 backgroundColor: item.iconColor.withValues(alpha: 0.12),
-                child: Icon(item.icon, color: item.iconColor, size: 20),
+                child: FaIcon(item.icon, color: item.iconColor, size: 20),
               ),
               const SizedBox(width: 12),
 
@@ -766,90 +711,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       ),
                     ),
 
-                    // Quick action buttons / status badge for shift requests
-                    if (item.requestType != null) ...[
-                      const SizedBox(height: 8),
-                      if (item.requestStatus == ShiftRequestStatus.pending && !_isSelecting) ...[
-                        Row(
-                          children: [
-                            OutlinedButton.icon(
-                              onPressed: () => _respondToRequest(item, ShiftRequestStatus.rejected),
-                              icon: const Icon(Icons.close, size: 14, color: AppColors.error),
-                              label: const Text(
-                                'Từ chối',
-                                style: TextStyle(fontSize: 11.5, color: AppColors.error, fontWeight: FontWeight.bold),
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                side: const BorderSide(color: AppColors.error),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            ElevatedButton.icon(
-                              onPressed: () => _respondToRequest(item, ShiftRequestStatus.accepted),
-                              icon: const Icon(Icons.check, size: 14),
-                              label: Text(
-                                item.requestType == 'cover' ? 'Nhận làm thay' : 'Đồng ý đổi ca',
-                                style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.success,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ] else if (item.requestStatus == ShiftRequestStatus.accepted) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade50,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: Colors.green.shade200),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.check_circle, size: 13, color: AppColors.success),
-                              const SizedBox(width: 4),
-                              Text(
-                                item.requestType == 'cover' ? 'Đã chấp nhận làm thay' : 'Đã đồng ý đổi ca',
-                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.green),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ] else if (item.requestStatus == ShiftRequestStatus.rejected) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade50,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: Colors.red.shade200),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.cancel, size: 13, color: AppColors.error),
-                              SizedBox(width: 4),
-                              Text(
-                                'Đã từ chối yêu cầu',
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.error),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-
                     const SizedBox(height: 6),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -864,7 +725,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             borderRadius: BorderRadius.circular(6),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                              child: Icon(Icons.delete_outline, size: 16, color: Colors.grey.shade400),
+                              child: FaIcon(FontAwesomeIcons.trashCan, size: 16, color: Colors.grey.shade400),
                             ),
                           ),
                       ],

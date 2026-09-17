@@ -1,31 +1,26 @@
-import '../presentation/login_screen.dart';
+import '../../../core/models/user.dart';
 
 class SavedAccountsService {
   static final List<UserModel> _savedAccounts = [
     const UserModel(
-      name: 'Nguyễn Văn A',
-      email: 'nhanvien@highlands.vn',
-      role: 'staff',
-      roleTitle: 'Nhân viên',
-      tenantId: 'highlands',
-      tenantSlug: 'highlands',
+      name: 'Trần Minh Tuấn',
+      email: 'admin@company.com',
+      role: 'admin',
+      roleTitle: 'Quản trị viên',
       assignedBranchId: '01',
     ),
     const UserModel(
-      name: 'Trần Minh Tuấn',
-      email: 'admin@highlands.vn',
-      role: 'admin',
-      roleTitle: 'Quản trị viên',
-      tenantId: 'highlands',
-      tenantSlug: 'highlands',
+      name: 'Vũ Thành Công',
+      email: 'manager@company.com',
+      role: 'manager',
+      roleTitle: 'Quản lý Chi nhánh',
+      assignedBranchId: '01',
     ),
     const UserModel(
-      name: 'Lê Thị Thuỳ Dung',
-      email: 'thuydung@katinat.vn',
+      name: 'Nguyễn Thu Hà',
+      email: 'nhanvien@company.com',
       role: 'staff',
       roleTitle: 'Nhân viên',
-      tenantId: 'katinat',
-      tenantSlug: 'katinat',
       assignedBranchId: '01',
     ),
   ];

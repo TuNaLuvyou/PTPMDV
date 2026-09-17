@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 import 'change_password_screen.dart';
 import 'logged_in_devices_screen.dart';
@@ -16,7 +17,7 @@ class SecurityScreen extends StatelessWidget {
         centerTitle: true,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: AppColors.textPrimary),
+          icon: const FaIcon(FontAwesomeIcons.chevronLeft, size: 20, color: AppColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -46,7 +47,7 @@ class SecurityScreen extends StatelessWidget {
                       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                       child: Row(
                         children: [
-                          Icon(Icons.devices_rounded, color: Colors.blue, size: 24),
+                          FaIcon(FontAwesomeIcons.computer, color: Colors.blue, size: 24),
                           SizedBox(width: 14),
                           Expanded(
                             child: Column(
@@ -64,7 +65,7 @@ class SecurityScreen extends StatelessWidget {
                               ],
                             ),
                           ),
-                          Icon(Icons.chevron_right, size: 20, color: AppColors.textSecondary),
+                          FaIcon(FontAwesomeIcons.chevronRight, size: 20, color: AppColors.textSecondary),
                         ],
                       ),
                     ),
@@ -82,7 +83,7 @@ class SecurityScreen extends StatelessWidget {
                       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                       child: Row(
                         children: [
-                          Icon(Icons.lock_reset_rounded, color: AppColors.primary, size: 24),
+                          FaIcon(FontAwesomeIcons.key, color: AppColors.primary, size: 24),
                           SizedBox(width: 14),
                           Expanded(
                             child: Column(
@@ -100,7 +101,7 @@ class SecurityScreen extends StatelessWidget {
                               ],
                             ),
                           ),
-                          Icon(Icons.chevron_right, size: 20, color: AppColors.textSecondary),
+                          FaIcon(FontAwesomeIcons.chevronRight, size: 20, color: AppColors.textSecondary),
                         ],
                       ),
                     ),

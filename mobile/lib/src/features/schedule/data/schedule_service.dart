@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../auth/presentation/login_screen.dart';
+import '../../../core/models/user.dart';
 
 class ShiftDetail {
   final String id;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 
 class DeviceSession {
@@ -74,15 +75,15 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
     ),
   ];
 
-  IconData _getDeviceIcon(String type) {
+  FaIconData _getDeviceIcon(String type) {
     switch (type) {
       case 'tablet':
-        return Icons.tablet_mac_rounded;
+        return FontAwesomeIcons.tabletScreenButton;
       case 'desktop':
-        return Icons.laptop_mac_rounded;
+        return FontAwesomeIcons.laptop;
       case 'phone':
       default:
-        return Icons.phone_iphone_rounded;
+        return FontAwesomeIcons.mobileScreen;
     }
   }
 
@@ -130,7 +131,7 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
         centerTitle: true,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: AppColors.textPrimary),
+          icon: const FaIcon(FontAwesomeIcons.chevronLeft, size: 20, color: AppColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -159,7 +160,7 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
               if (otherDevices.isNotEmpty)
                 TextButton.icon(
                   onPressed: _logoutAllOtherDevices,
-                  icon: const Icon(Icons.logout, size: 16, color: Colors.red),
+                  icon: const FaIcon(FontAwesomeIcons.rightFromBracket, size: 16, color: Colors.red),
                   label: const Text(
                     'Đăng xuất tất cả',
                     style: TextStyle(color: Colors.red, fontSize: 12.5, fontWeight: FontWeight.bold),
@@ -179,7 +180,7 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
               ),
               child: Column(
                 children: [
-                  Icon(Icons.verified_user_outlined, size: 48, color: AppColors.success.withValues(alpha: 0.8)),
+                  FaIcon(FontAwesomeIcons.userShield, size: 48, color: AppColors.success.withValues(alpha: 0.8)),
                   const SizedBox(height: 12),
                   const Text(
                     'Không có thiết bị lạ nào khác',
@@ -231,7 +232,7 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
                       : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
+                child: FaIcon(
                   _getDeviceIcon(device.deviceType),
                   color: device.isCurrent ? AppColors.primary : Colors.grey.shade700,
                   size: 24,
@@ -285,7 +286,7 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
               ),
               if (!device.isCurrent)
                 IconButton(
-                  icon: const Icon(Icons.logout_rounded, color: Colors.red, size: 22),
+                  icon: const FaIcon(FontAwesomeIcons.rightFromBracket, color: Colors.red, size: 22),
                   tooltip: 'Đăng xuất thiết bị này',
                   onPressed: () => _logoutDevice(device),
                 ),
@@ -294,7 +295,7 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
           const Divider(height: 20),
           Row(
             children: [
-              const Icon(Icons.location_on_outlined, size: 15, color: AppColors.textSecondary),
+              const FaIcon(FontAwesomeIcons.locationDot, size: 15, color: AppColors.textSecondary),
               const SizedBox(width: 4),
               Flexible(
                 child: Text(
@@ -304,7 +305,7 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Icon(Icons.access_time_rounded, size: 15, color: AppColors.textSecondary),
+              const FaIcon(FontAwesomeIcons.clock, size: 15, color: AppColors.textSecondary),
               const SizedBox(width: 4),
               Text(
                 device.lastActive,

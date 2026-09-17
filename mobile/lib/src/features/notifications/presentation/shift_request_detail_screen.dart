@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 
 enum ShiftRequestStatus { pending, accepted, rejected }
@@ -107,7 +108,7 @@ class _ShiftRequestDetailScreenState extends State<ShiftRequestDetailScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: AppColors.textPrimary),
+          icon: const FaIcon(FontAwesomeIcons.chevronLeft, size: 20, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context, _status),
           tooltip: 'Quay lại',
         ),
@@ -148,7 +149,7 @@ class _ShiftRequestDetailScreenState extends State<ShiftRequestDetailScreen> {
     Color bg;
     Color borderCol;
     Color textCol;
-    IconData icon;
+    FaIconData icon;
     String title;
     String sub;
 
@@ -157,7 +158,7 @@ class _ShiftRequestDetailScreenState extends State<ShiftRequestDetailScreen> {
         bg = const Color(0xFFFFFBEB);
         borderCol = Colors.amber.shade300;
         textCol = Colors.amber.shade900;
-        icon = Icons.hourglass_top_rounded;
+        icon = FontAwesomeIcons.hourglassHalf;
         title = 'Chờ bạn phản hồi yêu cầu';
         sub = widget.requestType == 'cover'
             ? 'Đồng nghiệp đang cần người nhận làm thay ca. Vui lòng kiểm tra chi tiết.'
@@ -167,7 +168,7 @@ class _ShiftRequestDetailScreenState extends State<ShiftRequestDetailScreen> {
         bg = const Color(0xFFF0FDF4);
         borderCol = Colors.green.shade300;
         textCol = Colors.green.shade900;
-        icon = Icons.check_circle_rounded;
+        icon = FontAwesomeIcons.circleCheck;
         title = 'Bạn đã đồng ý yêu cầu';
         sub = 'Lịch làm việc sẽ được cập nhật tương ứng vào lịch làm việc của bạn.';
         break;
@@ -175,7 +176,7 @@ class _ShiftRequestDetailScreenState extends State<ShiftRequestDetailScreen> {
         bg = const Color(0xFFFEF2F2);
         borderCol = Colors.red.shade300;
         textCol = Colors.red.shade900;
-        icon = Icons.cancel_rounded;
+        icon = FontAwesomeIcons.circleXmark;
         title = 'Bạn đã từ chối yêu cầu';
         sub = 'Đồng nghiệp đã được thông báo về quyết định từ chối của bạn.';
         break;
@@ -192,7 +193,7 @@ class _ShiftRequestDetailScreenState extends State<ShiftRequestDetailScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: textCol, size: 24),
+          FaIcon(icon, color: textCol, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -249,7 +250,7 @@ class _ShiftRequestDetailScreenState extends State<ShiftRequestDetailScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(2),
                   decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                  child: const Icon(Icons.stars, color: Colors.amber, size: 14),
+                  child: const FaIcon(FontAwesomeIcons.star, color: Colors.amber, size: 14),
                 ),
               ),
             ],
@@ -351,7 +352,7 @@ class _ShiftRequestDetailScreenState extends State<ShiftRequestDetailScreen> {
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.swap_vert_rounded, color: AppColors.primary, size: 20),
+                  FaIcon(FontAwesomeIcons.arrowsUpDown, color: AppColors.primary, size: 20),
                   SizedBox(width: 6),
                   Text(
                     'ĐỔI LẤY CA CỦA BẠN',
@@ -454,8 +455,8 @@ class _ShiftRequestDetailScreenState extends State<ShiftRequestDetailScreen> {
             ),
             child: Row(
               children: [
-                Icon(
-                  isColleagueShift ? Icons.person_pin_circle_outlined : Icons.account_circle_outlined,
+                FaIcon(
+                  isColleagueShift ? FontAwesomeIcons.locationDot : FontAwesomeIcons.circleUser,
                   size: 18,
                   color: badgeColor,
                 ),
@@ -497,16 +498,16 @@ class _ShiftRequestDetailScreenState extends State<ShiftRequestDetailScreen> {
                 const SizedBox(height: 12),
 
                 // 4 dòng thông số chi tiết
-                _buildInfoLine(Icons.calendar_today_outlined, 'Ngày làm việc', shiftDate),
+                _buildInfoLine(FontAwesomeIcons.calendarDay, 'Ngày làm việc', shiftDate),
                 const SizedBox(height: 8),
-                _buildInfoLine(Icons.access_time_rounded, 'Khung giờ ca', shiftTime),
+                _buildInfoLine(FontAwesomeIcons.clock, 'Khung giờ ca', shiftTime),
                 const SizedBox(height: 8),
-                _buildInfoLine(Icons.storefront_outlined, 'Chi nhánh', branchName),
+                _buildInfoLine(FontAwesomeIcons.store, 'Chi nhánh', branchName),
                 const SizedBox(height: 8),
-                _buildInfoLine(Icons.badge_outlined, 'Vị trí công việc', roleName),
+                _buildInfoLine(FontAwesomeIcons.idCard, 'Vị trí công việc', roleName),
                 const SizedBox(height: 8),
                 _buildInfoLine(
-                  Icons.person_outline,
+                  FontAwesomeIcons.user,
                   isColleagueShift ? 'Người bàn giao' : 'Người phụ trách',
                   ownerText,
                   highlight: true,
@@ -519,11 +520,11 @@ class _ShiftRequestDetailScreenState extends State<ShiftRequestDetailScreen> {
     );
   }
 
-  Widget _buildInfoLine(IconData icon, String label, String value, {bool highlight = false}) {
+  Widget _buildInfoLine(FaIconData icon, String label, String value, {bool highlight = false}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 16, color: AppColors.textSecondary),
+        FaIcon(icon, size: 16, color: AppColors.textSecondary),
         const SizedBox(width: 8),
         SizedBox(
           width: 120,
@@ -569,7 +570,7 @@ class _ShiftRequestDetailScreenState extends State<ShiftRequestDetailScreen> {
         children: [
           const Row(
             children: [
-              Icon(Icons.format_quote_rounded, size: 20, color: AppColors.primary),
+              FaIcon(FontAwesomeIcons.quoteLeft, size: 20, color: AppColors.primary),
               SizedBox(width: 8),
               Text(
                 'Lời nhắn & Lý do từ đồng nghiệp',
@@ -620,7 +621,7 @@ class _ShiftRequestDetailScreenState extends State<ShiftRequestDetailScreen> {
                       height: 50,
                       child: OutlinedButton.icon(
                         onPressed: () => _handleResponse(ShiftRequestStatus.rejected),
-                        icon: const Icon(Icons.close_rounded, size: 20, color: AppColors.error),
+                        icon: const FaIcon(FontAwesomeIcons.xmark, size: 20, color: AppColors.error),
                         label: const Text(
                           'Từ chối',
                           style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 16),
@@ -638,7 +639,7 @@ class _ShiftRequestDetailScreenState extends State<ShiftRequestDetailScreen> {
                       height: 50,
                       child: ElevatedButton.icon(
                         onPressed: () => _handleResponse(ShiftRequestStatus.accepted),
-                        icon: const Icon(Icons.check_rounded, size: 20),
+                        icon: const FaIcon(FontAwesomeIcons.check, size: 20),
                         label: Text(
                           isCover ? 'Nhận làm thay' : 'Đồng ý đổi ca',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -659,7 +660,7 @@ class _ShiftRequestDetailScreenState extends State<ShiftRequestDetailScreen> {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () => Navigator.pop(context, _status),
-                  icon: const Icon(Icons.arrow_back_ios_new, size: 16),
+                  icon: const FaIcon(FontAwesomeIcons.chevronLeft, size: 16),
                   label: const Text('Quay lại danh sách thông báo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                   style: OutlinedButton.styleFrom(
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
