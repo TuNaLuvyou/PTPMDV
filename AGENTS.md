@@ -1,37 +1,38 @@
 # AGENTS.md — HRM Enterprise (On-Premises SOA)
 
-## 1. Tổng quan
+## 1. Overview
 
-- Monorepo 3 thành phần: `frontend/` (Next.js 16 App Router), `mobile/` (Flutter 3.x), `backend/` (Express REST + SOAP).
-- Single-tenant nội bộ. Tuyệt đối không thêm `tenantId`, `tenantSlug` vào code, schema hay URL.
-- Màu chủ đạo đỏ đô `#8E1B2F`. Toàn bộ giao diện tiếng Việt.
+- Monorepo containing 3 components: `frontend/` (Next.js 16 App Router), `mobile/` (Flutter 3.x), and `backend/` (Multi-service SOA).
+- Internal Single-tenant system. Strictly DO NOT add `tenantId` or `tenantSlug` to any code, schemas, or URLs.
+- Primary brand color: `#8E1B2F` (burgundy).
+- All user-facing interfaces (Web & Mobile) MUST be in Vietnamese.
 
 ## 2. Backend (`backend/`, Multi-service SOA, Clean Architecture)
 
-Backend được xây dựng theo kiến trúc đa dịch vụ (Multi-service SOA) áp dụng nguyên lý Clean / Hexagonal Architecture. **Mọi AI Agent và lập trình viên khi tạo hoặc phát triển bất kỳ service nào đều BẮT BUỘC tuân thủ 100% cấu trúc đồng bộ sau:**
+The backend follows a Multi-service Service-Oriented Architecture (SOA) applying Clean / Hexagonal Architecture principles. **All AI Agents and developers MUST adhere 100% to this standardized structure when creating or modifying any service:**
 
-### 2.1. Quy chuẩn cấu trúc thư mục của MỖI Service (BẮT BUỘC)
+### 2.1. Standard Directory Structure per Service (MANDATORY)
 
-Mỗi service là một thư mục độc lập nằm trong `backend/<service-name>/`. Môi trường Node.js nằm độc lập trong từng thư mục service đó (bắt buộc có `package.json`, `node_modules/`, và `.env.example` riêng).
+Each service is an isolated directory under `backend/<service-name>/`. Node.js runtime is strictly independent per service (must have its own `package.json`, `node_modules/`, and `.env.example`).
 
-Cấu trúc chuẩn của một service:
+Standard layout:
 ```text
 backend/<service-name>/
-├── config/                     # Cấu hình môi trường (env, db, logger)
+├── config/                     # Environment configuration (env, db, logger)
 │   ├── index.js
 │   └── database.js
 ├── src/
 │   ├── api/                    # Delivery / Presentation Layer
-│   │   ├── controllers/        # Xử lý Request / Response HTTP
-│   │   ├── middlewares/        # Auth, Validation, Error Handler, Rate Limit
-│   │   ├── routes/             # Định tuyến URL API
-│   │   ├── validators/         # Schema validation (Joi / Zod)
-│   │   └── grpc/               # Handler cho gRPC (nếu có)
+│   │   ├── controllers/        # HTTP Request / Response handlers
+│   │   ├── middlewares/        # Auth, validation, error handler, rate limit
+│   │   ├── routes/             # Express route definitions
+│   │   ├── validators/         # Input schema validation (Joi / Zod)
+│   │   └── grpc/               # gRPC handlers (if applicable)
 │   │
-│   ├── domain/                 # Core Business Rules (Thuần JS/TS, không dính framework)
-│   │   ├── entities/           # Business Objects (Employee, Payout, Shift, Request, ...)
+│   ├── domain/                 # Core Business Rules (Pure JS/TS, zero framework dependencies)
+│   │   ├── entities/           # Business Objects (Employee, Payout, Shift, Request, etc.)
 │   │   ├── errors/             # Domain Custom Errors
-│   │   └── value-objects/      # Money, Address, Status
+│   │   └── value-objects/      # Money, Address, Status, etc.
 │   │
 │   ├── services/               # Application / Use Cases Layer
 │   │   ├── CreateXxxUseCase.js
@@ -40,153 +41,153 @@ backend/<service-name>/
 │   ├── infrastructure/         # External Interfaces / Adapters
 │   │   ├── database/
 │   │   │   ├── models/         # ORM / ODM Schemas (Prisma, TypeORM, Mongoose, in-memory)
-│   │   │   └── repositories/   # Đọc / ghi DB thực tế
+│   │   │   └── repositories/   # Actual DB read/write operations
 │   │   ├── messaging/          # Producers & Consumers (Kafka / RabbitMQ)
-│   │   ├── external-clients/   # Gọi sang các API bên thứ 3 hoặc service khác
+│   │   ├── external-clients/   # External/inter-service HTTP/gRPC clients
 │   │   └── logging/            # Winston / Pino logger
 │   │
-│   ├── utils/                  # Utility functions
-│   └── app.js                  # Khởi tạo Express app & gắn middlewares
+│   ├── utils/                  # Helper & utility functions
+│   └── app.js                  # Express app initialization & middleware mounting
 │
 ├── tests/                      # Unit, Integration & End-to-End Tests
 │   ├── unit/
 │   └── integration/
 │
-├── .env.example                # Mẫu biến môi trường (BẮT BUỘC)
-├── Dockerfile                  # Container build cho service (BẮT BUỘC)
-├── docker-compose.yml          # Cấu hình chạy service & dependencies cục bộ (BẮT BUỘC)
-├── package.json                # Dependencies & scripts độc lập (BẮT BUỘC)
-└── server.js                   # Entry point (kết nối DB, lắng nghe Port, GET /health)
+├── .env.example                # Sample environment variables (MANDATORY)
+├── Dockerfile                  # Service container build (MANDATORY)
+├── docker-compose.yml          # Local orchestration & service dependencies (MANDATORY)
+├── package.json                # Isolated dependencies & scripts (MANDATORY)
+└── server.js                   # Entry point (DB connect, Port listen, GET /health)
 ```
 
-### 2.2. Chi tiết trách nhiệm của từng tầng trong Service
+### 2.2. Layer Responsibilities
 
-1. **Môi trường Node độc lập (`package.json` & `node_modules`)**:
-   - Chạy lệnh cài đặt và khởi động ngay tại thư mục của service: `cd backend/<service-name> && npm install && npm run dev`.
-   - Mỗi service quản lý dependencies riêng, không phụ thuộc chéo ra ngoài thư mục service.
-   - Bắt buộc luôn có `.env.example` chứa toàn bộ mẫu biến môi trường cần thiết (`PORT`, `SERVICE_NAME`, `DB_URL`, `JWT_SECRET`,...).
+1. **Independent Node Environment (`package.json` & `node_modules`)**:
+   - Install and run directly inside the service folder: `cd backend/<service-name> && npm install && npm run dev`.
+   - Never share or import cross-service packages or modules relatively.
+   - Always commit `.env.example` containing all required keys (`PORT`, `SERVICE_NAME`, `DB_URL`, `JWT_SECRET`, etc.).
 
-2. **Cấu hình (`config/`)**:
-   - `config/index.js`: Đọc và validate biến môi trường từ `process.env`.
-   - `config/database.js`: Cấu hình kết nối cơ sở dữ liệu hoặc in-memory store.
+2. **Configuration (`config/`)**:
+   - `config/index.js`: Parse and validate environment variables from `process.env`.
+   - `config/database.js`: DB connection or in-memory store initialization.
 
-3. **Tầng Presentation (`src/api/`)**:
-   - `controllers/`: Chỉ tiếp nhận `req`, gọi xuống Use Case ở `src/services/`, trả về response chuẩn `{ data: ... }` hoặc `{ error: ... }`. Tuyệt đối không viết business logic tại controller.
-   - `middlewares/`: Xác thực token/session, phân quyền, validate schema, xử lý lỗi tập trung.
-   - `routes/`: Định tuyến Express Router map URL vào controller tương ứng.
-   - `validators/`: Khai báo schema validate input (Joi/Zod).
+3. **Presentation Layer (`src/api/`)**:
+   - `controllers/`: Handle incoming `req`, delegate work to Use Cases in `src/services/`, return unified response `{ data: ... }` or `{ error: ... }`. Never write business logic inside controllers.
+   - `middlewares/`: Token/session auth, role authorization, schema validation, centralized error handling.
+   - `routes/`: Map URLs to controller actions.
+   - `validators/`: Joi/Zod request payload schemas.
 
-4. **Tầng Domain (`src/domain/`)**:
-   - Thuần JS/TS, độc lập hoàn toàn với Express hay database library.
-   - Định nghĩa `entities/`, `value-objects/` và các lỗi domain `errors/`.
+4. **Domain Layer (`src/domain/`)**:
+   - Pure JS/TS, completely independent of Express, databases, or third-party frameworks.
+   - Houses `entities/`, `value-objects/`, and domain `errors/`.
 
-5. **Tầng Use Cases / Application (`src/services/`)**:
-   - Chứa các Use Case thực thi logic nghiệp vụ cụ thể (vd: `CreatePayoutUseCase`, `GeneratePayslipUseCase`).
-   - Tương tác với cơ sở dữ liệu thông qua repository interface.
+5. **Use Cases / Application Layer (`src/services/`)**:
+   - Encapsulates specific business use cases (e.g., `CreatePayoutUseCase`, `GeneratePayslipUseCase`).
+   - Interacts with data layer strictly via repository abstractions.
 
-6. **Tầng Infrastructure (`src/infrastructure/`)**:
-   - Triển khai cụ thể cho database (`models/`, `repositories/`), gọi service khác (`external-clients/`), logging và messaging.
-   - Dữ liệu nhân sự, chi nhánh, ngân hàng phải luôn đồng bộ với schema của Web (`frontend/src/mock-data/portal.ts`) và Mobile (`mobile/lib/src/core/models/`).
+6. **Infrastructure Layer (`src/infrastructure/`)**:
+   - Concrete implementations for persistence (`models/`, `repositories/`), cross-service clients (`external-clients/`), logging, and messaging.
+   - Data structures for employees, branches, and banking MUST remain synchronized with Frontend (`frontend/src/mock-data/portal.ts`) and Mobile (`mobile/lib/src/core/models/`).
 
-7. **File `server.js` & `src/app.js`**:
-   - `src/app.js`: Khởi tạo Express app, cấu hình CORS, parser, gắn middleware và routes từ `src/api/routes/`.
-   - `server.js`: Entry point nạp env, kết nối DB/infrastructure, khởi động HTTP server khi `require.main === module`, export `app` để test.
-   - Bắt buộc luôn có endpoint `GET /health` trả về `{ status: "ok", service: "<service-name>", time: new Date().toISOString() }`.
+7. **Entry Points (`server.js` & `src/app.js`)**:
+   - `src/app.js`: Configures Express app, CORS, parsers, and mounts routes from `src/api/routes/`.
+   - `server.js`: Loads env, connects DB, starts HTTP listener when `require.main === module`, exports `app` for testing.
+   - Must provide `GET /health` responding with `{ status: "ok", service: "<service-name>", time: new Date().toISOString() }`.
 
-### 2.3. Quy tắc phân bổ Port & Quản lý Service (Tránh xung đột khi chạy song song)
+### 2.3. Port Allocation & Service Registry (Preventing Conflicts)
 
-Số lượng và tên gọi của các service sẽ do nhóm tự quyết định theo phân công nghiệp vụ. Để đảm bảo các service có thể khởi chạy song song trên môi trường local mà không xung đột:
+Service quantity and domain decomposition are determined by the team. To prevent port collisions when running services simultaneously:
 
-1. **Dải Port quy ước**:
-   - `3000`: Dành riêng cho Frontend Web (`frontend/`).
-   - `4000`: Dành cho API Gateway (nếu có sử dụng).
-   - `4001 - 4099`: Dành cho các Backend Services (`backend/<service-name>/`).
-2. **Quy tắc đăng ký Port**:
-   - Khi tạo một service mới, Agent/Dev **tự chọn một Port chưa bị chiếm** trong dải `4001+` (ví dụ service đầu tiên `4001`, service tiếp theo `4002`, `4003`...), cấu hình vào `.env.example`.
-   - Cập nhật tên service và Port vừa chọn vào bảng **Service Registry** bên dưới để các Agent/thành viên khác tránh dùng trùng.
+1. **Port Conventions**:
+   - `3000`: Frontend Web Portal (`frontend/`).
+   - `4000`: API Gateway (if utilized).
+   - `4001 - 4099`: Backend Services (`backend/<service-name>/`).
+2. **Port Registration Rule**:
+   - When creating a service, pick an **unassigned Port** in the `4001+` range (e.g., `4001`, `4002`, `4003`...), configure it in `.env.example`.
+   - Register the service name and assigned port in the **Service Registry** table below.
 
-#### Bảng Service Registry (Cập nhật khi tạo service mới)
+#### Service Registry Table
 
-| Service Name | Thư mục | Port | Trách nhiệm chính |
+| Service Name | Directory | Port | Primary Responsibility |
 |---|---|---|---|
 | **Frontend Web** | `frontend/` | `3000` | Next.js 16 Web Portal |
-| *(Service 1)* | `backend/<service-name>/` | `4001` | *(Đăng ký khi tạo)* |
-| *(Service 2)* | `backend/<service-name>/` | `4002` | *(Đăng ký khi tạo)* |
+| *(Service 1)* | `backend/<service-name>/` | `4001` | *(Register upon creation)* |
+| *(Service 2)* | `backend/<service-name>/` | `4002` | *(Register upon creation)* |
 
-### 2.4. Chuẩn định dạng Response HTTP & Mã lỗi
+### 2.4. Standard HTTP Response & Error Codes
 
-Mọi controller của tất cả service bắt buộc trả về cấu trúc JSON đồng nhất:
+All service controllers MUST return a uniform JSON format:
 
-- **Thành công (200 OK, 201 Created)**:
+- **Success (200 OK, 201 Created)**:
   ```json
   {
     "data": { ... },
-    "message": "Thực hiện thành công" // tuỳ chọn
+    "message": "Operation successful"
   }
   ```
-- **Thất bại (400, 401, 403, 404, 422, 500)**:
+- **Error (400, 401, 403, 404, 422, 500)**:
   ```json
   {
     "error": {
       "code": "EMPLOYEE_NOT_FOUND",
-      "message": "Không tìm thấy thông tin nhân sự trên hệ thống"
+      "message": "Employee details not found in system"
     }
   }
   ```
 
-### 2.5. Giao tiếp giữa các Service (Inter-service Communication)
-- Service này gọi service khác **BẮT BUỘC** thông qua adapter tại `src/infrastructure/external-clients/` (sử dụng `fetch` hoặc `axios` với timeout tối đa 5000ms).
-- Tuyệt đối **KHÔNG** require trực tiếp file nội bộ của service khác qua đường dẫn tương đối (vd: `require("../../other-service/...")` là **NGHIÊM CẤM**).
+### 2.5. Inter-service Communication
+- Cross-service calls **MUST** go through adapters in `src/infrastructure/external-clients/` using `fetch` or `axios` with max 5000ms timeout.
+- Directly importing internal files of another service (e.g., `require("../../other-service/...")`) is **STRICTLY PROHIBITED**.
 
-### 2.6. Quy tắc nghiệp vụ Backend chung
-- Tạo lệnh chi (payroll) phải kiểm tra số dư tài khoản trích nợ, trừ tiền, sinh mã `TXN-*` + `BANK-*`, và chống trùng bằng `idempotencyKey` (nếu trùng trả lại bản ghi cũ kèm `deduped: true`).
-- Single-tenant: Tuyệt đối không thêm `tenantId`, `tenantSlug` vào bất kỳ code, schema hay URL nào.
+### 2.6. Common Backend Business Rules
+- Payroll payouts must verify source debit account balance, deduct funds, generate `TXN-*` and `BANK-*` codes, and enforce idempotency using `idempotencyKey` (return existing record with `deduped: true` if duplicate).
+- Single-tenant: Absolutely no `tenantId` or `tenantSlug` in any schema, code, or URL.
 
 ## 3. Frontend (`frontend/`, Next.js 16 + React 19 + Tailwind v4)
 
-- Toàn bộ code trong `src/`, alias `@/*` → `./src/*`. Scripts chuẩn: `next dev/build/start`.
-- Route: `/` → `/login`; `/dashboard/*` (employees, departments, branches, shifts, tasks, requests, payslips, bank, news, regulations, wifi).
-- Chuẩn App Router: `loading.tsx`, `error.tsx`, `not-found.tsx` ở `src/app/`.
-- Feature phẳng: `src/features/<domain>/` (không lồng `hr/`). UI dùng chung: `components/ui`, `components/layout`.
-- Session: `AuthContext` + cookie `hrm-session`, `src/middleware.ts` bảo vệ `/dashboard/*`. Không đưa `role`/`branchSlug` vào URL. Menu dựng bằng `buildMenuItems(role)` trong `lib/permissions.tsx`.
-- Component có state: `"use client"`. Icon Font Awesome. Tiền tệ `formatVND()` từ `lib/utils`.
-- Kiểm tra: `npx tsc --noEmit`, `npm run build`.
+- All application code resides in `src/`, alias `@/*` → `./src/*`. Scripts: `next dev/build/start`.
+- Routes: `/` → `/login`; `/dashboard/*` (employees, departments, branches, shifts, tasks, requests, payslips, bank, news, regulations, wifi).
+- App Router standards: `loading.tsx`, `error.tsx`, `not-found.tsx` under `src/app/`.
+- Flat features: `src/features/<domain>/` (do not nest under `hr/`). Shared UI: `components/ui`, `components/layout`.
+- Session management: `AuthContext` + `hrm-session` cookie, `src/middleware.ts` protecting `/dashboard/*`. Do not expose `role` or `branchSlug` in URL routes. Build navigation menus via `buildMenuItems(role)` in `lib/permissions.tsx`.
+- State components require `"use client"`. Font Awesome icons. Format currency using `formatVND()` from `lib/utils`.
+- Verification checks: `npx tsc --noEmit`, `npm run build`.
 
 ## 4. Mobile (`mobile/`, Flutter 3.x + go_router + Material 3)
 
 ```text
 lib/src/
-├── app.dart                        # HRMApp dùng MaterialApp.router
+├── app.dart                        # HRMApp using MaterialApp.router
 ├── core/{constants,models,theme,utils,widgets,router,state}
 └── features/<name>/{data,presentation}
 ```
 
-- Router `core/router/router.dart` là single source of truth (`/`, `/login`, `/main` + `extra: UserModel`). Điều hướng bằng `context.go/pushReplacement`, không dùng `Navigator` trực tiếp.
-- Auth mẫu tách lớp: `features/auth/data/` (AuthRepository + mock users), UI chỉ gọi repository.
-- Theme: `AppColors.primary #8E1B2F`, `AppTheme.lightTheme`, typography Public Sans (`AppTypography`). Không dùng `.withOpacity`, dùng `.withValues(alpha:)`. Không hardcode mã màu, dùng `AppColors`.
-- Kiểm tra: `flutter analyze` (0 issues), `flutter test`.
+- Router `core/router/router.dart` is single source of truth (`/`, `/login`, `/main` with `extra: UserModel`). Navigate using `context.go/pushReplacement`, never `Navigator` directly.
+- Layered authentication: `features/auth/data/` (AuthRepository + mock users), UI only interacts with the repository.
+- Theme: `AppColors.primary #8E1B2F`, `AppTheme.lightTheme`, typography Public Sans (`AppTypography`). Never use `.withOpacity`, use `.withValues(alpha:)`. Never hardcode color hexes, use `AppColors`.
+- Verification checks: `flutter analyze` (0 issues), `flutter test`.
 
-## 5. Quy tắc Vibe Coding cho AI Agents (BẮT BUỘC ĐỂ TRÁNH XUNG ĐỘT)
+## 5. Vibe Coding Rules for AI Agents (Isolation & Conflict Prevention)
 
-Để nhiều người và nhiều AI Agent cùng phát triển mà không đè code, không phá vỡ logic của nhau:
+To allow multiple developers and AI agents to build concurrently without stepping on each other:
 
-### 5.1. Nguyên tắc cách ly không gian làm việc (Work Isolation)
-1. **Chỉ sửa trong thư mục được giao**: Khi làm việc trên service nào, Agent chỉ được tạo/sửa file trong `backend/<service-name>/`. Tuyệt đối không tự ý sửa file của service khác, `frontend/` hoặc `mobile/` trừ khi có chỉ định rõ ràng.
-2. **Quy tắc Git Branch**:
-   - Không bao giờ commit trực tiếp lên `main` hay `dev`.
-   - Bắt buộc tạo nhánh feature: `git checkout -b feat/<service-name>-<tên-dev>` từ `dev`.
-   - Trước khi tạo PR: `git pull origin dev` và resolve conflict cục bộ.
-3. **Không commit file môi trường thực**: File `.env` phải luôn được gitignore. Chỉ commit `.env.example`.
+### 5.1. Work Isolation Principles
+1. **Directory Isolation**: When assigned to a service, the Agent MUST only create/modify files inside `backend/<service-name>/`. Never modify another service, `frontend/`, or `mobile/` unless explicitly instructed.
+2. **Git Branching Rules**:
+   - Never commit directly to `main` or `dev`.
+   - Always create a feature branch: `git checkout -b feat/<service-name>-<dev-name>` from `dev`.
+   - Before opening a PR: run `git pull origin dev` and resolve conflicts locally.
+3. **Never Commit Actual Environment Files**: `.env` files must be gitignored. Only commit `.env.example`.
 
-### 5.2. Quy thức BẮT BUỘC cập nhật `AGENTS.md` sau khi hoàn thành (Agent Handover Protocol)
-- **KHI NÀO PHẢI CẬP NHẬT**:
-  - Khi Agent tạo một **Service mới** -> Phải cập nhật Service đó và Port vào bảng **Service Registry (mục 2.3)**.
-  - Khi Agent bổ sung một **API Contract chính** hoặc thay đổi cấu trúc Data Schema chung.
-- **KHI NÀO KHÔNG ĐƯỢC CẬP NHẬT**:
-  - Không ghi nhật ký commit, task cá nhân, code nháp hay các chỉnh sửa nhỏ vào `AGENTS.md`. File này chỉ chứa **Hiến pháp & Kiến trúc dùng chung**.
+### 5.2. Mandatory AGENTS.md Handover Protocol
+- **WHEN TO UPDATE**:
+  - When an Agent creates a **New Service** -> Must register the service name and assigned Port in the **Service Registry (Section 2.3)**.
+  - When an Agent introduces a **Major API Contract** or alters shared Data Schemas.
+- **WHEN NOT TO UPDATE**:
+  - Do not log commit messages, personal tasks, scratch notes, or minor code edits in `AGENTS.md`. This document is reserved for **Shared Architecture & Rules**.
 
-### 5.3. Checklist nghiệm thu trước khi bàn giao
-- [ ] Service chạy độc lập được: `cd backend/<service-name> && npm install && npm run dev`.
-- [ ] `GET /health` trả về đúng format `{ status: "ok", service: "<service-name>", time: "..." }`.
-- [ ] Đúng 100% cấu trúc Clean Architecture: `config/`, `src/api/`, `src/domain/`, `src/services/`, `src/infrastructure/`.
-- [ ] Cập nhật bảng Service Registry trong `AGENTS.md` (nếu có service/port mới).
+### 5.3. Completion Acceptance Checklist
+- [ ] Service runs independently: `cd backend/<service-name> && npm install && npm run dev`.
+- [ ] `GET /health` returns `{ status: "ok", service: "<service-name>", time: "..." }`.
+- [ ] 100% compliant with Clean Architecture: `config/`, `src/api/`, `src/domain/`, `src/services/`, `src/infrastructure/`.
+- [ ] Updated Service Registry in `AGENTS.md` (if a new service or port was introduced).
