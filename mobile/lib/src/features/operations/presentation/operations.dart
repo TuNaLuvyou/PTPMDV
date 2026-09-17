@@ -346,7 +346,7 @@ class OperationsScreen extends StatelessWidget {
         children: [
           Container(width: 3.5, height: 14, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
           const SizedBox(width: 8),
-          FaIcon(icon, size: 15, color: color),
+          Center(child: FaIcon(icon, size: 14, color: color)),
           const SizedBox(width: 6),
           Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color, letterSpacing: 0.2)),
         ],
@@ -378,10 +378,17 @@ class OperationsScreen extends StatelessWidget {
           decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: iconColor.withValues(alpha: 0.12),
-                child: FaIcon(icon, color: iconColor, size: 22),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Center(
+                  child: FaIcon(icon, color: iconColor, size: 20),
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -404,7 +411,7 @@ class OperationsScreen extends StatelessWidget {
                     child: Text(badgeText, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: badgeColor)),
                   ),
                   const SizedBox(height: 4),
-                  const FaIcon(FontAwesomeIcons.chevronRight, size: 18, color: AppColors.textSecondary),
+                  const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textSecondary),
                 ],
               ),
             ],

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 
 enum TaskSourceType {
@@ -75,9 +74,9 @@ class TaskModel {
       ? 'Giao riêng'
       : 'Theo ca';
 
-  FaIconData get sourceIcon => sourceType == TaskSourceType.manager
-      ? FontAwesomeIcons.thumbtack
-      : FontAwesomeIcons.repeat;
+  IconData get sourceIcon => sourceType == TaskSourceType.manager
+      ? Icons.push_pin_rounded
+      : Icons.sync_rounded;
 
   Color get sourceColor => sourceType == TaskSourceType.manager
       ? const Color(0xFF8E1B2F)

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/config/company.dart';
 import '../../../core/state/branch_scope.dart';
@@ -47,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
         elevation: 0,
         actions: [
           IconButton(
-            icon: const FaIcon(FontAwesomeIcons.bell, color: AppColors.textPrimary),
+            icon: const Icon(Icons.notifications_none_rounded, color: AppColors.textPrimary),
             onPressed: () {
               if (widget.onNavigateToTab != null) widget.onNavigateToTab!(2); // Switch to Notifications
             },
@@ -72,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: _buildQuickActionCard(
                           title: 'Lịch làm việc',
                           subtitle: 'Xem ca & phân công',
-                          icon: FontAwesomeIcons.calendarDays,
+                          icon: Icons.calendar_month_rounded,
                           color: const Color(0xFF2563EB),
                           onTap: () {
                             Navigator.push(context, MaterialPageRoute(builder: (context) => const ScheduleScreen()));
@@ -84,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: _buildQuickActionCard(
                           title: 'Đăng ký nghỉ',
                           subtitle: 'Nghỉ ngày/ Nghỉ ca',
-                          icon: FontAwesomeIcons.umbrellaBeach,
+                          icon: Icons.beach_access_rounded,
                           color: const Color(0xFFF59E0B),
                           onTap: () {
                             Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaveRequestScreen()));
@@ -100,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: _buildQuickActionCard(
                           title: 'Kỳ lương',
                           subtitle: 'Tạm tính thu nhập',
-                          icon: FontAwesomeIcons.moneyBill,
+                          icon: Icons.payments_rounded,
                           color: const Color(0xFF10B981),
                           onTap: () {
                             Navigator.push(context, MaterialPageRoute(builder: (_) => const SalaryScreen()));
@@ -112,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: _buildQuickActionCard(
                           title: 'Đăng ký ca làm',
                           subtitle: 'Chọn ca tuần tới',
-                          icon: FontAwesomeIcons.calendarCheck,
+                          icon: Icons.event_available_rounded,
                           color: const Color(0xFF0EA5E9),
                           onTap: () {
                             Navigator.push(context, MaterialPageRoute(builder: (_) => const ScheduleRegistrationScreen()));
@@ -148,11 +147,16 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 26,
-            backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-            child: FaIcon(
-              currentUser.canManage ? FontAwesomeIcons.userShield : FontAwesomeIcons.person,
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              currentUser.canManage ? Icons.admin_panel_settings_outlined : Icons.person_outline_rounded,
               color: AppColors.primary,
               size: 28,
             ),
@@ -182,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 3),
                 const Row(
                   children: [
-                    FaIcon(FontAwesomeIcons.store, size: 14, color: AppColors.textSecondary),
+                    Icon(Icons.storefront_rounded, size: 15, color: AppColors.textSecondary),
                     SizedBox(width: 4),
                     Flexible(
                       child: Text(
@@ -208,7 +212,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildQuickActionCard({
     required String title,
     required String subtitle,
-    required FaIconData icon,
+    required IconData icon,
     required Color color,
     required VoidCallback onTap,
   }) {
@@ -232,10 +236,15 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: color.withValues(alpha: 0.12),
-              child: FaIcon(icon, color: color, size: 22),
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(icon, color: color, size: 24),
             ),
             const SizedBox(height: 12),
             Text(
@@ -275,7 +284,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ? 'Đang làm: ${_checkedInShift!.shiftName} (${_checkedInShift!.timeRange})'
         : 'Chạm để xác thực Wi-Fi chi nhánh';
 
-    final FaIconData mainIcon = isCheckedIn ? FontAwesomeIcons.stopwatch : FontAwesomeIcons.handPointer;
+    final IconData mainIcon = isCheckedIn ? Icons.timer_outlined : Icons.touch_app_rounded;
 
     return Container(
       width: double.infinity,
@@ -318,7 +327,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: Colors.white.withValues(alpha: 0.35), width: 1.5),
                   ),
-                  child: FaIcon(mainIcon, color: Colors.white, size: 30),
+                  alignment: Alignment.center,
+                  child: Icon(mainIcon, color: Colors.white, size: 30),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -351,12 +361,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
-                  child: const FaIcon(FontAwesomeIcons.arrowRight, color: Colors.white, size: 18),
+                  alignment: Alignment.center,
+                  child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
                 ),
               ],
             ),
@@ -487,7 +499,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: const Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                FaIcon(FontAwesomeIcons.calendarXmark, color: Color(0xFFD97706), size: 22),
+                                Icon(Icons.event_busy_rounded, color: Color(0xFFD97706), size: 24),
                                 SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
@@ -789,7 +801,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     setState(() {});
                   },
                   borderRadius: BorderRadius.circular(8),
-                  child: const Row(children: [Text('Xem tất cả', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 12)), SizedBox(width: 2), FaIcon(FontAwesomeIcons.chevronRight, size: 16, color: AppColors.primary)]),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Xem tất cả', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 12)),
+                      SizedBox(width: 2),
+                      Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.primary),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -801,9 +820,11 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(14),
+                    width: 56,
+                    height: 56,
                     decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.08), shape: BoxShape.circle),
-                    child: FaIcon(FontAwesomeIcons.listCheck, size: 32, color: AppColors.primary.withValues(alpha: 0.7)),
+                    alignment: Alignment.center,
+                    child: Icon(Icons.checklist_rounded, size: 30, color: AppColors.primary.withValues(alpha: 0.7)),
                   ),
                   const SizedBox(height: 10),
                   const Text('Không có công việc tồn đọng', style: TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
@@ -835,7 +856,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         GestureDetector(
                           onTap: () async {
@@ -865,9 +886,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             }
                           },
                           child: Container(
-                            margin: const EdgeInsets.only(top: 2, right: 10),
-                            width: 20,
-                            height: 20,
+                            margin: const EdgeInsets.only(right: 12),
+                            width: 22,
+                            height: 22,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
@@ -875,8 +896,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 width: 1.6,
                               ),
                             ),
+                            alignment: Alignment.center,
                             child: task.requirePhoto
-                                ? const FaIcon(FontAwesomeIcons.camera, size: 12, color: Color(0xFFDC2626))
+                                ? const Icon(Icons.camera_alt_outlined, size: 14, color: Color(0xFFDC2626))
                                 : null,
                           ),
                         ),
@@ -894,7 +916,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                     child: Row(
                                       children: [
-                                        FaIcon(task.sourceIcon, size: 10, color: task.sourceColor),
+                                        Icon(task.sourceIcon, size: 12, color: task.sourceColor),
                                         const SizedBox(width: 3),
                                         Text(task.shortSourceLabel, style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: task.sourceColor)),
                                       ],
@@ -925,7 +947,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                         ),
-                        const FaIcon(FontAwesomeIcons.chevronRight, size: 16, color: AppColors.textSecondary),
+                        const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textSecondary),
                       ],
                     ),
                   ),

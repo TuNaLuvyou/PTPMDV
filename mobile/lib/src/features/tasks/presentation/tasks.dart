@@ -382,7 +382,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      FaIcon(task.sourceIcon, size: 13, color: task.sourceColor),
+                      Icon(task.sourceIcon, size: 14, color: task.sourceColor),
                       const SizedBox(width: 4),
                       Text(
                         task.shortSourceLabel,
@@ -947,7 +947,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              FaIcon(task.sourceIcon, size: 11, color: task.sourceColor),
+                              Icon(task.sourceIcon, size: 12, color: task.sourceColor),
                               const SizedBox(width: 3.5),
                               Text(
                                 task.shortSourceLabel,
