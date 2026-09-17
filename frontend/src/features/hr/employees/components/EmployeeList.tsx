@@ -18,14 +18,18 @@ import { departments } from "@/mock-data/portal";
 
 interface Props {
   employees: Employee[];
-  onLock: (e: Employee) => void;
-  onDelete: (e: Employee) => void;
+  onOpenDetail?: (e: Employee) => void;
+  onSelect?: (e: Employee) => void;
+  onLock?: (e: Employee) => void;
+  onDelete?: (e: Employee) => void;
   isManager?: boolean;
   managerBranch?: string;
 }
 
 export default function EmployeeSection({
   employees,
+  onOpenDetail,
+  onSelect,
   onLock,
   onDelete,
   isManager = false,
@@ -103,22 +107,16 @@ export default function EmployeeSection({
       key: "actions",
       header: "Thao tác",
       render: (e) => (
-        <div className="flex items-center gap-0.5">
-          <button
-            onClick={() => onLock(e)}
-            className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-warning-700 cursor-pointer"
-            title="Khóa"
-          >
-            <FontAwesomeIcon icon={faLock} fontSize={16} />
-          </button>
-          <button
-            onClick={() => onDelete(e)}
-            className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-danger cursor-pointer"
-            title="Xóa"
-          >
-            <FontAwesomeIcon icon={faTrashCan} fontSize={16} />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => {
+            if (onOpenDetail) onOpenDetail(e);
+            else if (onSelect) onSelect(e);
+          }}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-primary hover:text-white transition-all cursor-pointer shadow-2xs"
+        >
+          Chi tiết
+        </button>
       ),
     },
   ];

@@ -32,22 +32,13 @@ export default function PayslipSection({ payslips, onEdit, onCloseOne, onPrint, 
       key: "actions",
       header: "Thao tác",
       render: (p) => (
-        <div className="flex items-center gap-1">
-          {p.status === "chưa chốt" ? (
-            <>
-              <button onClick={() => onEdit(p)} className="p-1.5 rounded-lg text-primary hover:bg-primary-50 cursor-pointer" title="Chỉnh sửa (thưởng/phạt)">
-                <FontAwesomeIcon icon={faPencil} fontSize={16} />
-              </button>
-              <button onClick={() => onCloseOne(p)} className="p-1.5 rounded-lg text-success hover:bg-success-100 cursor-pointer" title="Chốt lương nhân viên này">
-                <FontAwesomeIcon icon={faCheck} fontSize={16} />
-              </button>
-            </>
-          ) : (
-            <button onClick={() => onPrint(p)} className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 cursor-pointer" title="In phiếu lương">
-              <FontAwesomeIcon icon={faPrint} fontSize={16} />
-            </button>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={() => onEdit(p)}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-primary hover:text-white transition-all cursor-pointer shadow-2xs"
+        >
+          Chi tiết
+        </button>
       ),
     },
   ];

@@ -34,21 +34,13 @@ export default function BranchSection({ branches, onEdit, onLock, onDelete }: Pr
       key: "actions",
       header: "Thao tác",
       render: (b) => (
-        <div className="flex items-center gap-0.5">
-          <button onClick={() => onEdit(b)} className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-primary cursor-pointer" title="Sửa">
-            <FontAwesomeIcon icon={faPencil} fontSize={16} />
-          </button>
-          {onLock && (
-            <button onClick={() => onLock(b)} className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-warning-700 cursor-pointer" title="Khóa">
-              <FontAwesomeIcon icon={faLock} fontSize={16} />
-            </button>
-          )}
-          {onDelete && (
-            <button onClick={() => onDelete(b)} className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-danger cursor-pointer" title="Xóa">
-              <FontAwesomeIcon icon={faTrashCan} fontSize={16} />
-            </button>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={() => onEdit(b)}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-primary hover:text-white transition-all cursor-pointer shadow-2xs"
+        >
+          Chi tiết
+        </button>
       ),
     },
   ];

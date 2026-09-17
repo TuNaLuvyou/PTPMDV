@@ -123,33 +123,13 @@ export default function DepartmentList({
             key: "actions" as keyof Department,
             header: "Thao tác",
             render: (d: Department) => (
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => onEdit(d)}
-                  className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-primary cursor-pointer transition-colors"
-                  title="Chỉnh sửa thông tin"
-                >
-                  <FontAwesomeIcon icon={faPencil} fontSize={15} />
-                </button>
-                {onLock && (
-                  <button
-                    onClick={() => onLock(d)}
-                    className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-amber-600 cursor-pointer transition-colors"
-                    title={d.status === "hoạt động" ? "Tạm dừng phòng ban" : "Kích hoạt lại"}
-                  >
-                    <FontAwesomeIcon icon={faLock} fontSize={15} />
-                  </button>
-                )}
-                {onDelete && (
-                  <button
-                    onClick={() => onDelete(d)}
-                    className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-red-600 cursor-pointer transition-colors"
-                    title="Xóa phòng ban"
-                  >
-                    <FontAwesomeIcon icon={faTrashCan} fontSize={15} />
-                  </button>
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={() => onEdit(d)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-primary hover:text-white transition-all cursor-pointer shadow-2xs"
+              >
+                Chi tiết
+              </button>
             ),
           },
         ]

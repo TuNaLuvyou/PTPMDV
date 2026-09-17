@@ -11,6 +11,7 @@ import type { Employee } from "@/types";
 import EmployeeSection from "@/features/hr/employees/components/EmployeeList";
 import CreateEmployeeModal from "@/features/hr/employees/components/modals/EmployeeCreate";
 import DisableEmployeeDialog from "@/features/hr/employees/components/modals/EmployeeDisable";
+import EmployeeDetailModal from "@/features/hr/employees/components/modals/EmployeeDetailModal";
 import { useCurrentUser } from "@/context/AuthContext";
 
 export default function EmployeesPage() {
@@ -28,12 +29,19 @@ export default function EmployeesPage() {
 
   const [empList, setEmpList] = useState<Employee[]>(filteredEmployees);
   const [createOpen, setCreateOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [lockTarget, setLockTarget] = useState<Employee | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
 
   const pageTitle = isManager
     ? "Nhân sự Chi nhánh Hoàn Kiếm (HN-1)"
     : "Danh sách Nhân sự Toàn công ty";
+
+  const handleSaveEmployee = (updated: Employee) => {
+    setEmpList((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
+    setSelectedEmployee(updated);
+  };
 
   return (
     <div>
@@ -49,8 +57,24 @@ export default function EmployeesPage() {
 
       <EmployeeSection
         employees={empList}
+        onOpenDetail={(e) => {
+          setSelectedEmployee(e);
+          setDetailOpen(true);
+        }}
         onLock={setLockTarget}
         onDelete={setDeleteTarget}
+        isManager={isManager}
+        managerBranch={branchSlug.toUpperCase()}
+      />
+
+      <EmployeeDetailModal
+        open={detailOpen}
+        onClose={() => {
+          setDetailOpen(false);
+          setSelectedEmployee(null);
+        }}
+        employee={selectedEmployee}
+        onSave={handleSaveEmployee}
         isManager={isManager}
         managerBranch={branchSlug.toUpperCase()}
       />
