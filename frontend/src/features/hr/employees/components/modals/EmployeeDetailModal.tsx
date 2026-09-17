@@ -587,15 +587,9 @@ export default function EmployeeDetailModal({
                         {employee.department || "Chưa gán"}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+                    <div className="flex justify-between items-center py-1.5">
                       <span className="text-gray-500 text-xs">Vị trí chức danh:</span>
                       <span className="font-bold text-gray-900 text-xs">{employee.role}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-1.5">
-                      <span className="text-gray-500 text-xs">Ngày gia nhập:</span>
-                      <span className="font-semibold text-gray-800 text-xs">
-                        {employee.joinDate || "01/01/2024"}
-                      </span>
                     </div>
                   </div>
                 </div>
@@ -622,6 +616,12 @@ export default function EmployeeDetailModal({
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Trạng thái hoạt động:</span>
                       <StatusBadge status={employee.status} />
+                    </div>
+                    <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+                      <span className="text-gray-500 text-xs">Ngày vào làm việc:</span>
+                      <span className="font-semibold text-gray-800 text-xs">
+                        {employee.joinDate || "01/01/2024"}
+                      </span>
                     </div>
                     <div className="p-3.5 rounded-xl bg-purple-50/60 border border-purple-100 text-xs text-purple-900 space-y-1.5">
                       <div className="font-bold flex items-center gap-1.5">
@@ -682,14 +682,6 @@ export default function EmployeeDetailModal({
                       placeholder="Nhân viên kinh doanh / Thu ngân..."
                     />
                   </Field>
-
-                  <Field label="Ngày vào làm việc" required>
-                    <Input
-                      value={joinDate}
-                      onChange={(e) => setJoinDate(e.target.value)}
-                      placeholder="01/01/2024"
-                    />
-                  </Field>
                 </div>
 
                 <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
@@ -716,6 +708,14 @@ export default function EmployeeDetailModal({
                       <option value="đang làm">Đang làm</option>
                       <option value="vô hiệu hóa">Vô hiệu hóa</option>
                     </Select>
+                  </Field>
+
+                  <Field label="Ngày vào làm việc" required>
+                    <Input
+                      value={joinDate}
+                      onChange={(e) => setJoinDate(e.target.value)}
+                      placeholder="01/01/2024"
+                    />
                   </Field>
                 </div>
               </div>
