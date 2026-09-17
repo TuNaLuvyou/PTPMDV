@@ -6,46 +6,92 @@
 - Single-tenant nội bộ. Tuyệt đối không thêm `tenantId`, `tenantSlug` vào code, schema hay URL.
 - Màu chủ đạo đỏ đô `#8E1B2F`. Toàn bộ giao diện tiếng Việt.
 
-## 2. Backend (`backend/`, Multi-service SOA, Node.js + Express)
+## 2. Backend (`backend/`, Multi-service SOA, Clean Architecture)
 
-Backend được xây dựng theo kiến trúc đa dịch vụ (Multi-service SOA). **Mọi AI Agent và lập trình viên khi tạo hoặc phát triển bất kỳ service nào đều BẮT BUỘC tuân thủ 100% các quy tắc đồng bộ sau:**
+Backend được xây dựng theo kiến trúc đa dịch vụ (Multi-service SOA) áp dụng nguyên lý Clean / Hexagonal Architecture. **Mọi AI Agent và lập trình viên khi tạo hoặc phát triển bất kỳ service nào đều BẮT BUỘC tuân thủ 100% cấu trúc đồng bộ sau:**
 
-### 2.1. Quy chuẩn cấu trúc một Service (BẮT BUỘC)
+### 2.1. Quy chuẩn cấu trúc thư mục của MỖI Service (BẮT BUỘC)
 
-Mỗi service phải là một thư mục riêng biệt nằm trong `backend/<service-name>/`. Môi trường Node.js nằm độc lập trong từng thư mục service đó (có `package.json` và `node_modules/` riêng).
+Mỗi service là một thư mục độc lập nằm trong `backend/<service-name>/`. Môi trường Node.js nằm độc lập trong từng thư mục service đó (bắt buộc có `package.json`, `node_modules/`, và `.env.example` riêng).
 
-Cấu trúc bắt buộc của một service:
+Cấu trúc chuẩn của một service:
 ```text
 backend/<service-name>/
-├── package.json          # Quản lý dependencies & scripts riêng (start, dev)
-├── .env.example          # Mẫu biến môi trường (PORT, SERVICE_NAME, DB_URL, ...)
-├── server.js             # Entry point khởi động HTTP server (cùng cấp với src)
-└── src/
-    ├── config/           # Cấu hình môi trường, hằng số constants, cấu hình kết nối DB
-    ├── data/             # In-memory mock store, schemas dữ liệu, mock models
-    ├── controllers/      # Logic nghiệp vụ xử lý request/response
-    ├── middleware/       # Middleware xác thực (auth), validate dữ liệu, error handler
-    └── routes/           # Định nghĩa endpoint Express Router, map vào controller
+├── config/                     # Cấu hình môi trường (env, db, logger)
+│   ├── index.js
+│   └── database.js
+├── src/
+│   ├── api/                    # Delivery / Presentation Layer
+│   │   ├── controllers/        # Xử lý Request / Response HTTP
+│   │   ├── middlewares/        # Auth, Validation, Error Handler, Rate Limit
+│   │   ├── routes/             # Định tuyến URL API
+│   │   ├── validators/         # Schema validation (Joi / Zod)
+│   │   └── grpc/               # Handler cho gRPC (nếu có)
+│   │
+│   ├── domain/                 # Core Business Rules (Thuần JS/TS, không dính framework)
+│   │   ├── entities/           # Business Objects (Employee, Payout, Shift, Request, ...)
+│   │   ├── errors/             # Domain Custom Errors
+│   │   └── value-objects/      # Money, Address, Status
+│   │
+│   ├── services/               # Application / Use Cases Layer
+│   │   ├── CreateXxxUseCase.js
+│   │   └── ProcessYyyUseCase.js
+│   │
+│   ├── infrastructure/         # External Interfaces / Adapters
+│   │   ├── database/
+│   │   │   ├── models/         # ORM / ODM Schemas (Prisma, TypeORM, Mongoose, in-memory)
+│   │   │   └── repositories/   # Đọc / ghi DB thực tế
+│   │   ├── messaging/          # Producers & Consumers (Kafka / RabbitMQ)
+│   │   ├── external-clients/   # Gọi sang các API bên thứ 3 hoặc service khác
+│   │   └── logging/            # Winston / Pino logger
+│   │
+│   ├── utils/                  # Utility functions
+│   └── app.js                  # Khởi tạo Express app & gắn middlewares
+│
+├── tests/                      # Unit, Integration & End-to-End Tests
+│   ├── unit/
+│   └── integration/
+│
+├── .env.example                # Mẫu biến môi trường (BẮT BUỘC)
+├── Dockerfile                  # Container build cho service (BẮT BUỘC)
+├── docker-compose.yml          # Cấu hình chạy service & dependencies cục bộ (BẮT BUỘC)
+├── package.json                # Dependencies & scripts độc lập (BẮT BUỘC)
+└── server.js                   # Entry point (kết nối DB, lắng nghe Port, GET /health)
 ```
 
-### 2.2. Chi tiết trách nhiệm của từng thành phần trong Service
+### 2.2. Chi tiết trách nhiệm của từng tầng trong Service
 
-1. **Môi trường Node độc lập**:
+1. **Môi trường Node độc lập (`package.json` & `node_modules`)**:
    - Chạy lệnh cài đặt và khởi động ngay tại thư mục của service: `cd backend/<service-name> && npm install && npm run dev`.
-   - Không khai báo phụ thuộc dùng chung chéo thư mục ngoài.
+   - Mỗi service quản lý dependencies riêng, không phụ thuộc chéo ra ngoài thư mục service.
+   - Bắt buộc luôn có `.env.example` chứa toàn bộ mẫu biến môi trường cần thiết (`PORT`, `SERVICE_NAME`, `DB_URL`, `JWT_SECRET`,...).
 
-2. **File `server.js` (Root của Service)**:
-   - Load `require("dotenv").config()`.
-   - Import Express app từ `src/` hoặc khởi tạo app, áp dụng middleware từ `src/middleware/` và mount routes từ `src/routes/`.
-   - Phải có điều kiện: `if (require.main === module) { app.listen(PORT, ...); }` và `module.exports = app;` để phục vụ test.
-   - Bắt buộc luôn có route `GET /health` trả về `{ status: "ok", service: "<service-name>", time: new Date().toISOString() }`.
+2. **Cấu hình (`config/`)**:
+   - `config/index.js`: Đọc và validate biến môi trường từ `process.env`.
+   - `config/database.js`: Cấu hình kết nối cơ sở dữ liệu hoặc in-memory store.
 
-3. **5 thư mục bắt buộc trong `src/`**:
-   - `src/config/`: File `index.js` hoặc `env.js` đọc biến môi trường từ `process.env`, định nghĩa port mặc định, JWT secrets, configs.
-   - `src/data/`: File `store.js` chứa dữ liệu mẫu in-memory (hoặc DB connection). Dữ liệu nhân sự, chi nhánh, ngân hàng phải luôn đồng bộ với schema của Web (`frontend/src/mock-data/portal.ts`) và Mobile (`mobile/lib/src/core/models/`).
-   - `src/controllers/`: Tuyệt đối không viết logic trực tiếp trong route. Controller nhận `(req, res, next)`, xử lý nghiệp vụ, gọi `data/` và trả về JSON chuẩn `{ data: ... }` (thành công) hoặc `{ error: ... }` (thất bại).
-   - `src/middleware/`: Chứa `auth.js` (kiểm tra token/session), `validate.js` (kiểm tra input), `errorHandler.js` (xử lý lỗi tập trung).
-   - `src/routes/`: Tạo các file route theo domain nghiệp vụ (vd: `auth.routes.js`, `catalog.routes.js`), gom lại ở `src/routes/index.js` trước khi mount vào app.
+3. **Tầng Presentation (`src/api/`)**:
+   - `controllers/`: Chỉ tiếp nhận `req`, gọi xuống Use Case ở `src/services/`, trả về response chuẩn `{ data: ... }` hoặc `{ error: ... }`. Tuyệt đối không viết business logic tại controller.
+   - `middlewares/`: Xác thực token/session, phân quyền, validate schema, xử lý lỗi tập trung.
+   - `routes/`: Định tuyến Express Router map URL vào controller tương ứng.
+   - `validators/`: Khai báo schema validate input (Joi/Zod).
+
+4. **Tầng Domain (`src/domain/`)**:
+   - Thuần JS/TS, độc lập hoàn toàn với Express hay database library.
+   - Định nghĩa `entities/`, `value-objects/` và các lỗi domain `errors/`.
+
+5. **Tầng Use Cases / Application (`src/services/`)**:
+   - Chứa các Use Case thực thi logic nghiệp vụ cụ thể (vd: `CreatePayoutUseCase`, `GeneratePayslipUseCase`).
+   - Tương tác với cơ sở dữ liệu thông qua repository interface.
+
+6. **Tầng Infrastructure (`src/infrastructure/`)**:
+   - Triển khai cụ thể cho database (`models/`, `repositories/`), gọi service khác (`external-clients/`), logging và messaging.
+   - Dữ liệu nhân sự, chi nhánh, ngân hàng phải luôn đồng bộ với schema của Web (`frontend/src/mock-data/portal.ts`) và Mobile (`mobile/lib/src/core/models/`).
+
+7. **File `server.js` & `src/app.js`**:
+   - `src/app.js`: Khởi tạo Express app, cấu hình CORS, parser, gắn middleware và routes từ `src/api/routes/`.
+   - `server.js`: Entry point nạp env, kết nối DB/infrastructure, khởi động HTTP server khi `require.main === module`, export `app` để test.
+   - Bắt buộc luôn có endpoint `GET /health` trả về `{ status: "ok", service: "<service-name>", time: new Date().toISOString() }`.
 
 ### 2.3. Quy tắc nghiệp vụ Backend chung
 - Tạo lệnh chi (payroll) phải kiểm tra số dư tài khoản trích nợ, trừ tiền, sinh mã `TXN-*` + `BANK-*`, và chống trùng bằng `idempotencyKey` (nếu trùng trả lại bản ghi cũ kèm `deduped: true`).
