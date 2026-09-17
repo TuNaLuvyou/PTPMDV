@@ -318,6 +318,51 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
+  Future<void> _openRequestDetail(NotificationItem item) async {
+    setState(() => item.isRead = true);
+    _syncUnreadCount();
+
+    final result = await Navigator.push<ShiftRequestStatus>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ShiftRequestDetailScreen(
+          requestId: item.id,
+          title: item.title,
+          senderName: item.senderName ?? 'Đồng nghiệp',
+          senderRole: item.senderRole ?? 'Nhân viên',
+          senderPhone: item.senderPhone ?? '0912.345.678',
+          requestType: item.requestType ?? 'cover',
+          requestTime: item.time,
+          shiftName: item.shiftName ?? 'Ca làm việc',
+          shiftTime: item.shiftTime ?? '08:00 - 17:00',
+          shiftHours: item.shiftHours ?? '5.0 giờ',
+          shiftDate: item.shiftDate ?? 'Hôm nay',
+          branch: item.branch ?? 'Chi nhánh 01',
+          shiftRole: item.shiftRole ?? 'Nhân viên',
+          swapShiftName: item.swapShiftName,
+          swapShiftTime: item.swapShiftTime,
+          swapShiftHours: item.swapShiftHours,
+          swapShiftDate: item.swapShiftDate,
+          swapShiftBranch: item.swapShiftBranch,
+          swapShiftRole: item.swapShiftRole,
+          reason: item.reason ?? item.content,
+          initialStatus: item.requestStatus,
+          onStatusChanged: (newStatus) {
+            setState(() {
+              item.requestStatus = newStatus;
+            });
+          },
+        ),
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        item.requestStatus = result;
+      });
+    }
+  }
+
   void _showNotificationDetail(NotificationItem item) {
     setState(() => item.isRead = true);
     _syncUnreadCount();
@@ -370,7 +415,27 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               item.content,
               style: const TextStyle(fontSize: 14, height: 1.5, color: AppColors.textPrimary),
             ),
-            const SizedBox(height: 24),
+            if (item.requestType != null && item.requestType!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _openRequestDetail(item);
+                  },
+                  icon: const FaIcon(FontAwesomeIcons.arrowRight, size: 15),
+                  label: const Text('Xem chi tiết ca & Phản hồi', style: TextStyle(fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
@@ -390,16 +455,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: ElevatedButton(
+                  child: OutlinedButton(
                     onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.grey.shade300),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: const Text('Đóng'),
+                    child: const Text('Đóng', style: TextStyle(color: AppColors.textPrimary)),
                   ),
                 ),
               ],
@@ -608,7 +671,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               }
             });
           } else {
-            _showNotificationDetail(item);
+            if (item.requestType != null && item.requestType!.isNotEmpty) {
+              _openRequestDetail(item);
+            } else {
+              _showNotificationDetail(item);
+            }
           }
         },
         onLongPress: () {
@@ -715,9 +782,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          item.time,
-                          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                        Row(
+                          children: [
+                            Text(
+                              item.time,
+                              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                            ),
+                            if (item.requestType != null && item.requestType!.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              _buildRequestStatusBadge(item.requestStatus),
+                            ],
+                          ],
                         ),
                         if (!_isSelecting)
                           InkWell(
@@ -736,6 +811,41 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildRequestStatusBadge(ShiftRequestStatus status) {
+    Color bg;
+    Color text;
+    String label;
+    switch (status) {
+      case ShiftRequestStatus.pending:
+        bg = Colors.amber.shade50;
+        text = Colors.amber.shade900;
+        label = 'Chờ phản hồi';
+        break;
+      case ShiftRequestStatus.accepted:
+        bg = Colors.green.shade50;
+        text = Colors.green.shade800;
+        label = 'Đã chấp nhận';
+        break;
+      case ShiftRequestStatus.rejected:
+        bg = Colors.red.shade50;
+        text = Colors.red.shade800;
+        label = 'Đã từ chối';
+        break;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: text.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: text),
       ),
     );
   }
