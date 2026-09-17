@@ -2,12 +2,19 @@
 
 import { useState, useMemo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faLock, faMagnifyingGlass, faStore, faTrashCan } from "@fortawesome/free-solid-svg-icons";
+import {
+  faLock,
+  faMagnifyingGlass,
+  faSitemap,
+  faStore,
+  faTrashCan,
+} from "@fortawesome/free-solid-svg-icons";
 import Badge, { StatusBadge } from "@/components/ui/Badge";
 import Table, { Column } from "@/components/ui/Table";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Input, Select } from "@/components/ui/Form";
+import { Input } from "@/components/ui/Form";
 import type { Employee } from "@/types";
+import { departments } from "@/mock-data/portal";
 
 interface Props {
   employees: Employee[];
@@ -17,9 +24,18 @@ interface Props {
   managerBranch?: string;
 }
 
-export default function EmployeeSection({ employees, onLock, onDelete, isManager = false, managerBranch }: Props) {
+export default function EmployeeSection({
+  employees,
+  onLock,
+  onDelete,
+  isManager = false,
+  managerBranch,
+}: Props) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [branchFilter, setBranchFilter] = useState<string>(isManager && managerBranch ? managerBranch : "all");
+  const [branchFilter, setBranchFilter] = useState<string>(
+    isManager && managerBranch ? managerBranch : "all"
+  );
+  const [departmentFilter, setDepartmentFilter] = useState<string>("all");
 
   const filteredEmployees = useMemo(() => {
     return employees.filter((e) => {
@@ -29,11 +45,16 @@ export default function EmployeeSection({ employees, onLock, onDelete, isManager
         e.name.toLowerCase().includes(q) ||
         e.phone.includes(q) ||
         e.role.toLowerCase().includes(q) ||
-        e.email.toLowerCase().includes(q);
+        e.email.toLowerCase().includes(q) ||
+        (e.department && e.department.toLowerCase().includes(q));
+
       const matchesBranch = branchFilter === "all" || e.branch === branchFilter;
-      return matchesSearch && matchesBranch;
+      const matchesDepartment =
+        departmentFilter === "all" || e.department === departmentFilter;
+
+      return matchesSearch && matchesBranch && matchesDepartment;
     });
-  }, [employees, searchQuery, branchFilter]);
+  }, [employees, searchQuery, branchFilter, departmentFilter]);
 
   const columns: Column<Employee>[] = [
     {
@@ -51,18 +72,51 @@ export default function EmployeeSection({ employees, onLock, onDelete, isManager
         </div>
       ),
     },
-    { key: "branch", header: "Chi nhánh", render: (e) => <Badge tone="gray">{e.branch}</Badge> },
-    { key: "role", header: "Vai trò", render: (e) => <span className="text-gray-600">{e.role}</span> },
-    { key: "status", header: "Trạng thái", render: (e) => <StatusBadge status={e.status} /> },
+    {
+      key: "branch",
+      header: "Chi nhánh",
+      render: (e) => <Badge tone="gray">{e.branch}</Badge>,
+    },
+    {
+      key: "department",
+      header: "Phòng ban",
+      render: (e) =>
+        e.department ? (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+            <FontAwesomeIcon icon={faSitemap} fontSize={11} className="text-blue-500" />
+            {e.department}
+          </span>
+        ) : (
+          <span className="text-gray-400 text-xs italic">Chưa gán</span>
+        ),
+    },
+    {
+      key: "role",
+      header: "Vai trò",
+      render: (e) => <span className="text-gray-600">{e.role}</span>,
+    },
+    {
+      key: "status",
+      header: "Trạng thái",
+      render: (e) => <StatusBadge status={e.status} />,
+    },
     {
       key: "actions",
       header: "Thao tác",
       render: (e) => (
         <div className="flex items-center gap-0.5">
-          <button onClick={() => onLock(e)} className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-warning-700 cursor-pointer" title="Khóa">
+          <button
+            onClick={() => onLock(e)}
+            className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-warning-700 cursor-pointer"
+            title="Khóa"
+          >
             <FontAwesomeIcon icon={faLock} fontSize={16} />
           </button>
-          <button onClick={() => onDelete(e)} className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-danger cursor-pointer" title="Xóa">
+          <button
+            onClick={() => onDelete(e)}
+            className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-danger cursor-pointer"
+            title="Xóa"
+          >
             <FontAwesomeIcon icon={faTrashCan} fontSize={16} />
           </button>
         </div>
@@ -73,13 +127,26 @@ export default function EmployeeSection({ employees, onLock, onDelete, isManager
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Danh sách nhân sự {branchFilter !== "all" ? `• ${branchFilter}` : ""} {filteredEmployees.length !== employees.length ? `(${filteredEmployees.length}/${employees.length})` : `(${employees.length})`}</CardTitle>
-        <div className="flex items-center gap-2">
+        <CardTitle>
+          Danh sách nhân sự
+          {branchFilter !== "all" ? ` • ${branchFilter}` : ""}
+          {departmentFilter !== "all" ? ` • ${departmentFilter}` : ""}
+          {" "}
+          {filteredEmployees.length !== employees.length
+            ? `(${filteredEmployees.length}/${employees.length})`
+            : `(${employees.length})`}
+        </CardTitle>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Lọc Chi nhánh */}
           {isManager ? (
             <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs font-medium text-gray-700">
               <FontAwesomeIcon icon={faStore} fontSize={14} className="text-primary" />
-              <span>Chi nhánh: <strong className="text-gray-900">{managerBranch}</strong></span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary-50 text-primary border border-primary-200">Cố định</span>
+              <span>
+                Chi nhánh: <strong className="text-gray-900">{managerBranch}</strong>
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary-50 text-primary border border-primary-200">
+                Cố định
+              </span>
             </div>
           ) : (
             <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs">
@@ -96,14 +163,46 @@ export default function EmployeeSection({ employees, onLock, onDelete, isManager
               </select>
             </div>
           )}
+
+          {/* Lọc Phòng ban (Toàn công ty) */}
+          <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs">
+            <FontAwesomeIcon icon={faSitemap} fontSize={13} className="text-primary" />
+            <select
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              className="bg-transparent border-none text-xs font-bold text-gray-800 focus:outline-hidden cursor-pointer"
+            >
+              <option value="all">Tất cả phòng ban</option>
+              {departments.map((d) => (
+                <option key={d.id} value={d.name}>
+                  {d.name} ({d.code})
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="relative w-48">
-            <FontAwesomeIcon icon={faMagnifyingGlass} fontSize={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <Input placeholder="Tìm nhân viên..." className="pl-8 py-1.5" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+            <FontAwesomeIcon
+              icon={faMagnifyingGlass}
+              fontSize={14}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+            <Input
+              placeholder="Tìm tên, SĐT, email..."
+              className="pl-8 py-1.5 text-xs"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
         </div>
       </CardHeader>
       <CardBody className="pt-2">
-        <Table columns={columns} data={filteredEmployees} rowKey={(e) => e.id} emptyMessage="Không có nhân viên nào" />
+        <Table
+          columns={columns}
+          data={filteredEmployees}
+          rowKey={(e) => e.id}
+          emptyMessage="Không có nhân viên nào phù hợp bộ lọc"
+        />
       </CardBody>
     </Card>
   );

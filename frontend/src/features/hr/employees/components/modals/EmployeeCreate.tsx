@@ -3,7 +3,7 @@
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { Field, Input, Select } from "@/components/ui/Form";
-import { branches } from "@/mock-data/portal";
+import { branches, departments } from "@/mock-data/portal";
 
 interface Props {
   open: boolean;
@@ -13,8 +13,15 @@ interface Props {
   defaultBranch?: string;
 }
 
-export default function CreateEmployeeModal({ open, onClose, isManager = false, managerBranch = "hn-1", defaultBranch }: Props) {
-  const fixedBranch = isManager ? managerBranch : (defaultBranch ?? branches[0]?.slug ?? "hn-1");
+export default function CreateEmployeeModal({
+  open,
+  onClose,
+  isManager = false,
+  managerBranch = "hn-1",
+  defaultBranch,
+}: Props) {
+  const fixedBranch = isManager ? managerBranch : defaultBranch ?? branches[0]?.slug ?? "hn-1";
+
   return (
     <Modal
       open={open}
@@ -23,32 +30,62 @@ export default function CreateEmployeeModal({ open, onClose, isManager = false, 
       size="lg"
       footer={
         <>
-          <Button variant="white" onClick={onClose}>Hủy</Button>
+          <Button variant="white" onClick={onClose}>
+            Hủy
+          </Button>
           <Button onClick={onClose}>Tạo</Button>
         </>
       }
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1">
-        <Field label="Họ tên" required><Input placeholder="Họ và tên nhân viên" /></Field>
-        <Field label="SĐT" required><Input placeholder="0901 234 567" /></Field>
-        <Field label="Email" required><Input type="email" placeholder="nv@company.com" /></Field>
-        <Field label="Mật khẩu" required><Input type="password" placeholder="Mật khẩu ban đầu" /></Field>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+        <Field label="Họ tên" required>
+          <Input placeholder="Họ và tên nhân viên" />
+        </Field>
+        <Field label="SĐT" required>
+          <Input placeholder="0901 234 567" />
+        </Field>
+        <Field label="Email" required>
+          <Input type="email" placeholder="nv@company.com" />
+        </Field>
+        <Field label="Mật khẩu" required>
+          <Input type="password" placeholder="Mật khẩu ban đầu" />
+        </Field>
         <Field label="Gán chi nhánh" required>
           {isManager ? (
             <div className="px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm font-bold text-gray-800 flex items-center justify-between">
-              <span>{branches.find(b => b.slug.toLowerCase() === fixedBranch.toLowerCase())?.name ?? `Chi nhánh ${fixedBranch.toUpperCase()}`}</span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-primary-50 text-primary border border-primary-200">Cố định</span>
+              <span>
+                {branches.find((b) => b.slug.toLowerCase() === fixedBranch.toLowerCase())?.name ??
+                  `Chi nhánh ${fixedBranch.toUpperCase()}`}
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-primary-50 text-primary border border-primary-200">
+                Cố định
+              </span>
             </div>
           ) : (
             <Select defaultValue={fixedBranch.toLowerCase()} disabled={false}>
               {branches.map((b) => (
-                <option key={b.id} value={b.slug}>{b.name}</option>
+                <option key={b.id} value={b.slug}>
+                  {b.name}
+                </option>
               ))}
             </Select>
           )}
-          {isManager && <p className="text-[11px] text-gray-400 mt-1">Tài khoản Manager chỉ tạo nhân viên cho chi nhánh phụ trách</p>}
+          {isManager && (
+            <p className="text-[11px] text-gray-400 mt-1">
+              Tài khoản Manager chỉ tạo nhân viên cho chi nhánh phụ trách
+            </p>
+          )}
         </Field>
-        <Field label="Vai trò" required>
+        <Field label="Phòng ban" required>
+          <Select defaultValue={departments[1]?.name ?? "Phòng Kinh Doanh"}>
+            {departments.map((d) => (
+              <option key={d.id} value={d.name}>
+                {d.name} ({d.code})
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Vai trò" required className="md:col-span-2">
           <Select defaultValue="nv">
             <option value="nv">Nhân viên</option>
             <option value="truong-nhom">Trưởng nhóm</option>

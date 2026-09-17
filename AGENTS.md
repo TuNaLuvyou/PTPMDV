@@ -85,6 +85,8 @@ Hệ thống phân quyền chuẩn gồm **3 cấp vai trò**:
 /login                     → Giao diện đăng nhập quản trị (Admin / Manager)
 /dashboard                 → Tổng quan Dashboard quản trị
 /dashboard/employees       → Quản lý danh sách & hồ sơ nhân sự
+/dashboard/departments     → Quản lý cơ cấu tổ chức & phòng ban
+/dashboard/branches        → Quản lý thông tin & địa chỉ các chi nhánh
 /dashboard/shifts          → Phân ca, lịch làm việc tổng hợp & đăng ký ca
 /dashboard/payslips        → Bảng lương, chốt công & điều chỉnh thưởng/phạt
 /dashboard/bank            → Kết nối Ngân hàng, Cổng SOAP API chi lương & Lịch sử giải ngân
@@ -93,7 +95,6 @@ Hệ thống phân quyền chuẩn gồm **3 cấp vai trò**:
 /dashboard/news            → Bảng tin & thông báo nội bộ
 /dashboard/regulations     → Quy chế & nội quy lao động
 /dashboard/wifi            → Danh sách Wi-Fi chấm công theo chi nhánh
-/dashboard/branches        → Quản lý thông tin & địa chỉ các chi nhánh
 ```
 
 ### Cơ chế Xác thực & Quản lý Phiên

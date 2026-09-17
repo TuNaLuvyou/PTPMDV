@@ -9,6 +9,7 @@ export interface Employee {
   name: string;
   email: string;
   branch: string;
+  department: string;
   role: "Quản trị viên" | "Quản lý" | "Nhân sự" | "Kế toán" | "Lễ tân" | "Kỹ thuật" | string;
   systemRole: UserRole;
   status: "đang làm" | "vô hiệu hóa";
@@ -72,6 +73,17 @@ export interface Branch {
   manager: string;
   status: "hoạt động" | "vô hiệu hóa";
   staff: number;
+}
+
+export interface Department {
+  id: string;
+  name: string;
+  code: string;
+  description?: string;
+  manager: string;
+  status: "hoạt động" | "tạm dừng";
+  staff?: number;
+  createdAt?: string;
 }
 
 export interface Notification {
