@@ -59,9 +59,6 @@ export default function DepartmentList({
     );
   }, [departments, searchQuery]);
 
-  const totalAssignedStaff = useMemo(() => {
-    return employees.filter((e) => !!e.department).length;
-  }, [employees]);
 
   const columns: Column<Department>[] = [
     {
@@ -160,46 +157,7 @@ export default function DepartmentList({
   ];
 
   return (
-    <div className="space-y-4">
-      {/* 3 Thẻ thống kê cơ cấu */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs flex items-center justify-between">
-          <div>
-            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tổng phòng ban</div>
-            <div className="text-2xl font-bold text-gray-900 mt-1">{departments.length}</div>
-            <div className="text-xs text-gray-400 mt-0.5">Bộ máy tổ chức doanh nghiệp</div>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-primary-50 text-primary border border-primary-200 flex items-center justify-center">
-            <FontAwesomeIcon icon={faSitemap} fontSize={20} />
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs flex items-center justify-between">
-          <div>
-            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Nhân sự đã phân bổ</div>
-            <div className="text-2xl font-bold text-emerald-700 mt-1">{totalAssignedStaff}</div>
-            <div className="text-xs text-gray-400 mt-0.5">Trên tổng số {employees.length} nhân viên</div>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center">
-            <FontAwesomeIcon icon={faUsers} fontSize={20} />
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs flex items-center justify-between">
-          <div>
-            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Trạng thái vận hành</div>
-            <div className="text-2xl font-bold text-blue-700 mt-1">
-              {departments.filter((d) => d.status === "hoạt động").length}/{departments.length}
-            </div>
-            <div className="text-xs text-gray-400 mt-0.5">Phòng ban đang hoạt động</div>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center">
-            <FontAwesomeIcon icon={faUserTie} fontSize={20} />
-          </div>
-        </div>
-      </div>
-
-      <Card>
+    <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
             <CardTitle>Danh sách Phòng ban Doanh nghiệp</CardTitle>
@@ -228,6 +186,5 @@ export default function DepartmentList({
           />
         </CardBody>
       </Card>
-    </div>
   );
 }
