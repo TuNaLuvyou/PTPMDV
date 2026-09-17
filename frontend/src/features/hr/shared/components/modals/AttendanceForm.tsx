@@ -81,7 +81,7 @@ export default function AttendanceConfigModal({ open, onClose, config, setConfig
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Field label="Chế độ duyệt đổi ca" required>
               <Select defaultValue={config.shiftSwapMode}>
-                <option>Nhân viên tự xác nhận (Quản lý duyệt hộ)</option>
+                <option>Nhân viên tự xác nhận</option>
                 <option>Quản lý chi nhánh duyệt trực tiếp</option>
               </Select>
             </Field>
