@@ -33,7 +33,7 @@ QLDAPM/
 │   │   │   └── (dashboard)/dashboard/ # Các phân hệ quản trị
 │   │   ├── components/       # UI Primitives & Dashboard Layout Shell
 │   │   ├── context/          # AuthContext, TopbarContext
-│   │   ├── features/         # Module nghiệp vụ HR chuyên sâu
+│   │   ├── features/         # Module nghiệp vụ: branches, employees, shifts, wifi, tasks, payslips, bank...
 │   │   ├── mock-data/        # Dữ liệu mẫu portal.ts
 │   │   ├── types/            # TypeScript type definitions
 │   │   └── middleware.ts     # Route protection & cookie-based auth
@@ -110,12 +110,13 @@ Hệ thống phân quyền chuẩn gồm **3 cấp vai trò**:
 
 ### Tech Stack
 - **Framework**: Flutter 3.x (Dart 3.x)
-- **Kiến trúc**: Feature-Driven Architecture
-- **Routing**: `go_router` (`core/router/router.dart`)
+- **Kiến trúc**: Feature-Driven Architecture (`features/<name>/{data,presentation}`)
+- **Routing**: `go_router` + `MaterialApp.router` (`core/router/router.dart` là single source of truth)
 - **Theme**: Material 3, `AppColors.primary` (`#8E1B2F`)
+- **Core dùng chung**: `core/{constants,models,theme,utils,widgets}` + barrel `core/core.dart`
 
 ### Cấu trúc Modules (`mobile/lib/src/features/`)
-- `auth`: Đăng nhập sạch sẽ căn giữa, Splash screen kiểm tra phiên
+- `auth`: `data/` (AuthRepository + mock users) + `presentation/` (login căn giữa, splash `context.go`)
 - `home`: Check-in / Check-out Wi-Fi, hiển thị ca hôm nay, tác vụ nhanh
 - `schedule`: Xem ca cá nhân, điều hướng đổi ca / xin nghỉ
 - `general_schedule`: Xem lịch tổng thể nhân sự chi nhánh theo ngày/tuần

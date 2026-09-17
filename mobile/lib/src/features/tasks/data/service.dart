@@ -79,7 +79,7 @@ class TaskModel {
       : Icons.sync_rounded;
 
   Color get sourceColor => sourceType == TaskSourceType.manager
-      ? const Color(0xFF8E1B2F)
+      ? AppColors.primary
       : const Color(0xFF2563EB);
 
   String get priorityLabel {

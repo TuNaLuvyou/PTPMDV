@@ -5,7 +5,7 @@ import { faPencil, faPlus, faTrashCan } from "@fortawesome/free-solid-svg-icons"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Table, { Column } from "@/components/ui/Table";
-import type { ShiftTemplate } from "@/features/hr/shifts/types";
+import type { ShiftTemplate } from "@/features/shifts/types";
 
 interface Props {
   templates: ShiftTemplate[];

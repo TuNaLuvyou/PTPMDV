@@ -273,7 +273,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // Khi đã chấm công vào: chuyển nút sang màu vàng/amber nổi bật; khi chưa: màu đỏ
     final List<Color> gradientColors = isCheckedIn
         ? const [Color(0xFFF59E0B), Color(0xFFD97706)]
-        : const [AppColors.primary, Color(0xFF7F1D1D)];
+        : const [AppColors.primary, AppColors.primaryDark];
 
     final Color shadowColor = isCheckedIn
         ? const Color(0xFFD97706).withValues(alpha: 0.45)

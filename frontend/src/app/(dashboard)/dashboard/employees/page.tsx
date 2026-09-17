@@ -8,10 +8,10 @@ import Button from "@/components/ui/Button";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { employees } from "@/mock-data/portal";
 import type { Employee } from "@/types";
-import EmployeeSection from "@/features/hr/employees/components/EmployeeList";
-import CreateEmployeeModal from "@/features/hr/employees/components/modals/EmployeeCreate";
-import DisableEmployeeDialog from "@/features/hr/employees/components/modals/EmployeeDisable";
-import EmployeeDetailModal from "@/features/hr/employees/components/modals/EmployeeDetailModal";
+import EmployeeSection from "@/features/employees/components/EmployeeList";
+import CreateEmployeeModal from "@/features/employees/components/modals/EmployeeCreate";
+import DisableEmployeeDialog from "@/features/employees/components/modals/EmployeeDisable";
+import EmployeeDetailModal from "@/features/employees/components/modals/EmployeeDetailModal";
 import { useCurrentUser } from "@/context/AuthContext";
 
 export default function EmployeesPage() {

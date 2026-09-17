@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/colors.dart';
-import 'login.dart';
 
 /// Màn hình khởi động (splash) — hiển thị thương hiệu hệ thống HRM On-Premises.
 /// Sau một khoảng ngắn tự chuyển sang màn Đăng nhập.
@@ -17,9 +17,7 @@ class _SplashScreenState extends State<SplashScreen> {
     super.initState();
     Future.delayed(const Duration(milliseconds: 1600), () {
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
+      context.go('/login');
     });
   }
 

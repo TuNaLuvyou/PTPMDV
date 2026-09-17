@@ -6,12 +6,12 @@ import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
 import { employees } from "@/mock-data/portal";
-import type { TaskItem, TaskSourceType, TaskStatus } from "@/features/hr/tasks/types";
-import { initialTasks } from "@/features/hr/tasks/mock";
-import TaskFilterBar from "@/features/hr/tasks/components/TaskFilter";
-import TaskTable from "@/features/hr/tasks/components/TaskTable";
-import CreateTaskModal from "@/features/hr/tasks/components/modals/TaskForm";
-import TaskDetailModal from "@/features/hr/tasks/components/modals/TaskDetail";
+import type { TaskItem, TaskSourceType, TaskStatus } from "@/features/tasks/types";
+import { initialTasks } from "@/features/tasks/mock";
+import TaskFilterBar from "@/features/tasks/components/TaskFilter";
+import TaskTable from "@/features/tasks/components/TaskTable";
+import CreateTaskModal from "@/features/tasks/components/modals/TaskForm";
+import TaskDetailModal from "@/features/tasks/components/modals/TaskDetail";
 import { useCurrentUser } from "@/context/AuthContext";
 
 export default function TasksPage() {

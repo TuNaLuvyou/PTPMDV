@@ -7,10 +7,10 @@ import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
 import { payslips, attendanceConfig } from "@/mock-data/portal";
 import type { Payslip } from "@/types";
-import PayslipSection from "@/features/hr/payslips/components/PayslipList";
-import BulkClosePayslipModal from "@/features/hr/payslips/components/modals/PayslipClose";
-import AttendanceConfigModal, { type AttendanceConfigState } from "@/features/hr/shared/components/modals/AttendanceForm";
-import { EditPayslipModal, ConfirmClosePayslipDialog, PrintPayslipModal } from "@/features/hr/payslips/components/modals/PayslipEdit";
+import PayslipSection from "@/features/payslips/components/PayslipList";
+import BulkClosePayslipModal from "@/features/payslips/components/modals/PayslipClose";
+import AttendanceConfigModal, { type AttendanceConfigState } from "@/features/shared/components/modals/AttendanceForm";
+import { EditPayslipModal, ConfirmClosePayslipDialog, PrintPayslipModal } from "@/features/payslips/components/modals/PayslipEdit";
 import { useCurrentUser } from "@/context/AuthContext";
 
 export default function PayslipsPage() {

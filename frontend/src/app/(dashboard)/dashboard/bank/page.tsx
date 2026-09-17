@@ -10,19 +10,19 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
-import BankHeaderStats from "@/features/hr/bank/components/BankStats";
-import BankPartnersList from "@/features/hr/bank/components/BankPartners";
-import SoapTransactionsTable from "@/features/hr/bank/components/SoapHistory";
-import SoapTestModal from "@/features/hr/bank/components/modals/SoapTest";
-import SoapPayloadDetailModal from "@/features/hr/bank/components/modals/PayloadDetail";
-import CreatePayrollDisbursementModal from "@/features/hr/bank/components/modals/PayoutCreate";
-import BankConfigModal from "@/features/hr/bank/components/modals/BankForm";
+import BankHeaderStats from "@/features/bank/components/BankStats";
+import BankPartnersList from "@/features/bank/components/BankPartners";
+import SoapTransactionsTable from "@/features/bank/components/SoapHistory";
+import SoapTestModal from "@/features/bank/components/modals/SoapTest";
+import SoapPayloadDetailModal from "@/features/bank/components/modals/PayloadDetail";
+import CreatePayrollDisbursementModal from "@/features/bank/components/modals/PayoutCreate";
+import BankConfigModal from "@/features/bank/components/modals/BankForm";
 import {
   initialBankPartners,
   initialSoapGatewayConfig,
   initialSoapTransactions,
-} from "@/features/hr/bank/mock";
-import type { BankPartner, SoapTransaction } from "@/features/hr/bank/types";
+} from "@/features/bank/mock";
+import type { BankPartner, SoapTransaction } from "@/features/bank/types";
 
 export default function BankIntegrationPage() {
   const [partners, setPartners] = useState<BankPartner[]>(initialBankPartners);

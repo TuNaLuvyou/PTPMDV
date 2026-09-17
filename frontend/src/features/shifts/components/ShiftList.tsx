@@ -9,7 +9,7 @@ import Table, { Column } from "@/components/ui/Table";
 import { Input, Select } from "@/components/ui/Form";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
-import type { WorkShift } from "@/features/hr/shifts/types";
+import type { WorkShift } from "@/features/shifts/types";
 
 interface Props {
   workShifts: WorkShift[];

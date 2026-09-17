@@ -7,7 +7,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
 import { wifiConfigs } from "@/mock-data/portal";
 import type { WifiConfig } from "@/types";
-import WifiTableSection from "@/features/hr/wifi/components/WifiList";
+import WifiTableSection from "@/features/wifi/components/WifiList";
 import { useCurrentUser } from "@/context/AuthContext";
 
 export default function WifiPage() {

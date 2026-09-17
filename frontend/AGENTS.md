@@ -69,6 +69,9 @@ frontend/
 │   │   │       └── branches/page.tsx
 │   │   ├── globals.css            # Design tokens (@theme) + base styles
 │   │   ├── layout.tsx             # RootLayout bọc AuthProvider + font Public Sans
+│   │   ├── loading.tsx            # Loading fallback chuẩn App Router
+│   │   ├── error.tsx              # Error boundary chuẩn App Router
+│   │   ├── not-found.tsx          # 404 chuẩn App Router
 │   │   └── page.tsx               # Redirect → /login
 │   ├── components/
 │   │   ├── ui/                    # Button, Badge, Card, StatCard, Table, Modal, ConfirmDialog...

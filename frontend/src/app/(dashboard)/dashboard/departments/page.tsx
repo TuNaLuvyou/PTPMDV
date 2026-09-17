@@ -8,8 +8,8 @@ import Button from "@/components/ui/Button";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { departments as initialDepartments, employees } from "@/mock-data/portal";
 import type { Department } from "@/types";
-import DepartmentList from "@/features/hr/departments/components/DepartmentList";
-import DepartmentModal from "@/features/hr/departments/components/modals/DepartmentForm";
+import DepartmentList from "@/features/departments/components/DepartmentList";
+import DepartmentModal from "@/features/departments/components/modals/DepartmentForm";
 import { useCurrentUser } from "@/context/AuthContext";
 
 export default function DepartmentsPage() {

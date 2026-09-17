@@ -8,8 +8,8 @@ import Button from "@/components/ui/Button";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { branches as initialBranches } from "@/mock-data/portal";
 import type { Branch } from "@/types";
-import BranchSection from "@/features/hr/branches/components/BranchList";
-import BranchModal from "@/features/hr/branches/components/modals/BranchForm";
+import BranchSection from "@/features/branches/components/BranchList";
+import BranchModal from "@/features/branches/components/modals/BranchForm";
 import { useCurrentUser } from "@/context/AuthContext";
 
 export default function BranchesPage() {

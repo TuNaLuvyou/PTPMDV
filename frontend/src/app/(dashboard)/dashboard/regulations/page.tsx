@@ -7,9 +7,9 @@ import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
 import { regulations as initialRegulations } from "@/mock-data/portal";
 import type { Regulation } from "@/types";
-import RegulationSection from "@/features/hr/regulations/components/RegulationList";
-import RegulationDetailModal from "@/features/hr/regulations/components/modals/RegulationDetail";
-import RegulationFormModal, { type RegulationFormInput } from "@/features/hr/regulations/components/modals/RegulationForm";
+import RegulationSection from "@/features/regulations/components/RegulationList";
+import RegulationDetailModal from "@/features/regulations/components/modals/RegulationDetail";
+import RegulationFormModal, { type RegulationFormInput } from "@/features/regulations/components/modals/RegulationForm";
 
 export default function RegulationsManagementPage() {
   const [items, setItems] = useState<Regulation[]>(initialRegulations);

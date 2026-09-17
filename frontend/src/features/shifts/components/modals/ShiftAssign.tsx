@@ -4,7 +4,7 @@ import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { Field, Input, Select, Checkbox } from "@/components/ui/Form";
 import { employees } from "@/mock-data/portal";
-import type { ShiftTemplate } from "@/features/hr/shifts/types";
+import type { ShiftTemplate } from "@/features/shifts/types";
 
 interface Props {
   open: boolean;

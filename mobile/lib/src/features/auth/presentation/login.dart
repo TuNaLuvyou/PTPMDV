@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/colors.dart';
-import '../../../core/models/branch.dart';
 import '../../../core/state/branch_scope.dart';
 import '../../../core/state/user_scope.dart';
-import '../../main/presentation/main_nav.dart';
-import '../../../core/models/user.dart';
+import '../data/auth_repository.dart';
+import '../data/mock_users.dart' as mock_data;
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -40,88 +40,15 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    final Branch defaultBranch = kBranches.first;
-    BranchScope.select(context, defaultBranch);
+    final initialBranch = mock_data.defaultBranch;
+    BranchScope.select(context, initialBranch);
 
-    final UserModel user;
-    if (input.contains('admin') || input.contains('giamdoc')) {
-      user = UserModel(
-        name: 'Trần Minh Tuấn',
-        email: _usernameController.text.trim(),
-        phone: '0901999888',
-        role: 'admin',
-        roleTitle: 'Quản trị viên',
-        assignedBranchId: defaultBranch.id,
-        gender: 'Nam',
-        birthDate: '12/10/1988',
-        province: 'Hà Nội',
-        ward: 'Phường Tràng Tiền',
-        street: '25 Tràng Thi, Q. Hoàn Kiếm',
-        cccd: '001088001234',
-        issueDate: '15/04/2021',
-        issuePlace: 'Cục CS QLHC về TTXH',
-        bankName: 'Vietcombank',
-        bankAccountNumber: '0011009998888',
-        bankAccountName: 'TRAN MINH TUAN',
-        salaryType: 'monthly',
-        baseSalary: 25000000.0,
-        hourlySalary: 100000.0,
-      );
-    } else if (input.contains('quanly') || input.contains('manager')) {
-      user = UserModel(
-        name: 'Vũ Thành Công',
-        email: _usernameController.text.trim(),
-        phone: '0911223344',
-        role: 'manager',
-        roleTitle: 'Quản lý Chi nhánh',
-        assignedBranchId: defaultBranch.id,
-        gender: 'Nam',
-        birthDate: '18/06/1992',
-        province: 'Hà Nội',
-        ward: 'Phường Phan Chu Trinh',
-        street: '42 Lý Thường Kiệt, Q. Hoàn Kiếm',
-        cccd: '001092005678',
-        issueDate: '12/08/2021',
-        issuePlace: 'Cục CS QLHC về TTXH',
-        bankName: 'VietinBank',
-        bankAccountNumber: '102008899776',
-        bankAccountName: 'VU THANH CONG',
-        salaryType: 'monthly',
-        baseSalary: 16000000.0,
-        hourlySalary: 65000.0,
-      );
-    } else {
-      user = UserModel(
-        name: 'Nguyễn Thu Hà',
-        email: _usernameController.text.trim(),
-        phone: '0912345678',
-        role: 'staff',
-        roleTitle: 'Nhân viên',
-        assignedBranchId: defaultBranch.id,
-        gender: 'Nữ',
-        birthDate: '24/08/1999',
-        province: 'Hà Nội',
-        ward: 'Phường Hàng Bài',
-        street: '15 Phố Hàng Bài, Q. Hoàn Kiếm',
-        cccd: '001199014567',
-        issueDate: '10/05/2021',
-        issuePlace: 'Cục CS QLHC về TTXH',
-        bankName: 'VietinBank',
-        bankAccountNumber: '108876543210',
-        bankAccountName: 'NGUYEN THU HA',
-        salaryType: 'hourly',
-        baseSalary: 0.0,
-        hourlySalary: 35000.0,
-      );
-    }
+    const authRepository = AuthRepository();
+    final user = authRepository.resolveUser(_usernameController.text);
 
     UserScope.setUser(context, user);
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => MainNavigationScreen(currentUser: user),
-      ),
-    );
+    context.pushReplacement('/main', extra: user);
   }
 
   @override

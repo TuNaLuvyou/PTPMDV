@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'core/models/branch.dart';
+import 'core/router/router.dart';
 import 'core/state/branch_scope.dart';
 import 'core/state/user_scope.dart';
 import 'core/theme/theme.dart';
 import 'core/models/user.dart';
-import 'features/auth/presentation/splash.dart';
 
 class HRMApp extends StatefulWidget {
   const HRMApp({super.key});
@@ -26,10 +26,11 @@ class _HRMAppState extends State<HRMApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'HRM Enterprise',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      routerConfig: AppRouter.router,
       builder: (context, child) => UserScope(
         notifier: _currentUser,
         child: BranchScope(
@@ -37,7 +38,6 @@ class _HRMAppState extends State<HRMApp> {
           child: child ?? const SizedBox.shrink(),
         ),
       ),
-      home: const SplashScreen(),
     );
   }
 }

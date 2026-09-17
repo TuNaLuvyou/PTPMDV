@@ -36,7 +36,7 @@ QLDAPM/
 │   │   ├── app/              # Route Groups: (auth)/login, (dashboard)/dashboard/...
 │   │   ├── components/       # UI Primitives & Dashboard Layout Shell
 │   │   ├── context/          # AuthContext, TopbarContext
-│   │   ├── features/         # Feature modules: hr (branches, employees, shifts, wifi, tasks, payslips, bank...)
+│   │   ├── features/         # Feature modules: branches, employees, shifts, wifi, tasks, payslips, bank...
 │   │   ├── mock-data/        # Mock data trung tâm chuẩn doanh nghiệp
 │   │   └── types/            # TypeScript type definitions
 │   └── package.json

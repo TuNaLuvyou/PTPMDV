@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCalendarCheck } from "@fortawesome/free-solid-svg-icons";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import Table, { Column } from "@/components/ui/Table";
-import type { WeeklyRegistration } from "@/features/hr/shifts/types";
+import type { WeeklyRegistration } from "@/features/shifts/types";
 
 interface Props {
   registrations: WeeklyRegistration[];

@@ -99,9 +99,9 @@ class OperationsScreen extends StatelessWidget {
               title: 'Xếp ca',
               subtitle: 'Phân công ca làm việc theo ngày, quản lý nhân sự trực ca & lặp lại',
               icon: FontAwesomeIcons.calendarPlus,
-              iconColor: const Color(0xFF8E1B2F),
+              iconColor: AppColors.primary,
               badgeText: 'Xếp ca',
-              badgeColor: const Color(0xFF8E1B2F),
+              badgeColor: AppColors.primary,
               onTap: () {
                 Navigator.push(
                   context,
@@ -113,9 +113,9 @@ class OperationsScreen extends StatelessWidget {
               title: 'Giao việc & Quản lý nhiệm vụ',
               subtitle: 'Giao việc trực tiếp cho nhân sự và theo dõi tiến độ hoàn thành',
               icon: FontAwesomeIcons.listCheck,
-              iconColor: const Color(0xFF8E1B2F),
+              iconColor: AppColors.primary,
               badgeText: 'Giao việc',
-              badgeColor: const Color(0xFF8E1B2F),
+              badgeColor: AppColors.primary,
               onTap: () {
                 Navigator.push(
                   context,
