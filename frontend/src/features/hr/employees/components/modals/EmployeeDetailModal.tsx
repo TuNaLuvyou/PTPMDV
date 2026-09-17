@@ -865,9 +865,6 @@ export default function EmployeeDetailModal({
                         onChange={(e) => setBaseSalary(Number(e.target.value))}
                         placeholder="8500000"
                       />
-                      <p className="text-[11px] text-emerald-700 mt-1">
-                        * Lương cố định tháng. Checkout ca làm chỉ hiển thị trừ tiền phạt nếu có.
-                      </p>
                     </Field>
                   )}
                 </div>
