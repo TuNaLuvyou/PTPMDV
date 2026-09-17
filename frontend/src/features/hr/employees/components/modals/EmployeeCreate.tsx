@@ -85,7 +85,7 @@ export default function CreateEmployeeModal({
             ))}
           </Select>
         </Field>
-        <Field label="Vai trò" required className="md:col-span-2">
+        <Field label="Vai trò" required>
           <Select defaultValue="nv">
             <option value="nv">Nhân viên</option>
             <option value="truong-nhom">Trưởng nhóm</option>
@@ -93,6 +93,28 @@ export default function CreateEmployeeModal({
             <option value="nhan-su">Nhân sự</option>
             <option value="ke-toan">Kế toán</option>
           </Select>
+        </Field>
+        <Field label="Hình thức tính lương" required>
+          <Select defaultValue="hourly">
+            <option value="hourly">Lương theo giờ (Checkout cộng theo giờ)</option>
+            <option value="monthly">Lương cơ bản tháng (Cố định, chỉ trừ khi phạt)</option>
+          </Select>
+        </Field>
+        <Field label="Mức lương (VNĐ/giờ hoặc VNĐ/tháng)" required>
+          <Input type="number" defaultValue="35000" placeholder="Ví dụ: 35000 hoặc 8500000" />
+        </Field>
+        <Field label="Ngân hàng" required>
+          <Select defaultValue="Vietcombank">
+            <option value="Vietcombank">Vietcombank</option>
+            <option value="VietinBank">VietinBank</option>
+            <option value="BIDV">BIDV</option>
+            <option value="Techcombank">Techcombank</option>
+            <option value="MBBank">MBBank</option>
+            <option value="Agribank">Agribank</option>
+          </Select>
+        </Field>
+        <Field label="Số tài khoản (STK)" required className="md:col-span-2">
+          <Input placeholder="Số tài khoản ngân hàng nhận lương" />
         </Field>
       </div>
     </Modal>

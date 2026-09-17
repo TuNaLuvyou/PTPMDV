@@ -16,6 +16,11 @@ export interface Employee {
   phone: string;
   joinDate?: string;
   baseSalary?: number;
+  salaryType?: "hourly" | "monthly";
+  hourlySalary?: number;
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankAccountName?: string;
 }
 
 export interface ShiftRequest {

@@ -63,6 +63,10 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
         ? 'Phân công (Quản lý)'
         : 'Hệ thống tự động';
 
+    final user = UserScope.currentUser(context);
+    final bool isHourly = user?.isHourlySalary ?? true;
+    final double hourlySalary = user?.hourlySalary ?? 35000.0;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -175,6 +179,29 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
                       valueColor: statusColor),
                   _divider(),
                   _buildInfoRow(FontAwesomeIcons.fileLines, 'Nguồn công', nguonCong),
+                  if (shift.status == 'completed') ...[
+                    _divider(),
+                    _buildInfoRow(
+                      FontAwesomeIcons.moneyBillWave,
+                      'Cơ chế tính lương',
+                      isHourly ? 'Theo giờ (${_formatCurrency(hourlySalary)} ₫/h)' : 'Lương cơ bản tháng',
+                    ),
+                    _divider(),
+                    if (isHourly)
+                      _buildInfoRow(
+                        FontAwesomeIcons.circleDollarToSlot,
+                        'Thu nhập ca cộng vào',
+                        '+${_formatCurrency((shift.hours > 0 ? shift.hours : 5.0) * hourlySalary)} ₫',
+                        valueColor: AppColors.success,
+                      )
+                    else
+                      _buildInfoRow(
+                        FontAwesomeIcons.circleExclamation,
+                        'Khấu trừ phạt ca',
+                        '0 ₫ (Không bị phạt)',
+                        valueColor: Colors.green.shade700,
+                      ),
+                  ],
                 ],
               ),
             ),
@@ -253,6 +280,11 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
         ),
       ),
     );
+  }
+
+  String _formatCurrency(num value) {
+    final str = value.toInt().toString();
+    return str.replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
   }
 
   Widget _divider() => const Divider(height: 1, indent: 16, endIndent: 16);

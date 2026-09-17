@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/config/company.dart';
 import '../../../core/state/branch_scope.dart';
@@ -592,6 +593,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  String _formatCurrency(num value) {
+    final str = value.toInt().toString();
+    return str.replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
+  }
+
   void _showCheckOutSheet(BuildContext context) {
     if (_checkedInShift == null) return;
     final shift = _checkedInShift!;
@@ -602,6 +608,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ? '${_checkedInTime!.hour.toString().padLeft(2, '0')}:${_checkedInTime!.minute.toString().padLeft(2, '0')}'
         : '08:00';
 
+    final user = widget.currentUser;
+    final bool isHourly = user.isHourlySalary;
+    final double hoursWorked = shift.hours > 0 ? shift.hours : 5.0;
+    final int earnedMoney = (hoursWorked * user.hourlySalary).toInt();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -610,7 +621,7 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
-        final double sheetHeight = MediaQuery.of(context).size.height * 0.52;
+        final double sheetHeight = MediaQuery.of(context).size.height * 0.65;
 
         return Container(
           height: sheetHeight,
@@ -716,6 +727,75 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                       ),
+                      const SizedBox(height: 14),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isHourly ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isHourly ? Colors.green.shade300 : Colors.blueGrey.shade200,
+                            width: 1.2,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                FaIcon(
+                                  isHourly ? FontAwesomeIcons.moneyBillWave : FontAwesomeIcons.fileInvoiceDollar,
+                                  size: 16,
+                                  color: isHourly ? AppColors.success : AppColors.primary,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  isHourly ? 'Tính công ra ca (Lương theo giờ)' : 'Cơ chế tính lương (Cố định tháng)',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13.5,
+                                    color: isHourly ? Colors.green.shade900 : Colors.blueGrey.shade900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            if (isHourly) ...[
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Tiền công ca (${hoursWorked}h × ${_formatCurrency(user.hourlySalary)} ₫/h):',
+                                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                  ),
+                                  Text(
+                                    '+${_formatCurrency(earnedMoney)} ₫',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.success),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                '💡 Được tự động cộng dồn vào bảng công ngay khi hoàn thành ra ca.',
+                                style: TextStyle(fontSize: 11, color: AppColors.textSecondary, fontStyle: FontStyle.italic),
+                              ),
+                            ] else ...[
+                              const Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Khấu trừ phạt ca:', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                                  Text('0 ₫ (Không bị phạt)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.success)),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                '💡 Nhân viên hưởng lương cơ bản tháng. Ca làm việc không cộng/trừ giờ, chỉ hiển thị số tiền trừ khi có vi phạm phạt.',
+                                style: TextStyle(fontSize: 11, color: AppColors.textSecondary, fontStyle: FontStyle.italic),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -733,7 +813,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       backgroundColor: AppColors.success,
-                      content: Text('✅ Chấm công ra ca ${shiftOut?.shiftName ?? ''} (${shiftOut?.timeRange ?? ''}) thành công!'),
+                      content: Text(isHourly
+                          ? '✅ Chấm công ra ca ${shiftOut?.shiftName ?? ''} thành công! Đã cộng công: +${_formatCurrency(earnedMoney)} ₫ (${hoursWorked}h)'
+                          : '✅ Chấm công ra ca ${shiftOut?.shiftName ?? ''} thành công! (Lương tháng cố định)'),
                     ),
                   );
                 },
