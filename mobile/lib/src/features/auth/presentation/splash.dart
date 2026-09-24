@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/models/branch.dart';
+import '../../../core/models/user.dart';
+import '../../../core/state/branch_scope.dart';
+import '../../../core/state/user_scope.dart';
+import '../data/auth_repository.dart';
 
-/// Màn hình khởi động (splash) — hiển thị thương hiệu hệ thống HRM On-Premises.
-/// Sau một khoảng ngắn tự chuyển sang màn Đăng nhập.
+/// Màn hình khởi động (splash) — kiểm tra phiên thật qua `GET /api/auth/me`.
+/// Còn phiên -> vào thẳng `/main`, hết phiên -> sang `/login`.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -15,10 +20,23 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 1600), () {
-      if (!mounted) return;
+    _resolveSession();
+  }
+
+  Future<void> _resolveSession() async {
+    final results = await Future.wait([
+      AuthRepository().me(),
+      Future.delayed(const Duration(milliseconds: 1200)),
+    ]);
+    if (!mounted) return;
+    final session = results[0];
+    if (session is UserModel) {
+      BranchScope.select(context, branchById(session.assignedBranchId ?? 'hn-1'));
+      UserScope.setUser(context, session);
+      context.go('/main', extra: session);
+    } else {
       context.go('/login');
-    });
+    }
   }
 
   @override
