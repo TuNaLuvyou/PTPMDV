@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/models/payslip.dart';
+import '../../../core/utils/formatters.dart';
+import '../data/salary_repository.dart';
 
 class WorkLogItem {
   final String date;
@@ -86,8 +89,26 @@ class _SalaryScreenState extends State<SalaryScreen> {
     ),
   ];
 
-  String _formatCurrency(int amount) {
-    final str = amount.toString();
+  final SalaryRepository _salaryRepository = SalaryRepository();
+  List<PayslipModel> _apiPayslips = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPayslips();
+  }
+
+  Future<void> _loadPayslips() async {
+    // Gọi API thật qua gateway; service chưa sẵn sàng thì giữ mock hiện có.
+    try {
+      final items = await _salaryRepository.getPayslips();
+      if (mounted) setState(() => _apiPayslips = items);
+    } catch (_) {
+      // Giữ danh sách mock hiện có khi API chưa sẵn sàng.
+    }
+  }
+
+  String _formatCurrency(int amount) {    final str = amount.toString();
     final buffer = StringBuffer();
     int count = 0;
     for (int i = str.length - 1; i >= 0; i--) {
@@ -152,6 +173,38 @@ class _SalaryScreenState extends State<SalaryScreen> {
               ),
             ),
             const SizedBox(height: 16),
+
+            // 1b. Phiếu lương từ API thật (gateway -> payroll-service).
+            // Ẩn khi API chưa sẵn sàng để giữ mock hiện có.
+            if (_apiPayslips.isNotEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Phiếu lương từ máy chủ',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    const SizedBox(height: 8),
+                    for (final p in _apiPayslips.take(3))
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Text(
+                          '${p.month} • ${formatVND(p.netSalary.toInt())} (cơ bản ${formatVND(p.baseSalary.toInt())} − phạt ${formatVND(p.totalPenalty.toInt())})',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
 
             // 2. Main Net Salary Card
             Container(
