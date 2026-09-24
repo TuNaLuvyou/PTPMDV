@@ -2,7 +2,7 @@
 
 > File này dành cho AI agent. Đọc hết trước khi sửa code hoặc tạo file. Nguồn: `PTPMDV_PhanCong.docx`.
 > Mục có nhãn **(suy ra)** hoặc **(chưa quy định)** không có trong tài liệu phân công gốc. Không coi đó là yêu cầu chắc chắn; hỏi lại khi cần.
-> Cùng codebase với môn QLDAPM (xem các file `Work_flow_QLDAPM_*.md`). Không đổi cổng, envelope, tên trường hay cấu trúc thư mục chung.
+> Không đổi cổng, envelope, tên trường hay cấu trúc thư mục chung.
 
 ---
 
@@ -82,27 +82,52 @@ Mỗi service có `GET /health`. Tài liệu PTPMDV không nêu định dạng b
 
 ### Task 1 — integration-service (cổng 4005)
 - [ ] **SOAP:** `GET /soap/payroll?wsdl` (WSDL hợp lệ) và `POST /soap/payroll` (nhận `PayoutRequest`, trả `PayoutResponse`, lỗi trả `soap:Fault`). SOAP phải tạo được lệnh chi.
-- [ ] **Requests:** `GET`, `POST`, `PUT` approve/reject (tự sinh thông báo), `DELETE` khi đang `pending`.
-- [ ] **Notifications:** `GET` (gồm cả broadcast), `POST`, `PUT` read, `DELETE`.
-- [ ] **Bảng tin:** `GET /api/news`, `GET /api/news/:id`, `POST /api/news`, `PUT /api/news/:id`, `DELETE /api/news/:id` (tạo/sửa/xóa: `admin`/`manager`).
-- [ ] **Nội quy:** `GET /api/regulations`, `GET /api/regulations/:id`, `POST`, `PUT`, `DELETE`.
-- [ ] **Wi-Fi chấm công:** `GET /api/wifi-configs?branch=`, `POST`, `PUT /api/wifi-configs/:id`, `DELETE`.
+- [ ] **Requests (yêu cầu nội bộ):**
+  - `GET /api/requests?employeeId=&branchSlug=&status=&type=` — danh sách yêu cầu.
+  - `GET /api/requests/:id` — chi tiết một yêu cầu (phục vụ màn `request_detail` trên mobile) **(suy ra)**.
+  - `POST /api/requests` — tạo yêu cầu mới. `type` chấp nhận: `leave`, `overtime`, `advance`, `shift_swap`, `work_supplement`, `other`.
+  - `PUT /api/requests/:id/approve` — duyệt (tự sinh thông báo).
+  - `PUT /api/requests/:id/reject` — từ chối (tự sinh thông báo).
+  - `DELETE /api/requests/:id` — xóa, chỉ khi `status = pending`.
+  - **Lưu ý `shift_swap`:** payload cần thêm `sourceShiftId` và `targetShiftId` để xác định ca đổi. Khi duyệt, gọi `PUT /api/shifts/:id` của B (work-service 4003) để cập nhật phân công **(suy ra)**. Xác nhận với B trước.
+  - **Lưu ý `work_supplement` (bổ sung công):** có thể cần bổ sung vào `attendance` tương ứng khi được duyệt **(suy ra)**. Xác nhận với B trước.
+- [ ] **Notifications (thông báo):**
+  - `GET /api/notifications?employeeId=&branchSlug=` — gồm cả broadcast (`targetEmployeeId = null`).
+  - `POST /api/notifications` — gửi thông báo (admin/manager).
+  - `PUT /api/notifications/:id/read` — đánh dấu đã đọc.
+  - `DELETE /api/notifications/:id`.
+- [ ] **Bảng tin (News/Announcement):**
+  - `GET /api/news`, `GET /api/news/:id`.
+  - `POST /api/news`, `PUT /api/news/:id`, `DELETE /api/news/:id` — chỉ `admin`/`manager`.
+- [ ] **Nội quy (Regulations):**
+  - `GET /api/regulations`, `GET /api/regulations/:id`.
+  - `POST /api/regulations`, `PUT /api/regulations/:id`, `DELETE /api/regulations/:id`.
+- [ ] **Wi-Fi chấm công:**
+  - `GET /api/wifi-configs?branch=`.
+  - `POST /api/wifi-configs`, `PUT /api/wifi-configs/:id`, `DELETE /api/wifi-configs/:id`.
 - [ ] `GET /health`.
 
 ---
 
-## 5. Schema dữ liệu liên quan (phải khớp)
+## 5. Schema dữ liệu liên quan (phải khớp — SSOT tại `A_Work_Flow.md §6`)
 
-Mục "Dữ liệu và khuôn mẫu thống nhất" của tài liệu phân công là chuẩn chung. Không tự đổi tên trường.
+Không tự đổi tên trường. Mọi thay đổi phải cập nhật `A_Work_Flow.md §6` trước.
 
 - **Khuôn SOAP:** `POST /soap/payroll` nhận `PayoutRequest (idempotencyKey, debitAccount, content, totalAmount, beneficiaryCount)`, trả `PayoutResponse (transactionId (TXN-xxxxxx), bankReference (BANK-xxxxxxxx), status)`. Lỗi trả `soap:Fault` với `faultcode = soap:Client` và `faultstring` mô tả lỗi (ví dụ: Số dư không đủ).
-- **Yêu cầu nội bộ:** `id, type (leave/overtime/advance/other), employeeId, branchSlug, title, content, attachmentUrl, status (pending/approved/rejected), reviewedBy, reviewNote, createdAt, updatedAt`
-- **Thông báo:** `id, targetEmployeeId (null là gửi toàn hệ thống), branchSlug, title, body, isRead, createdAt`
-- **Bảng tin:** `id, title, summary, content, author, date, tag, tagTone (danger/warning/success/primary/gray), pinned`
-- **Nội quy:** `id, code, title, category, summary, content, status, scope (Toàn công ty hoặc mã chi nhánh), effectiveDate, expiryDate, author, createdAt`
-- **Wi-Fi chấm công:** `id, ssid, bssid, branch (mã chi nhánh), status`
 
-Ghi chú định dạng: `createdAt`, `updatedAt`, `date` của các thực thể trên không được quy định định dạng cụ thể. Hỏi A nếu cần thống nhất với mobile.
+- **Yêu cầu nội bộ (Request):** `id, type, employeeId, branchSlug, title, content, attachmentUrl, status (pending/approved/rejected), reviewedBy, reviewNote, createdAt, updatedAt`
+  > `type` hợp lệ: `leave` (nghỉ phép), `overtime` (tăng ca), `advance` (tạm ứng lương), `shift_swap` (đổi ca), `work_supplement` (bổ sung công), `other`.
+  > `shift_swap` cần thêm `sourceShiftId` và `targetShiftId` trong payload.
+
+- **Thông báo (Notification):** `id, targetEmployeeId (null = toàn hệ thống), branchSlug, title, body, isRead, createdAt`
+
+- **Bảng tin (Announcement/News):** `id, title, summary, content, author, date, tag, tagTone (danger/warning/success/primary/gray), pinned (bool)`
+
+- **Nội quy (Regulation):** `id, code, title, category, summary, content, status (hiệu lực/dự thảo/hết hiệu lực), scope (Toàn công ty hoặc slug chi nhánh), effectiveDate (DD-MM-YYYY), expiryDate, author, createdAt, updatedAt, version, pinned, attachments (số file đính kèm)`
+
+- **Wi-Fi chấm công:** `id, ssid, bssid, branch (slug chi nhánh), status (hoạt động/vô hiệu hóa)`
+
+Ghi chú: `createdAt`, `updatedAt`, `date` dùng ISO 8601 hoặc `DD-MM-YYYY` — hỏi A để thống nhất với mobile.
 
 ---
 
@@ -112,7 +137,8 @@ Ghi chú định dạng: `createdAt`, `updatedAt`, `date` của các thực th�
 - Đăng nhập và phiên `hrm-session` do `identity-service` (4001) của A xử lý.
 - **D (payroll-service, 4004):** SOAP của bạn tạo lệnh chi và trả `transactionId` (`TXN-xxxxxx`), `bankReference` (`BANK-xxxxxxxx`). Cách tạo là gọi REST payout của D qua HTTP **(suy ra)**, timeout tối đa 5000ms, không import chéo mã nguồn. `idempotencyKey` của `PayoutRequest` cần được chuyển tiếp để tính idempotent nhất quán với REST.
 - **D:** khi D trả lỗi hết số dư (422), chuyển thành `soap:Fault` với `faultcode = soap:Client` và `faultstring` mô tả (ví dụ "Số dư không đủ").
-- **A:** demo SOAP end-to-end trên web và mobile của A gọi `/soap/payroll` của bạn qua gateway, cần chuyển tiếp nguyên vẹn XML và `soap:Fault`. Màn hình `notifications`, `leave_request`, `approvals` trên mobile của A gọi requests và notifications của bạn.
+- **B (work-service, 4003):** khi duyệt `shift_swap`, gọi HTTP đến `PUT /api/shifts/:id` của B để cập nhật phân công ca. Khi duyệt `work_supplement`, có thể cần gọi `attendance` của B. Xác nhận với B trước.
+- **A:** demo SOAP end-to-end trên web và mobile của A gọi `/soap/payroll` của bạn qua gateway, cần chuyển tiếp nguyên vẹn XML và `soap:Fault`. Màn hình `notifications`, `leave_request`, `approvals`, `salary_advance` trên mobile của A gọi requests và notifications của bạn.
 - **Liên động yêu cầu và thông báo:** duyệt hoặc từ chối yêu cầu tự sinh thông báo. Cả hai nằm trong cùng service của bạn, nhưng phải đúng liên động vì đây là điểm nghiệm thu.
 
 ---
@@ -155,10 +181,10 @@ Các mục sau không có trong tài liệu phân công. Không tự quyết đ�
 
 - **Cơ sở dữ liệu và ORM:** tài liệu không nhắc Prisma, ORM hay loại CSDL nào. Lớp lưu trữ đặt trong `src/infrastructure`. Hỏi A trước khi chọn.
 - **Cách service nhận danh tính người dùng (vai trò `admin`/`manager`/`staff`):** tài liệu chỉ nêu middleware `hrm-session` gắn `req.user` ở identity-service. Cách các service khác lấy được danh tính và vai trò chưa được quy định. Hỏi A trước khi làm phần phân quyền.
-- **Đường dẫn chính xác của requests, notifications và thao tác approve/reject/read:** tài liệu PTPMDV chỉ nêu phương thức HTTP, không nêu đường dẫn.
+- **Đường dẫn chính xác của requests, notifications và thao tác approve/reject/read:** tài liệu PTPMDV chỉ nêu phương thức HTTP, không nêu đường dẫn. **Phụ trách: E** đề xuất, A duyệt khi cấu hình gateway (A §5) **(suy ra)**.
 - **Cấu trúc WSDL:** không được nêu chi tiết, chỉ yêu cầu WSDL hợp lệ.
 - **Cách SOAP tạo lệnh chi:** không nêu rõ gọi payroll-service bằng cách nào, xem mục 6.
-- **Ai được duyệt hoặc từ chối yêu cầu:** không được nêu.
+- **Ai được duyệt hoặc từ chối yêu cầu:** không được nêu. **Phụ trách: A** chốt trong ma trận phân quyền (A Task 5) **(suy ra)**.
 - **Định dạng body của `/health`:** tài liệu PTPMDV không nêu, xem mục 2.3.
 
 ---

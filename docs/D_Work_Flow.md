@@ -2,7 +2,7 @@
 
 > File này dành cho AI agent. Đọc hết trước khi sửa code hoặc tạo file. Nguồn: `PTPMDV_PhanCong.docx`.
 > Mục có nhãn **(suy ra)** hoặc **(chưa quy định)** không có trong tài liệu phân công gốc. Không coi đó là yêu cầu chắc chắn; hỏi lại khi cần.
-> Cùng codebase với môn QLDAPM (xem các file `Work_flow_QLDAPM_*.md`). Không đổi cổng, envelope, tên trường hay cấu trúc thư mục chung.
+> Không đổi cổng, envelope, tên trường hay cấu trúc thư mục chung.
 
 ---
 
@@ -82,27 +82,31 @@ Mỗi service có `GET /health`. Tài liệu PTPMDV không nêu định dạng b
 
 ### Task 1 — payroll-service (cổng 4004)
 - [ ] `GET /api/payroll/bank-accounts`.
+- [ ] `PUT /api/payroll/bank-accounts/:id` — sửa cấu hình liên kết ngân hàng (web dùng ở mục "Liên kết Ngân hàng") **(suy ra)**.
 - [ ] `GET /api/payroll/payouts` và `POST /api/payroll/payouts` với `idempotencyKey`:
   - Trùng key: trả bản ghi cũ kèm `deduped: true`.
   - Sinh `id` dạng `TXN-xxxxxx` và `bankReference` dạng `BANK-xxxxxxxx`.
   - Hết số dư: trả HTTP `422`.
 - [ ] `GET /api/payroll/payslips`.
-- [ ] `POST /api/payroll/payslips/generate`: tổng hợp phạt theo tháng; `netSalary = baseSalary - totalPenalty`; chống trùng cặp `employeeId` + `month`.
+- [ ] `PUT /api/payroll/payslips/:id` — điều chỉnh thưởng/phạt của phiếu (modal "Điều chỉnh Thưởng / Phạt" trên web) **(suy ra)**.
+- [ ] `PUT /api/payroll/payslips/:id/status` — chốt phiếu (chưa chốt → đã chốt), phục vụ "Chốt phiếu lương hàng loạt" trên web **(suy ra)**.
+- [ ] `POST /api/payroll/payslips/generate`: tổng hợp phạt theo tháng; `netSalary = baseSalary + bonus - totalPenalty` (đúng SSOT tại `A_Work_Flow.md §6`, trước đây file này ghi thiếu `bonus`); chống trùng cặp `employeeId` + `month`.
 - [ ] `GET /health`.
 
 ---
 
-## 5. Schema dữ liệu liên quan (phải khớp)
+## 5. Schema dữ liệu liên quan (phải khớp — SSOT tại `A_Work_Flow.md §6`)
 
-Mục "Dữ liệu và khuôn mẫu thống nhất" của tài liệu phân công là chuẩn chung. Không tự đổi tên trường.
+Không tự đổi tên trường. Mọi thay đổi phải cập nhật `A_Work_Flow.md §6` trước.
 
 - **Payout:** `id (TXN-xxxxxx), bankReference (BANK-xxxxxxxx), debitAccount, totalAmount, content, beneficiaryCount, idempotencyKey, status, createdAt`
-- **Payslip:** `id, employeeId, month (MM-YYYY), baseSalary, totalPenalty, netSalary (= baseSalary - totalPenalty), payoutId, status, issuedAt`
+
+- **Payslip:** `id, employeeId, month (MM-YYYY), baseSalary, bonus, totalPenalty, netSalary (= baseSalary + bonus - totalPenalty), payoutId, status (chưa chốt/đã chốt), issuedAt`
+  > `bonus` được bổ sung so với tài liệu gốc để khớp frontend và mobile. Không trùng cặp `employeeId` + `month`.
+
 - **Khuôn SOAP:** `POST /soap/payroll` nhận `PayoutRequest (idempotencyKey, debitAccount, content, totalAmount, beneficiaryCount)`, trả `PayoutResponse (transactionId (TXN-xxxxxx), bankReference (BANK-xxxxxxxx), status)`. Lỗi trả `soap:Fault` với `faultcode = soap:Client` và `faultstring` mô tả lỗi (ví dụ: Số dư không đủ).
 
-Ghi chú: schema tài khoản công ty không có trong mục chung (xem mục 9).
-
-Ghi chú định dạng ngày: `Attendance.date` dùng `DD-MM-YYYY`, `Payslip.month` dùng `MM-YYYY`, query attendance dùng `month=YYYY-MM`. Ba định dạng này khác nhau, chú ý khi parse và sinh dữ liệu.
+Ghi chú định dạng ngày: `Payslip.month` dùng `MM-YYYY`; query attendance dùng `month=YYYY-MM`.
 
 ---
 
@@ -123,7 +127,7 @@ Ghi chú định dạng ngày: `Attendance.date` dùng `DD-MM-YYYY`, `Payslip.mo
 |---|---|
 | 1 | Xong lệnh chi (payouts) |
 
-Tài liệu không nêu mốc riêng cho phiếu lương (payslips). Hỏi A nếu cần chốt thời hạn.
+Tài liệu không nêu mốc riêng cho phiếu lương (payslips). **Phụ trách: D** — đặt payslips vào Mốc 2 (trước đấu nối/demo của A) **(suy ra)**.
 
 Mốc đầu tiên của A là gateway + identity. Cần bám sát để chạy được qua gateway khi tích hợp.
 
@@ -140,7 +144,8 @@ Mốc đầu tiên của A là gateway + identity. Cần bám sát để chạy 
 - [ ] Có `GET /health`.
 - [ ] Có `.env.example` và `Dockerfile`.
 - [ ] Payout trùng `idempotencyKey` trả bản ghi cũ kèm `deduped: true`; hết số dư trả 422.
-- [ ] Payslip có `netSalary = baseSalary - totalPenalty`, không trùng cặp `employeeId` + `month`.
+- [ ] Payslip có `netSalary = baseSalary + bonus - totalPenalty`, không trùng cặp `employeeId` + `month`.
+- [ ] Đồng bộ công thức `netSalary` với `AGENTS.md` §2.6 (hiện ghi `baseSalary - totalPenalties + allowances` — khác bản này, cần chốt với A) **(suy ra)**.
 - [ ] Gọi liên service qua HTTP, timeout tối đa 5000ms, không import chéo mã nguồn.
 - [ ] Nhánh đặt tên `feat/<service>-<tên>`, PR về `dev`.
 - [ ] Không sửa file thuộc phần của người khác.

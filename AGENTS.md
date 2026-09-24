@@ -20,7 +20,7 @@
 4. **Active Branches & Remotes**:
    - Standard working branch: `dev`.
    - Production branch: `main`.
-   - Dual remotes configured: `QLDAPM` and `PTPMDV`.
+   - Remote configured: `PTPMDV`.
 
 ---
 
