@@ -16,7 +16,7 @@ Chi nhánh: HN-1 Hoàn Kiếm, HN-2 Cầu Giấy, DN-1 Đà Nẵng.
 ## Cấu trúc
 
 ```text
-QLDAPM/
+hrm-enterprise/
 ├── README.md
 ├── AGENTS.md
 ├── frontend/   # Web Portal quản trị (Next.js 16 App Router + Tailwind v4)

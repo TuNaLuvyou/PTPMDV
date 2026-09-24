@@ -2,7 +2,7 @@
 
 > File này dành cho AI agent. Đọc hết trước khi sửa code hoặc tạo file. Nguồn: `PTPMDV_PhanCong.docx`.
 > Mục có nhãn **(suy ra)** hoặc **(chưa quy định)** không có trong tài liệu phân công gốc. Không coi đó là yêu cầu chắc chắn; hỏi lại khi cần.
-> Cùng codebase với môn QLDAPM (xem các file `Work_flow_QLDAPM_*.md`). Không đổi cổng, envelope, tên trường hay cấu trúc thư mục chung.
+> Không đổi cổng, envelope, tên trường hay cấu trúc thư mục chung.
 
 ---
 
@@ -80,34 +80,66 @@ Mỗi service có `GET /health`. Tài liệu PTPMDV không nêu định dạng b
 
 ## 4. Danh sách việc của B
 
-Tài liệu PTPMDV chỉ nêu phần việc của B ở mức chức năng. Chi tiết endpoint dưới đây lấy từ tài liệu QLDAPM cho cùng phần việc (cùng codebase) **(suy ra từ tài liệu QLDAPM)**.
+Tài liệu PTPMDV chỉ nêu phần việc của B ở mức chức năng. Chi tiết endpoint dưới đây **(suy ra)** từ danh sách chức năng ở mục 0 và schema mục 5.
 
 ### Task 1 — organization-service (cổng 4002)
-- [ ] CRUD **branches** và **departments**.
-- [ ] CRUD **employees** đúng schema, validate email và role, phân quyền.
-- [ ] Tham khảo endpoint: `GET /api/branches`, `GET /api/branches/:slug`, `GET /api/employees?branchSlug=`, `GET /api/employees/:id`, và `POST`/`PUT`/`DELETE` tương ứng.
-- [ ] `role` thuộc `admin` / `manager` / `staff`; email không trùng.
+- [ ] CRUD **branches**: `GET /api/branches`, `GET /api/branches/:slug`, `POST /api/branches`, `PUT /api/branches/:slug`, `DELETE /api/branches/:slug`.
+- [ ] CRUD **departments**: `GET /api/departments`, `GET /api/departments/:id`, `POST`, `PUT`, `DELETE`.
+- [ ] CRUD **employees** đúng schema, validate email và systemRole, phân quyền.
+  - `GET /api/employees?branchSlug=&departmentId=&systemRole=`
+  - `GET /api/employees/:id`
+  - `POST /api/employees`, `PUT /api/employees/:id`, `DELETE /api/employees/:id`
+  - Email không trùng; `systemRole` chỉ nhận `admin`/`manager`/`staff`.
 - [ ] `GET /health`.
 
 ### Task 2 — work-service (cổng 4003)
-- [ ] **Shifts.**
-- [ ] **Attendance:** checkin/checkout kèm tính phạt (`penaltyAmount`, `penaltyNote`, `status` là `present`/`absent`/`late`/`early_leave`).
-- [ ] **Tasks:** CRUD.
-- [ ] Tham khảo endpoint: `GET /api/shifts`, `POST /api/shifts`, `GET /api/attendance?employeeId=&month=YYYY-MM`, `POST` checkin/checkout.
+- [ ] **Shifts (lịch ca / phân ca):**
+  - `GET /api/shifts?branchSlug=&date=YYYY-MM-DD&employeeId=` — danh sách ca.
+  - `POST /api/shifts` — tạo ca mới (admin/manager).
+  - `PUT /api/shifts/:id` — cập nhật ca (admin/manager).
+  - `DELETE /api/shifts/:id` — xóa ca (admin/manager).
+  - `POST /api/shifts/:id/assign` — phân công ca cho nhân viên (chức năng `shift_assignment`).
+  - `POST /api/shifts/register` — nhân viên tự đăng ký ca (chức năng `schedule_registration`).
+  - `GET /api/shifts/registrations?branchSlug=&week=` — danh sách nguyện vọng đăng ký ca của nhân viên, phục vụ bảng "Quản lý đăng ký ca" trên web (`RegTimetable`, `WeekWishes`) **(suy ra)**.
+- [ ] **Attendance (chấm công):**
+  - `POST /api/attendance/checkin` — check-in.
+  - `POST /api/attendance/checkout` — check-out, tính phạt tự động.
+  - `GET /api/attendance?employeeId=&month=YYYY-MM` — lịch sử chấm công.
+  - `GET /api/attendance?branchSlug=&date=YYYY-MM-DD` — giám sát toàn bộ nhân sự trong ngày (chức năng `staff_monitor`).
+  - `GET /api/attendance/config` — lấy cấu hình phạt chấm công.
+  - `PUT /api/attendance/config` — cập nhật cấu hình phạt (admin).
+- [ ] **Tasks (tác vụ):** CRUD toàn bộ.
+  - `GET /api/tasks?branchSlug=&assignedTo=&status=`
+  - `POST /api/tasks`, `PUT /api/tasks/:id`, `DELETE /api/tasks/:id`.
 - [ ] `GET /health`.
 
 ---
 
-## 5. Schema dữ liệu liên quan (phải khớp)
+## 5. Schema dữ liệu liên quan (phải khớp — SSOT tại `A_Work_Flow.md §6`)
 
-Mục "Dữ liệu và khuôn mẫu thống nhất" của tài liệu phân công là chuẩn chung. Không tự đổi tên trường.
+Không tự đổi tên trường. Mọi thay đổi phải cập nhật `A_Work_Flow.md §6` trước.
 
-- **Employee:** `id, name, email, phone, cccd, address, role, roleTitle, branchSlug, departmentId, baseSalary, bankName, bankAccount, startDate, status`
-- **Attendance:** `id, employeeId, shiftId, date (DD-MM-YYYY), checkIn, checkOut, penaltyAmount, penaltyNote, status (present/absent/late/early_leave)`
+- **Branch:** `id, name, slug, address, phone, manager (tên hiển thị), status (hoạt động/vô hiệu hóa), staff (số lượng nhân sự)`
 
-Ghi chú: schema của Branch, Department, Shift, Task không có trong mục chung (xem mục 9).
+- **Department:** `id, name, code, description, manager (tên hiển thị), status (hoạt động/tạm dừng), staff, createdAt`
 
-Ghi chú định dạng ngày: `Attendance.date` dùng `DD-MM-YYYY`, `Payslip.month` dùng `MM-YYYY`, query attendance dùng `month=YYYY-MM`. Ba định dạng này khác nhau, chú ý khi parse và sinh dữ liệu.
+- **Employee:** `id, name, email, phone, gender, birthDate, province, ward, street, cccd, issueDate, issuePlace, cccdFront, cccdBack, branch (slug chi nhánh, ví dụ "HN-1"), department (tên phòng ban), role (chức danh hiển thị), systemRole (admin/manager/staff), status (đang làm/vô hiệu hóa), joinDate, baseSalary, salaryType (hourly/monthly), hourlySalary, bankName, bankAccountNumber, bankAccountName`
+
+- **Shift:** `id, employeeId, branch (slug), date (DD-MM-YYYY), template (tên ca), scheduledStart (HH:MM), scheduledEnd (HH:MM), checkIn (HH:MM), checkOut (HH:MM), status (hoàn thành/đang làm/vắng/trễ)`
+
+- **Attendance:** `id, employeeId, shiftId, date (DD-MM-YYYY), checkIn (HH:MM), checkOut (HH:MM), penaltyAmount, penaltyNote, status (present/absent/late/early_leave)`
+
+- **AttendanceConfig:** `latePenaltyAmount (mặc định 20000), earlyLeavePenaltyAmount, gracePeriodMinutes (mặc định 5), autoCloseShift (bool), shiftSwapMode (string)`
+
+- **Task:** `id, title, description, assignedTo (employeeId), branchSlug, dueDate, status (pending/in_progress/done), createdAt`
+
+Ghi chú định dạng ngày: `date` và `joinDate` dùng `DD-MM-YYYY`; query attendance dùng `month=YYYY-MM`.
+
+Quy tắc tính phạt chấm công (theo `AttendanceConfig`):
+- Đi trễ > `gracePeriodMinutes` phút: phạt `latePenaltyAmount`/lần, ghi `status = late`.
+- Về sớm: phạt `earlyLeavePenaltyAmount`/lần, ghi `status = early_leave`.
+- Vắng mặt: ghi `status = absent`, phạt theo quy định nhóm.
+- `netSalary = baseSalary + bonus - totalPenalty`.
 
 ---
 
@@ -116,8 +148,8 @@ Ghi chú định dạng ngày: `Attendance.date` dùng `DD-MM-YYYY`, `Payslip.mo
 - Mọi request từ web và mobile đi qua `api-gateway` (4000) của A. Client không gọi thẳng vào service của bạn.
 - Đăng nhập và phiên `hrm-session` do `identity-service` (4001) của A xử lý.
 - **D (payroll-service, 4004):** D sinh phiếu lương bằng cách "tổng hợp phạt theo tháng". Dữ liệu phạt nằm ở work-service của bạn. Cách D lấy dữ liệu là gọi HTTP đến attendance của bạn **(suy ra)**. Giữ `GET /api/attendance?employeeId=&month=YYYY-MM` ổn định và trả `penaltyAmount` đúng.
-- **Ràng buộc PTPMDV:** service của bạn tự chứa dữ liệu. Nếu cần dữ liệu của service khác, gọi qua HTTP (timeout tối đa 5000ms), không import chéo mã nguồn.
-- **A:** cần route `/api/branches`, `/api/departments`, `/api/employees`, `/api/shifts`, `/api/attendance`, `/api/tasks` cấu hình trên gateway. Đường dẫn tasks là **(suy ra)**.
+- **E (integration-service, 4005):** Yêu cầu `shift_swap` do E tiếp nhận và xử lý approval. Khi approval, E có thể gọi về work-service của bạn để cập nhật ca **(suy ra)**. Xác nhận luồng này với E trước khi làm.
+- **A:** cần route `/api/branches`, `/api/departments`, `/api/employees`, `/api/shifts`, `/api/attendance`, `/api/attendance/config`, `/api/tasks` cấu hình trên gateway. Mobile của A gọi các màn `general_schedule`, `staff_monitor`, `shift_assignment`, `schedule_registration`, `attendance`, `tasks` từ service của bạn.
 
 ---
 
@@ -154,10 +186,9 @@ Các mục sau không có trong tài liệu phân công. Không tự quyết đ�
 
 - **Cơ sở dữ liệu và ORM:** tài liệu không nhắc Prisma, ORM hay loại CSDL nào. Lớp lưu trữ đặt trong `src/infrastructure`. Hỏi A trước khi chọn.
 - **Cách service nhận danh tính người dùng (vai trò `admin`/`manager`/`staff`):** tài liệu chỉ nêu middleware `hrm-session` gắn `req.user` ở identity-service. Cách các service khác lấy được danh tính và vai trò chưa được quy định. Hỏi A trước khi làm phần phân quyền.
-- **Schema Branch, Department, Shift, Task:** không có trong mục schema chung.
-- **Luật tính phạt chấm công:** ngưỡng đi muộn, về sớm, vắng mặt và mức phạt không được nêu.
-- **Đường dẫn chính xác của shifts, attendance, tasks:** tài liệu PTPMDV chỉ nêu chức năng.
-- **Ma trận phân quyền chi tiết theo vai trò cho từng endpoint:** không được nêu.
+- **Luật tính phạt chấm công:** mức phạt cụ thể lưu trong `AttendanceConfig`. Xem mục 5 để biết schema. Giá trị mặc định: `latePenaltyAmount=20000`, `gracePeriodMinutes=5`.
+- **Luồng `shift_swap`:** khi E tiếp nhận yêu cầu đổi ca và duyệt, có thể cần gọi vào `PUT /api/shifts/:id` của bạn để cập nhật phân công. Xác nhận luồng này với E trước khi làm.
+- **Ma trận phân quyền chi tiết theo vai trò cho từng endpoint:** không được nêu. **Phụ trách: A** (xem `A_Work_Flow.md` Task 5) **(suy ra)**.
 - **Định dạng body của `/health`:** tài liệu PTPMDV không nêu, xem mục 2.3.
 
 ---
