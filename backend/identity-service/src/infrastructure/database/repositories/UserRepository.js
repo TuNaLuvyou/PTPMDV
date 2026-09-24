@@ -45,4 +45,18 @@ async function ensureSeeded() {
   return { mode: "postgres", count };
 }
 
-module.exports = { findByEmail, findById, ensureSeeded };
+async function updatePassword(id, passwordHash) {
+  const prisma = database.getPrisma();
+  if (!prisma) {
+    const u = memoryUsers.find((u) => u.id === id);
+    if (u) u.passwordHash = passwordHash;
+    return;
+  }
+  await prisma.user.update({
+    where: { id },
+    data: { passwordHash },
+  });
+}
+
+module.exports = { findByEmail, findById, updatePassword, ensureSeeded };
+
