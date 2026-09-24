@@ -184,8 +184,12 @@ The development team decomposes services according to business requirements. To 
 | Service Name | Directory | Default Port | Primary Responsibility |
 |---|---|---|---|
 | **Frontend Web** | `frontend/` | `3000` | Next.js 16 Web Portal |
-| *(Example Service 1)* | `backend/<service-name>/` | `4001` | *(Register upon service creation)* |
-| *(Example Service 2)* | `backend/<service-name>/` | `4002` | *(Register upon service creation)* |
+| **API Gateway** | `backend/api-gateway/` | `4000` | Proxy tập trung về 4001–4005, CORS credentials, timeout 5000ms |
+| **Identity Service** | `backend/identity-service/` | `4001` | JWT + cookie hrm-session, RBAC admin/manager/staff (Supabase Postgres + Prisma) |
+| **Organization Service** | `backend/organization-service/` | `4002` | Danh mục tổ chức và nhân sự (chủ sở hữu: B) |
+| **Work Service** | `backend/work-service/` | `4003` | Ca, chấm công, tác vụ (chủ sở hữu: B) |
+| **Payroll Service** | `backend/payroll-service/` | `4004` | Lương, lệnh chi idempotent, phiếu lương (chủ sở hữu: D) |
+| **Integration Service** | `backend/integration-service/` | `4005` | SOAP ngân hàng, yêu cầu, thông báo, tin tức, nội quy, Wi-Fi (chủ sở hữu: E) |
 
 ---
 
