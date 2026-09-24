@@ -16,11 +16,25 @@ export default function LoginPage() {
   const [password, setPassword] = useState("123456");
   const [showPassword, setShowPassword] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    login(email);
-    router.push("/dashboard/employees");
+    setError(null);
+    setSubmitting(true);
+    try {
+      await login(email, password);
+      const from =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search).get("from")
+          : null;
+      router.push(from && from.startsWith("/dashboard") ? from : "/dashboard/employees");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Đăng nhập thất bại");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
 
@@ -88,9 +102,12 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <Button type="submit" block size="lg">
-              Đăng nhập hệ thống
+            <Button type="submit" block size="lg" disabled={submitting}>
+              {submitting ? "Đang đăng nhập..." : "Đăng nhập hệ thống"}
             </Button>
+            {error && (
+              <p className="text-sm text-red-600 mt-3 text-center">{error}</p>
+            )}
           </form>
         </div>
 
