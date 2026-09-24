@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/models/branch.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/state/branch_scope.dart';
 import '../../../core/state/user_scope.dart';
 import '../data/auth_repository.dart';
-import '../data/mock_users.dart' as mock_data;
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -20,13 +21,13 @@ class _LoginScreenState extends State<LoginScreen> {
       TextEditingController(text: '123456');
   bool _obscurePassword = true;
   bool _rememberMe = true;
+  bool _submitting = false;
 
-
-  void _login() {
-    final input = _usernameController.text.trim().toLowerCase();
+  Future<void> _login() async {
+    final email = _usernameController.text.trim();
     final password = _passwordController.text;
 
-    if (input.isEmpty) {
+    if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vui lòng nhập Email hoặc SĐT đăng nhập')),
       );
@@ -40,15 +41,22 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    final initialBranch = mock_data.defaultBranch;
-    BranchScope.select(context, initialBranch);
-
-    const authRepository = AuthRepository();
-    final user = authRepository.resolveUser(_usernameController.text);
-
-    UserScope.setUser(context, user);
-
-    context.pushReplacement('/main', extra: user);
+    setState(() => _submitting = true);
+    try {
+      // Đăng nhập thật qua gateway -> identity-service (cookie hrm-session).
+      final user = await AuthRepository().login(email, password);
+      if (!mounted) return;
+      BranchScope.select(context, branchById(user.assignedBranchId ?? 'hn-1'));
+      UserScope.setUser(context, user);
+      context.pushReplacement('/main', extra: user);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
@@ -168,14 +176,24 @@ class _LoginScreenState extends State<LoginScreen> {
                 SizedBox(
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: _login,
+                    onPressed: _submitting ? null : _login,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
-                    child: const Text('Đăng nhập', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    child: _submitting
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text('Đăng nhập',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
                 ),
                 const SizedBox(height: 28),
