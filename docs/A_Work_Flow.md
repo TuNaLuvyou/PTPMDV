@@ -95,37 +95,42 @@ Tài liệu PTPMDV không nêu định dạng body của `/health`. Nên giữ t
 
 ## 4. Danh sách việc của A
 
-### Task 1 — api-gateway (cổng 4000)
-- [ ] Dựng gateway proxy về các service 4001–4005.
-- [ ] Cấu hình CORS.
-- [ ] Xử lý lỗi tập trung, trả đúng envelope `{error: {code, message}}`.
-- [ ] `GET /health` cho gateway.
-- [ ] Viết `docker-compose` chạy đủ 6 thành phần (gateway + 5 service).
-- [ ] Đặt timeout tối đa 5000ms khi proxy về service phía sau (suy ra từ mục 2.4).
+### Task 1 — api-gateway (cổng 4000) — ✅ XONG (PR `feat/api-gateway-proxy`)
+- [x] Dựng gateway proxy về các service 4001–4005.
+- [x] Cấu hình CORS.
+- [x] Xử lý lỗi tập trung, trả đúng envelope `{error: {code, message}}`.
+- [x] `GET /health` cho gateway.
+- [x] Viết `docker-compose` chạy đủ 6 thành phần (gateway + 5 service).
+- [x] Đặt timeout tối đa 5000ms khi proxy về service phía sau (suy ra từ mục 2.4).
 
 Gợi ý kỹ thuật **(suy ra)**: phiên dùng cookie `hrm-session`, nên CORS cần cho phép credentials và chỉ định origin cụ thể, không dùng `*`.
 
-### Task 2 — identity-service (cổng 4001)
-- [ ] `POST /api/auth/login`
-- [ ] `POST /api/auth/logout`
-- [ ] `GET /api/auth/me`
-- [ ] Middleware phiên `hrm-session`.
-- [ ] Phân quyền theo vai trò: `admin`, `manager`, `staff`.
-- [ ] Seed 3 tài khoản: `admin`, `manager`, `staff`.
-- [ ] `GET /health`.
+### Task 2 — identity-service (cổng 4001) — ✅ XONG (PR `feat/identity-auth`)
+- [x] `POST /api/auth/login`
+- [x] `POST /api/auth/logout`
+- [x] `GET /api/auth/me`
+- [x] Middleware phiên `hrm-session`.
+- [x] Phân quyền theo vai trò: `admin`, `manager`, `staff`.
+- [x] Seed 3 tài khoản: `admin`, `manager`, `staff`.
+- [x] `GET /health`.
 
-### Task 3 — Mobile (Flutter, thư mục `mobile/`)
-- [ ] Đồng bộ models mobile với schema backend (mục 6).
-- [ ] Đấu màn hình `salary` về API thật qua gateway.
-- [ ] Đấu màn hình `notifications` về API thật.
-- [ ] Đấu màn hình `leave_request` về API thật.
-- [ ] Đấu màn hình `approvals` về API thật.
-- [ ] Cấu hình base URL và company, trỏ về gateway.
+> Quyết định đã chốt (xóa mục hỏi ở §9): DB dùng **Supabase Postgres + Prisma**; auth dùng **JWT + cookie `hrm-session` HttpOnly**; migration chuẩn `prisma/migrations`, seed `prisma/seed.js` (pass `123456`).
+
+### Task 3 — Mobile (Flutter, thư mục `mobile/`) — 🟡 LÀM MỘT PHẦN
+- [x] Đồng bộ models mobile với schema backend (mục 6) — đã thêm `payslip/payout/leave_request/app_notification/attendance` (PR `feat/mobile-api`).
+- [x] Đấu màn hình `salary` về API thật qua gateway (kèm fallback mock khi payroll của D chưa có).
+- [ ] Đấu màn hình `notifications` về API thật — ⏳ chờ E xong integration-service (4005). Repository đã viết sẵn.
+- [ ] Đấu màn hình `leave_request` về API thật — ⏳ chờ E (4005). Repository đã viết sẵn.
+- [ ] Đấu màn hình `approvals` về API thật — ⏳ chờ E (4005). Repository đã viết sẵn.
+- [x] Cấu hình base URL và company, trỏ về gateway (`--dart-define=API_BASE_URL`, mặc định `http://10.0.2.2:4000`).
+- [x] Đấu màn hình login + splash về API thật (phiên `hrm-session`, PR `feat/mobile-auth`) — ngoài checklist gốc, cần cho demo.
 - [ ] Build và kiểm thử bản iOS.
-- [ ] `flutter analyze` pass.
-- [ ] `flutter test` pass.
+- [x] `flutter analyze` pass (0 issues tại thời điểm đấu nối).
+- [x] `flutter test` pass (gồm test live tự skip khi thiếu server).
 
-### Task 4 — Đấu nối, demo và optimize (làm cuối)
+> Ngoài phạm vi gốc nhưng đã được A duyệt: đấu login web về API thật (PR `feat/frontend-auth`, `AuthContext` + trang login gọi gateway, bỏ mock).
+
+### Task 4 — Đấu nối, demo và optimize (làm cuối) — ⏳ CHƯA LÀM (chờ D xong payouts 4004, E xong SOAP/requests 4005)
 - [ ] Đấu nối toàn hệ thống khi các service khác đã xong.
 - [ ] Demo **REST idempotent** end-to-end trên cả web và mobile: gửi lệnh chi hai lần với cùng `idempotencyKey`, lần hai trả bản ghi cũ kèm `deduped: true`.
 - [ ] Demo **SOAP end-to-end** trên cả web và mobile: gọi `/soap/payroll`, tạo được lệnh chi, lỗi trả `soap:Fault`.
@@ -192,6 +197,8 @@ Quy tắc cần biết khi đấu mobile:
 
 Thứ tự ưu tiên: hoàn thành gateway và identity trước, vì các thành viên khác và mobile phụ thuộc vào chúng.
 
+> **Tiến độ A (cập nhật 24-09-2026):** Task 1 + Task 2 xong và đã lên Supabase thật; Task 3 xong phần không phụ thuộc D/E (models, salary, base URL, login/splash mobile, login web; analyze/test pass); Task 4 + 3 màn còn lại chờ B/D/E. Chi tiết theo từng checkbox ở mục 4.
+
 ---
 
 ## 8. Nghiệm thu (Definition of Done)
@@ -212,6 +219,7 @@ Thứ tự ưu tiên: hoàn thành gateway và identity trước, vì các thàn
 - [ ] Nhánh đặt tên `feat/<service>-<tên>`, PR về `dev`.
 - [ ] Mobile không dùng `withOpacity`, dùng `AppColors`, `go_router`, Public Sans.
 - [ ] Không sửa file thuộc service của người khác.
+- [ ] Cập nhật tiến độ vào file `Work_flow` của mình (đánh dấu `[x]`, ghi PR liên quan) trước khi nhờ review/merge PR.
 
 ---
 
@@ -239,3 +247,4 @@ Các mục sau không có trong tài liệu phân công. Không tự quyết đ�
 6. Sau mỗi thay đổi ở mobile, chạy `flutter analyze` và `flutter test`. Sau mỗi thay đổi ở backend, kiểm tra `GET /health` và chạy test của service.
 7. Khi báo kết quả, nói rõ đã chạy lệnh nào và kết quả ra sao. Không báo "pass" khi chưa chạy.
 8. Ưu tiên theo thứ tự: gateway + identity, đến đấu API mobile, đến build iOS, cuối cùng là đấu nối, demo REST idempotent và SOAP end-to-end, optimize.
+9. **Luật cập nhật tiến độ (bắt buộc):** sau khi hoàn thành mỗi task và trước khi nhờ review/merge PR, phải cập nhật file `Work_flow` của mình — đánh dấu `[x]` các việc đã xong, ghi rõ nhánh/PR liên quan và việc nào đang chờ thành viên khác. File `Work_flow` là kênh thông báo tiến độ chính cho cả nhóm; không để người khác phải hỏi mới biết làm đến đâu.
