@@ -115,15 +115,15 @@ Gợi ý kỹ thuật **(suy ra)**: phiên dùng cookie `hrm-session`, nên CORS
 - [x] Phân quyền theo vai trò: `admin`, `manager`, `staff`.
 - [x] Seed 3 tài khoản: `admin`, `manager`, `staff`.
 - [x] `GET /health`.
-- [ ] `POST /api/auth/refresh` — cấp lại access token bằng refresh token (Tech.md §2.3, code đã có `signRefreshToken`) **(suy ra)**.
-- [ ] `POST /api/auth/change-password` — phục vụ màn Bảo mật → Đổi mật khẩu trên mobile (`profile/password.dart`) **(suy ra)**.
-- [ ] `POST /api/auth/forgot-password` — phục vụ nút "Quên mật khẩu?" trên web và mobile **(suy ra)**.
-- [ ] `GET /api/auth/devices` và `DELETE /api/auth/devices/:id` — danh sách và gỡ thiết bị/phiên đăng nhập (màn Bảo mật → Thiết bị đăng nhập trên mobile) **(suy ra)**.
+- [x] `POST /api/auth/refresh` — cấp lại access token bằng refresh token (Tech.md §2.3) **(đã xong trên feat/identity-auth)**.
+- [x] `POST /api/auth/change-password` — đổi mật khẩu qua bcrypt + PostgreSQL/memory **(đã xong trên feat/identity-auth)**.
+- [x] `POST /api/auth/forgot-password` — đặt lại mật khẩu về mặc định 123456 **(đã xong trên feat/identity-auth)**.
+- [x] `GET /api/auth/devices` và `DELETE /api/auth/devices/:id` — danh sách và gỡ thiết bị/phiên đăng nhập **(đã xong trên feat/identity-auth)**.
 
-> Quyết định đã chốt (xóa mục hỏi ở §9): DB dùng **Supabase Postgres + Prisma**; auth dùng **JWT + cookie `hrm-session` HttpOnly**; migration chuẩn `prisma/migrations`, seed `prisma/seed.js` (pass `123456`).
+> Quyết định đã chốt: DB dùng **Supabase Postgres + Prisma**; auth dùng **JWT + cookie `hrm-session` HttpOnly**; seed pass mặc định `123456`. Test unit + integration 10/10 pass.
 
 ### Task 3 — Mobile (Flutter, thư mục `mobile/`) — 🟡 LÀM MỘT PHẦN
-- [x] Đồng bộ models mobile với schema backend (mục 6) — đã thêm `payslip/payout/leave_request/app_notification/attendance` (PR `feat/mobile-api`).
+- [x] Đồng bộ models mobile với schema backend (mục 6) — đã thêm `payslip/payout/leave_request/app_notification/attendance/device_session` (PR `feat/mobile-api`).
 - [x] Đấu màn hình `salary` về API thật qua gateway (kèm fallback mock khi payroll của D chưa có).
 - [ ] Đấu màn hình `notifications` về API thật — ⏳ chờ E xong integration-service (4005). Repository đã viết sẵn.
 - [ ] Đấu màn hình `leave_request` về API thật — ⏳ chờ E (4005). Repository đã viết sẵn.
@@ -136,11 +136,13 @@ Gợi ý kỹ thuật **(suy ra)**: phiên dùng cookie `hrm-session`, nên CORS
 - [ ] Đấu màn hình `news` về API thật — ⏳ chờ E (4005).
 - [ ] Đấu màn hình `regulations` về API thật — ⏳ chờ E (4005).
 - [ ] Đấu màn hình `wifi_config` về API thật — ⏳ chờ E (4005).
-- [x] Cấu hình base URL và company, trỏ về gateway; tự nhận diện iOS (localhost) vs Android (10.0.2.2) **(đã sửa 24-09-2026)**.
+- [x] Cấu hình base URL và company, trỏ về gateway; tự nhận diện iOS (localhost) vs Android (10.0.2.2).
 - [x] Đấu màn hình login + splash về API thật (phiên `hrm-session`, PR `feat/mobile-auth`).
+- [x] Đấu màn hình `profile/password.dart` (đổi mật khẩu) về API thật `POST /api/auth/change-password`, bỏ mock `Future.delayed` (nhánh `feat/mobile-auth`).
+- [x] Đấu màn hình `profile/devices.dart` (quản lý thiết bị) về API thật `GET/DELETE /api/auth/devices`, bỏ mock (nhánh `feat/mobile-auth`).
+- [x] Nối nút "Quên mật khẩu?" trên login mobile vào `POST /api/auth/forgot-password` thật, bỏ mock (nhánh `feat/mobile-auth`).
 - [ ] Đấu màn hình `schedule` (lịch cá nhân, `shift_detail`, `shift_form`) về API thật — ⏳ chờ B (4003) **(suy ra)**.
 - [ ] Đấu màn hình `home` (nút check-in/check-out) về API `attendance` thật — ⏳ chờ B (4003) **(suy ra)**.
-- [ ] Đấu màn hình `profile` (hồ sơ, bảo mật, thiết bị đăng nhập, cài đặt thông báo) về API thật — ⏳ cần `change-password` + `devices` của identity + notifications của E **(suy ra)**.
 - [ ] Đấu màn hình `attendance/adjustment` (điều chỉnh chấm công) về API thật — ⏳ chờ B (4003) + gói `work_supplement` của E **(suy ra)**.
 - [ ] Đấu màn hình `notifications/request_detail` về API thật — ⏳ chờ E (4005) **(suy ra)**.
 - [ ] Đấu màn hình `help` về API thật hoặc xác nhận nội dung tĩnh **(suy ra)**.
@@ -148,7 +150,7 @@ Gợi ý kỹ thuật **(suy ra)**: phiên dùng cookie `hrm-session`, nên CORS
 - [x] `flutter analyze` pass (0 issues).
 - [x] `flutter test` pass.
 
-> Ngoài phạm vi gốc nhưng đã được A duyệt: đấu login web về API thật (PR `feat/frontend-auth`); sửa lỗi iOS AppIcon thiếu (24-09-2026); sửa base URL tự nhận diện platform (24-09-2026).
+> Ngoài phạm vi gốc nhưng đã được A duyệt: đấu login web về API thật (PR `feat/frontend-auth`); sửa lỗi iOS AppIcon thiếu; sửa base URL tự nhận diện platform; bỏ mock đổi mật khẩu và thiết bị mobile.
 
 ### Task 4 — Đấu nối, demo và optimize (làm cuối) — ⏳ CHƯA LÀM (chờ D xong payouts 4004, E xong SOAP/requests 4005)
 - [ ] Đấu nối toàn hệ thống khi các service khác đã xong.
@@ -158,13 +160,15 @@ Gợi ý kỹ thuật **(suy ra)**: phiên dùng cookie `hrm-session`, nên CORS
 - [ ] Demo **SAGA compensating transaction** cho luồng chi lương khi thất bại giữa chừng (Tech.md §4.2, phối hợp cùng D và E) **(suy ra)**.
 - [ ] **API Composition** cho trang dashboard web (gộp organization + work + payroll) và **BFF** payload gọn cho mobile (Tech.md §4.4, §4.5) **(suy ra)**.
 
-### Task 5 — Web Portal (`frontend/`) — ⏳ CHƯA LÀM — Phụ trách: **A** (Tech.md yêu cầu demo trên web)
-> Tài liệu phân công gốc không giao web cho ai; A nhận phụ trách (đã từng đấu `feat/frontend-auth`) **(suy ra — xác nhận với nhóm)**.
+### Task 5 — Web Portal (`frontend/`) — 🟡 LÀM MỘT PHẦN — Phụ trách: **A** (Tech.md yêu cầu demo trên web)
+> Tài liệu phân công gốc không giao web cho ai; A nhận phụ trách toàn diện.
 - [x] Chủ sở hữu `frontend/`: **A**.
-- [ ] Đấu 13 trang dashboard (employees, departments, branches, shifts, tasks, requests, payslips, bank, news, regulations, wifi, dashboard tổng, login) về API thật qua gateway.
-- [ ] Nút "Quên mật khẩu?" của web nối với `POST /api/auth/forgot-password`.
+- [x] Đấu đăng nhập web qua gateway, phiên cookie `hrm-session` thật, bỏ mock (nhánh `feat/frontend-auth`).
+- [x] Nút "Quên mật khẩu?" của web nối với `POST /api/auth/forgot-password` qua gateway, bỏ mock (nhánh `feat/frontend-auth`).
+- [ ] Đấu 13 trang dashboard (employees, departments, branches, shifts, tasks, requests, payslips, bank, news, regulations, wifi, dashboard tổng) về API thật qua gateway (chờ các service 4002–4005 sẵn sàng).
 - [ ] RBAC menu theo `buildMenuItems(role)` nối với role thật từ identity-service.
 - [ ] Chốt ma trận phân quyền theo vai trò cho từng endpoint — **Phụ trách: A** (B §9 ghi chưa quy định) **(suy ra)**.
+
 
 ---
 
