@@ -1,28 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
-
-class DeviceSession {
-  final String id;
-  final String deviceName;
-  final String deviceType; // 'phone', 'tablet', 'desktop'
-  final String osInfo;
-  final String location;
-  final String ipAddress;
-  final String lastActive;
-  final bool isCurrent;
-
-  const DeviceSession({
-    required this.id,
-    required this.deviceName,
-    required this.deviceType,
-    required this.osInfo,
-    required this.location,
-    required this.ipAddress,
-    required this.lastActive,
-    this.isCurrent = false,
-  });
-}
+import '../../../core/models/device_session.dart';
+import '../../auth/data/auth_repository.dart';
 
 class LoggedInDevicesScreen extends StatefulWidget {
   const LoggedInDevicesScreen({super.key});
@@ -32,48 +12,27 @@ class LoggedInDevicesScreen extends StatefulWidget {
 }
 
 class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
-  final List<DeviceSession> _devices = [
-    const DeviceSession(
-      id: 'dev-01',
-      deviceName: 'iPhone 15 Pro Max',
-      deviceType: 'phone',
-      osInfo: 'iOS 18.0 • Ứng dụng F&B Mobile',
-      location: 'TP. Hồ Chí Minh, Việt Nam',
-      ipAddress: '113.161.45.120',
-      lastActive: 'Đang hoạt động',
-      isCurrent: true,
-    ),
-    const DeviceSession(
-      id: 'dev-02',
-      deviceName: 'iPad Pro 11"',
-      deviceType: 'tablet',
-      osInfo: 'iPadOS 17.5 • Ứng dụng F&B Mobile',
-      location: 'TP. Hồ Chí Minh, Việt Nam',
-      ipAddress: '113.161.45.120',
-      lastActive: '2 giờ trước',
-      isCurrent: false,
-    ),
-    const DeviceSession(
-      id: 'dev-03',
-      deviceName: 'MacBook Pro 14"',
-      deviceType: 'desktop',
-      osInfo: 'macOS Sonoma • Chrome 127',
-      location: 'TP. Hồ Chí Minh, Việt Nam',
-      ipAddress: '14.169.82.15',
-      lastActive: 'Hôm qua lúc 18:42',
-      isCurrent: false,
-    ),
-    const DeviceSession(
-      id: 'dev-04',
-      deviceName: 'Samsung Galaxy S24',
-      deviceType: 'phone',
-      osInfo: 'Android 14 • Ứng dụng F&B Mobile',
-      location: 'Hà Nội, Việt Nam',
-      ipAddress: '171.224.180.99',
-      lastActive: '3 ngày trước',
-      isCurrent: false,
-    ),
-  ];
+  final AuthRepository _authRepo = AuthRepository();
+  List<DeviceSession> _devices = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDevices();
+  }
+
+  Future<void> _loadDevices() async {
+    setState(() => _isLoading = true);
+    try {
+      final items = await _authRepo.getDevices();
+      if (mounted) setState(() => _devices = items);
+    } catch (_) {
+      // Giữ danh sách hiện có khi API bận
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   FaIconData _getDeviceIcon(String type) {
     switch (type) {
@@ -87,35 +46,63 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
     }
   }
 
-  void _logoutDevice(DeviceSession device) {
-    setState(() {
-      _devices.removeWhere((d) => d.id == device.id);
-    });
+  Future<void> _logoutDevice(DeviceSession device) async {
+    try {
+      await _authRepo.revokeDevice(device.id);
+      if (!mounted) return;
+      setState(() {
+        _devices.removeWhere((d) => d.id == device.id);
+      });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: AppColors.success,
-        content: Text('✅ Đã đăng xuất tài khoản khỏi "${device.deviceName}"'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.success,
+          content: Text('✅ Đã đăng xuất tài khoản khỏi "${device.deviceName}"'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text('Không thể đăng xuất thiết bị. Vui lòng thử lại sau.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
-  void _logoutAllOtherDevices() {
-    final otherCount = _devices.where((d) => !d.isCurrent).length;
-    if (otherCount == 0) return;
+  Future<void> _logoutAllOtherDevices() async {
+    final otherDevices = _devices.where((d) => !d.isCurrent).toList();
+    if (otherDevices.isEmpty) return;
 
-    setState(() {
-      _devices.removeWhere((d) => !d.isCurrent);
-    });
+    try {
+      for (final d in otherDevices) {
+        await _authRepo.revokeDevice(d.id);
+      }
+      if (!mounted) return;
+      setState(() {
+        _devices.removeWhere((d) => !d.isCurrent);
+      });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: AppColors.success,
-        content: Text('✅ Đã đăng xuất khỏi $otherCount thiết bị khác thành công!'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.success,
+          content: Text('✅ Đã đăng xuất khỏi ${otherDevices.length} thiết bị khác thành công!'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text('Có lỗi xảy ra khi gỡ các thiết bị.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -135,74 +122,80 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          // Mục: Thiết bị hiện tại
-          if (currentDevice.isNotEmpty) ...[
-            const Text(
-              'Thiết bị này',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
-            ),
-            const SizedBox(height: 8),
-            _buildDeviceCard(currentDevice.first),
-            const SizedBox(height: 20),
-          ],
-
-          // Mục: Các thiết bị khác
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Thiết bị khác (${otherDevices.length})',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
-              ),
-              if (otherDevices.isNotEmpty)
-                TextButton.icon(
-                  onPressed: _logoutAllOtherDevices,
-                  icon: const FaIcon(FontAwesomeIcons.rightFromBracket, size: 16, color: Colors.red),
-                  label: const Text(
-                    'Đăng xuất tất cả',
-                    style: TextStyle(color: Colors.red, fontSize: 12.5, fontWeight: FontWeight.bold),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          if (otherDevices.isEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Column(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          : RefreshIndicator(
+              onRefresh: _loadDevices,
+              color: AppColors.primary,
+              child: ListView(
+                padding: const EdgeInsets.all(16.0),
                 children: [
-                  FaIcon(FontAwesomeIcons.userShield, size: 48, color: AppColors.success.withValues(alpha: 0.8)),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Không có thiết bị lạ nào khác',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary),
+                  // Mục: Thiết bị hiện tại
+                  if (currentDevice.isNotEmpty) ...[
+                    const Text(
+                      'Thiết bị này',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildDeviceCard(currentDevice.first),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // Mục: Các thiết bị khác
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Thiết bị khác (${otherDevices.length})',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+                      ),
+                      if (otherDevices.isNotEmpty)
+                        TextButton.icon(
+                          onPressed: _logoutAllOtherDevices,
+                          icon: const FaIcon(FontAwesomeIcons.rightFromBracket, size: 16, color: Colors.red),
+                          label: const Text(
+                            'Đăng xuất tất cả',
+                            style: TextStyle(color: Colors.red, fontSize: 12.5, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Tài khoản của bạn chỉ đang đăng nhập trên thiết bị này.',
-                    style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
-                    textAlign: TextAlign.center,
-                  ),
+                  const SizedBox(height: 8),
+
+                  if (otherDevices.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Column(
+                        children: [
+                          FaIcon(FontAwesomeIcons.userShield, size: 48, color: AppColors.success.withValues(alpha: 0.8)),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Không có thiết bị lạ nào khác',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Tài khoản của bạn chỉ đang đăng nhập trên thiết bị này.',
+                            style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    ...otherDevices.map((dev) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _buildDeviceCard(dev),
+                        )),
+                  const SizedBox(height: 24),
                 ],
               ),
-            )
-          else
-            ...otherDevices.map((dev) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _buildDeviceCard(dev),
-                )),
-          const SizedBox(height: 24),
-        ],
-      ),
+            ),
     );
   }
 

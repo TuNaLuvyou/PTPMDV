@@ -1,4 +1,5 @@
 import '../../../core/models/branch.dart';
+import '../../../core/models/device_session.dart';
 import '../../../core/models/user.dart';
 import '../../../core/network/api_client.dart';
 
@@ -7,7 +8,9 @@ import '../../../core/network/api_client.dart';
 /// - Đăng nhập: `POST /api/auth/login` (server set cookie `hrm-session`).
 /// - Kiểm tra phiên: `GET /api/auth/me`.
 /// - Đăng xuất: `POST /api/auth/logout`.
-/// Lỗi mạng/sai tài khoản ném [ApiException] với message tiếng Việt để UI hiển thị.
+/// - Đổi mật khẩu: `POST /api/auth/change-password`.
+/// - Quên mật khẩu: `POST /api/auth/forgot-password`.
+/// - Thiết bị: `GET /api/auth/devices` & `DELETE /api/auth/devices/:id`.
 class AuthRepository {
   final ApiClient api;
   AuthRepository({ApiClient? api}) : api = api ?? ApiClient();
@@ -52,4 +55,37 @@ class AuthRepository {
       // Mất mạng vẫn cho đăng xuất cục bộ để không kẹt phiên.
     }
   }
+
+  /// Đổi mật khẩu tài khoản
+  Future<void> changePassword(String currentPassword, String newPassword) async {
+    await api.postJson('/api/auth/change-password', {
+      'currentPassword': currentPassword,
+      'newPassword': newPassword,
+    });
+  }
+
+  /// Yêu cầu đặt lại mật khẩu về mặc định
+  Future<String> forgotPassword(String email) async {
+    final res = await api.postJson('/api/auth/forgot-password', {
+      'email': email.trim(),
+    });
+    return (res as Map?)?['message']?.toString() ?? 'Mật khẩu đã được đặt lại về 123456';
+  }
+
+  /// Lấy danh sách thiết bị đang đăng nhập
+  Future<List<DeviceSession>> getDevices() async {
+    final data = await api.getJson('/api/auth/devices');
+    final List list = data is List ? data : [];
+    return list
+        .whereType<Map<String, dynamic>>()
+        .map(DeviceSession.fromJson)
+        .toList();
+  }
+
+  /// Gỡ phiên thiết bị từ xa
+  Future<void> revokeDevice(String deviceId) async {
+    await api.delete('/api/auth/devices/$deviceId');
+  }
 }
+
+

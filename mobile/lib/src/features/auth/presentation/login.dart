@@ -19,6 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
       TextEditingController(text: 'admin@company.com');
   final TextEditingController _passwordController =
       TextEditingController(text: '123456');
+  final AuthRepository _authRepo = AuthRepository();
   bool _obscurePassword = true;
   bool _rememberMe = true;
   bool _submitting = false;
@@ -58,6 +59,83 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) setState(() => _submitting = false);
     }
   }
+
+  Future<void> _handleForgotPassword() async {
+    final emailController = TextEditingController(text: _usernameController.text.trim());
+    final email = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Quên mật khẩu', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Nhập email tài khoản của bạn để đặt lại mật khẩu về mặc định:',
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                labelText: 'Email',
+                hintText: 'admin@company.com',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(emailController.text.trim()),
+            child: const Text('Đặt lại'),
+          ),
+        ],
+      ),
+    );
+
+    if (email == null || email.isEmpty) return;
+
+    try {
+      final msg = await _authRepo.forgotPassword(email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.success,
+          content: Text('✅ $msg'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text(e.message),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text('Không thể đặt lại mật khẩu. Vui lòng kiểm tra kết nối.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -161,15 +239,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                     TextButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Mật khẩu mặc định là: 123456')),
-                        );
-                      },
+                      onPressed: _handleForgotPassword,
                       child: const Text('Quên mật khẩu?', style: TextStyle(fontSize: 13, color: AppColors.primary)),
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 18),
 
                 // Login Button
