@@ -8,6 +8,7 @@ import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { Field, Input, Checkbox } from "@/components/ui/Form";
 import { useCurrentUser } from "@/context/AuthContext";
+import { apiPost } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,11 +17,48 @@ export default function LoginPage() {
   const [password, setPassword] = useState("123456");
   const [showPassword, setShowPassword] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  // Quên mật khẩu qua API thật
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSubmitting, setForgotSubmitting] = useState(false);
+  const [forgotMessage, setForgotMessage] = useState<string | null>(null);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    login(email);
-    router.push("/dashboard/employees");
+    if (!forgotEmail) return;
+    setForgotSubmitting(true);
+    setForgotError(null);
+    setForgotMessage(null);
+    try {
+      await apiPost<{ ok: boolean }>("/api/auth/forgot-password", { email: forgotEmail });
+      setForgotMessage("✅ Mật khẩu đã được đặt lại về mặc định: 123456. Hãy đăng nhập và đổi mật khẩu mới.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Không thể đặt lại mật khẩu";
+      setForgotError(msg);
+    } finally {
+      setForgotSubmitting(false);
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    try {
+      await login(email, password);
+      const from =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search).get("from")
+          : null;
+      router.push(from && from.startsWith("/dashboard") ? from : "/dashboard/employees");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Đăng nhập thất bại");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
 
@@ -88,9 +126,12 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <Button type="submit" block size="lg">
-              Đăng nhập hệ thống
+            <Button type="submit" block size="lg" disabled={submitting}>
+              {submitting ? "Đang đăng nhập..." : "Đăng nhập hệ thống"}
             </Button>
+            {error && (
+              <p className="text-sm text-red-600 mt-3 text-center">{error}</p>
+            )}
           </form>
         </div>
 
@@ -101,20 +142,57 @@ export default function LoginPage() {
 
       <Modal
         open={forgotOpen}
-        onClose={() => setForgotOpen(false)}
+        onClose={() => {
+          setForgotOpen(false);
+          setForgotError(null);
+          setForgotMessage(null);
+        }}
         title="Quên mật khẩu"
         size="sm"
         footer={
           <>
-            <Button variant="white" onClick={() => setForgotOpen(false)}>Hủy</Button>
-            <Button onClick={() => setForgotOpen(false)}>Gửi liên kết đặt lại mật khẩu</Button>
+            <Button
+              variant="white"
+              onClick={() => {
+                setForgotOpen(false);
+                setForgotError(null);
+                setForgotMessage(null);
+              }}
+            >
+              Đóng
+            </Button>
+            <Button
+              onClick={handleForgotPassword}
+              disabled={forgotSubmitting || !forgotEmail}
+            >
+              {forgotSubmitting ? "Đang xử lý..." : "Đặt lại mật khẩu"}
+            </Button>
           </>
         }
       >
-        <Field label="Email" required>
-          <Input type="email" placeholder="admin@company.com" />
-        </Field>
+        <form onSubmit={handleForgotPassword} className="space-y-3">
+          <Field label="Email tài khoản của bạn" required>
+            <Input
+              type="email"
+              placeholder="admin@company.com"
+              value={forgotEmail}
+              onChange={(e) => setForgotEmail(e.target.value)}
+              required
+            />
+          </Field>
+          {forgotError && (
+            <p className="text-sm text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-200">
+              {forgotError}
+            </p>
+          )}
+          {forgotMessage && (
+            <p className="text-sm text-green-700 bg-green-50 p-2.5 rounded-lg border border-green-200">
+              {forgotMessage}
+            </p>
+          )}
+        </form>
       </Modal>
     </main>
   );
 }
+
