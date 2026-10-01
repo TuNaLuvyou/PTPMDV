@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/state/user_scope.dart';
+import '../../../core/utils/formatters.dart';
 import '../../leave_request/data/leave_repository.dart';
 
 class AdvanceRecord {
@@ -62,6 +63,9 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
   List<AdvanceRecord> _records = [];
 
   void _showAdvanceModal() {
+    final user = UserScope.currentUser(context);
+    final baseSalary = user?.baseSalary ?? 0;
+    final maxAdvance = (baseSalary * 0.5).round();
     final amountController = TextEditingController();
     final reasonController = TextEditingController();
 
@@ -94,7 +98,7 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
               controller: amountController,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                hintText: 'Tối đa 0 đ',
+                hintText: maxAdvance > 0 ? 'Tối đa ${formatVND(maxAdvance)}' : 'Nhập số tiền',
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 suffixText: 'VNĐ',
@@ -123,18 +127,6 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
                   );
                   return;
                 }
-                setState(() {
-                  _records.insert(
-                    0,
-                    AdvanceRecord(
-                      id: 'adv-${DateTime.now().millisecondsSinceEpoch}',
-                      amount: '$amount đ',
-                      date: 'Hôm nay',
-                      reason: reason,
-                      status: 'pending',
-                    ),
-                  );
-                });
                 try {
                   final user = UserScope.currentUser(context);
                   final empId = (user?.id.isNotEmpty == true) ? user!.id : (user?.email ?? '1');
@@ -179,6 +171,12 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = UserScope.currentUser(context);
+    final now = DateTime.now();
+    final monthStr = '${now.month.toString().padLeft(2, '0')}/${now.year}';
+    final baseSalary = user?.baseSalary ?? 0;
+    final maxAdvance = (baseSalary * 0.5).round();
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -216,24 +214,30 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
                 ),
               ],
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Lương tạm tính tháng 08', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                    FaIcon(FontAwesomeIcons.wallet, color: Colors.white70, size: 20),
+                    Text('Lương tạm tính tháng $monthStr', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                    const FaIcon(FontAwesomeIcons.wallet, color: Colors.white70, size: 20),
                   ],
                 ),
-                SizedBox(height: 4),
-                Text('0 đ', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-                Divider(color: Colors.white24, height: 20),
+                const SizedBox(height: 4),
+                Text(
+                  baseSalary > 0 ? formatVND(baseSalary) : 'Chưa cập nhật',
+                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const Divider(color: Colors.white24, height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Hạn mức được ứng tối đa (50%):', style: TextStyle(color: Colors.white, fontSize: 12.5)),
-                    Text('0 đ', style: TextStyle(color: Colors.amberAccent, fontSize: 14, fontWeight: FontWeight.bold)),
+                    const Text('Hạn mức được ứng tối đa (50%):', style: TextStyle(color: Colors.white, fontSize: 12.5)),
+                    Text(
+                      maxAdvance > 0 ? formatVND(maxAdvance) : '0₫',
+                      style: const TextStyle(color: Colors.amberAccent, fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
                   ],
                 ),
               ],
@@ -244,7 +248,20 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
           const Text('Lịch sử các đợt tạm ứng', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
           const SizedBox(height: 10),
 
-          ..._records.map((rec) => _buildRecordCard(rec)),
+          if (_records.isEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              alignment: Alignment.center,
+              child: const Column(
+                children: [
+                  FaIcon(FontAwesomeIcons.clockRotateLeft, size: 36, color: AppColors.textSecondary),
+                  SizedBox(height: 10),
+                  Text('Chưa có lịch sử tạm ứng nào', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                ],
+              ),
+            )
+          else
+            ..._records.map((rec) => _buildRecordCard(rec)),
         ],
       ),
     ),

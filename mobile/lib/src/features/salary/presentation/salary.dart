@@ -4,6 +4,9 @@ import '../../../core/constants/colors.dart';
 import '../../../core/state/user_scope.dart';
 import '../../../core/models/payslip.dart';
 import '../../../core/utils/formatters.dart';
+import '../../attendance/data/attendance_repository.dart';
+import '../../../core/models/attendance.dart';
+import '../../leave_request/data/leave_repository.dart';
 import '../data/salary_repository.dart';
 import 'bank_disbursement_screen.dart';
 
@@ -57,21 +60,73 @@ class _SalaryScreenState extends State<SalaryScreen> {
   }
 
   final SalaryRepository _salaryRepository = SalaryRepository();
-  final List<WorkLogItem> _workLogs = [];
+  List<WorkLogItem> _workLogs = [];
   List<PayslipModel> _apiPayslips = const [];
   bool _loadingLogs = true;
 
   Future<void> _loadPayslips() async {
-    // Gọi API thật qua gateway (payroll-service). Không dùng mock cứng.
+    // Gọi API thật qua gateway (payroll-service và work-service). Không dùng mock cứng.
     try {
       final user = UserScope.currentUser(context);
       final canManage = user?.canManage ?? false;
-      final items = await _salaryRepository.getPayslips(
-        employeeId: canManage ? null : (user?.id.isNotEmpty == true ? user!.id : null),
-      );
+      final results = await Future.wait([
+        _salaryRepository.getPayslips(
+          employeeId: canManage ? null : (user?.id.isNotEmpty == true ? user!.id : null),
+        ),
+        AttendanceRepository()
+            .getAttendance(employeeId: user?.id.isNotEmpty == true ? user!.id : null)
+            .catchError((_) => <AttendanceModel>[]),
+      ]);
+
+      final items = results[0] as List<PayslipModel>;
+      final attList = results[1] as List<AttendanceModel>;
+
+      final logs = attList.map((a) {
+        String statusLabel = 'Đúng giờ';
+        if (a.status == 'late') {
+          statusLabel = 'Trễ giờ';
+        } else if (a.status == 'absent') {
+          statusLabel = 'Vắng';
+        } else if (a.status == 'early_leave') {
+          statusLabel = 'Về sớm';
+        }
+
+        double h = 8.0;
+        if (a.checkIn != null && a.checkOut != null) {
+          try {
+            final sp = a.checkIn!.split(':');
+            final ep = a.checkOut!.split(':');
+            if (sp.length == 2 && ep.length == 2) {
+              final diffMin = (int.parse(ep[0]) * 60 + int.parse(ep[1])) -
+                  (int.parse(sp[0]) * 60 + int.parse(sp[1]));
+              if (diffMin > 0) h = double.parse((diffMin / 60.0).toStringAsFixed(1));
+            }
+          } catch (_) {}
+        } else if (a.status == 'absent') {
+          h = 0.0;
+        }
+
+        final hourlyRate = user?.hourlySalary != null && user!.hourlySalary > 0
+            ? user.hourlySalary
+            : ((user?.baseSalary != null && user!.baseSalary > 0)
+                ? (user.baseSalary / 208)
+                : 35000.0);
+        final pay = (h * hourlyRate).round();
+
+        return WorkLogItem(
+          date: a.date,
+          checkIn: a.checkIn ?? '--:--',
+          checkOut: a.checkOut ?? '--:--',
+          hours: h,
+          basePay: pay,
+          status: statusLabel,
+        );
+      }).toList();
+
       if (mounted) {
         setState(() {
           _apiPayslips = items;
+          _workLogs = logs;
           _loadingLogs = false;
         });
       }
@@ -79,6 +134,7 @@ class _SalaryScreenState extends State<SalaryScreen> {
       if (mounted) {
         setState(() {
           _apiPayslips = [];
+          _workLogs = [];
           _loadingLogs = false;
         });
       }
@@ -450,36 +506,66 @@ class _SalaryScreenState extends State<SalaryScreen> {
   }
 
   void _showSupportSheet(BuildContext context) {
+    final textController = TextEditingController();
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(24.0),
+      builder: (bottomSheetCtx) => Padding(
+        padding: EdgeInsets.only(
+          left: 24.0,
+          right: 24.0,
+          top: 24.0,
+          bottom: MediaQuery.of(bottomSheetCtx).viewInsets.bottom + 24,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text('Khiếu nại công / Lương', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            const TextField(
-              decoration: InputDecoration(
+            TextField(
+              controller: textController,
+              decoration: const InputDecoration(
                 labelText: 'Mô tả vấn đề',
-                hintText: 'Ví dụ: Ca ngày 17/08 bị ghi nhận trễ 5p do sự cố Wi-Fi...',
+                hintText: 'Ví dụ: Ca làm việc bị ghi nhận trễ giờ do lỗi hệ thống...',
               ),
               maxLines: 3,
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    backgroundColor: AppColors.success,
-                    content: Text('✅ Đã gửi phản ánh tới phòng Nhân sự!'),
-                  ),
-                );
+              onPressed: () async {
+                final content = textController.text.trim();
+                if (content.isEmpty) return;
+                try {
+                  final user = UserScope.currentUser(context);
+                  await LeaveRepository().createRequest({
+                    'type': 'other',
+                    'title': 'Khiếu nại phiếu lương $_selectedMonth',
+                    'content': content,
+                    'employeeId': user?.id ?? '',
+                  });
+                  if (bottomSheetCtx.mounted) Navigator.pop(bottomSheetCtx);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        backgroundColor: AppColors.success,
+                        content: Text('✅ Đã gửi phản ánh tới phòng Nhân sự qua hệ thống!'),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        backgroundColor: AppColors.error,
+                        content: Text('❌ Gửi khiếu nại thất bại: $e'),
+                      ),
+                    );
+                  }
+                }
               },
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
               child: const Text('Gửi phản ánh', style: TextStyle(color: Colors.white)),

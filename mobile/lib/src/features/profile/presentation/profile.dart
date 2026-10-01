@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/state/branch_scope.dart';
+import '../../../core/state/user_scope.dart';
 import '../../../core/models/user.dart';
+import '../../auth/data/auth_repository.dart';
 import 'info.dart';
 import '../../auth/presentation/login.dart';
 import 'notif_settings.dart';
@@ -129,10 +131,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildProfileMenuItem(icon: FontAwesomeIcons.bell, title: 'Cài đặt thông báo', subtitle: 'Tắt/bật các thông báo cần thiết', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()))),
                   const Divider(height: 1),
                   InkWell(
-                    onTap: () {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (context) => const LoginScreen()),
-                      );
+                    onTap: () async {
+                      await AuthRepository().logout();
+                      if (context.mounted) {
+                        UserScope.setUser(context, null);
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => const LoginScreen()),
+                          (route) => false,
+                        );
+                      }
                     },
                     child: const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),

@@ -200,24 +200,62 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
           for (final k in _weekDayKeys)
             k: {for (final s in _availableShifts) s.name: <AssignedStaff>[]}
         };
-        // Map shifts thật vào ngày (so khớp lỏng theo date chứa dd/mm)
+        final monday = _thisWeekMonday.add(Duration(days: _weekOffset * 7));
+        final empNameMap = <String, AssignedStaff>{};
+        for (final st in staff) {
+          empNameMap[st.id] = st;
+          empNameMap[st.name] = st;
+        }
+
+        // Map shifts thật vào ngày của tuần được chọn
         for (final s in shifts) {
-          for (final k in _weekDayKeys) {
-            (_assignments[k]?[s.template] ?? []).add(
-              AssignedStaff(id: s.id, name: s.employeeId ?? 'Nhân sự', role: s.branchSlug ?? '', avatarText: 'N'),
+          final key = _getWeekdayKeyFromDateString(s.date, monday);
+          if (key != null && _assignments.containsKey(key)) {
+            final matchedStaff = empNameMap[s.employeeId];
+            final assignedName = matchedStaff?.name ??
+                (s.employeeId != null && s.employeeId!.isNotEmpty ? s.employeeId! : 'Nhân sự');
+            final assignedRole = matchedStaff?.role ?? s.branchSlug ?? 'Nhân viên';
+            final avatar = matchedStaff?.avatarText ??
+                (assignedName.isNotEmpty ? assignedName[0].toUpperCase() : 'N');
+
+            String targetTemplate = _availableShifts.first.name;
+            for (final av in _availableShifts) {
+              if (av.name.toLowerCase() == s.template.toLowerCase() ||
+                  av.id.toLowerCase() == s.template.toLowerCase()) {
+                targetTemplate = av.name;
+                break;
+              }
+            }
+
+            _assignments[key]?[targetTemplate]?.add(
+              AssignedStaff(
+                id: s.id,
+                name: assignedName,
+                role: assignedRole,
+                avatarText: avatar,
+              ),
             );
           }
         }
         _registrations = regs.map((r) {
           final name = (r['employeeName'] ?? r['employeeId'] ?? 'Nhân sự').toString();
+          final rawDays = r['days'];
+          Map<String, String> daysMap = {};
+          if (rawDays is Map) {
+            daysMap = rawDays.map((k, v) => MapEntry(k.toString(), v.toString()));
+          } else {
+            daysMap = {for (final k in _weekDayKeys) k: 'Nghỉ'};
+          }
+          final shiftCount = int.tryParse(r['requestedShiftCount']?.toString() ?? '') ??
+              daysMap.values.where((v) => v != 'Nghỉ').length;
           return EmployeeShiftRegistration(
             employeeName: name,
             role: (r['role'] ?? 'Nhân viên').toString(),
             avatarText: name.isNotEmpty ? name[0].toUpperCase() : 'N',
-            requestedShiftCount: 0,
+            requestedShiftCount: shiftCount,
             registeredAt: DateTime.tryParse((r['createdAt'] ?? '').toString()) ?? DateTime.now(),
-            registrationOrder: 0,
-            days: const {},
+            registrationOrder: int.tryParse(r['order']?.toString() ?? '0') ?? 0,
+            days: daysMap,
             note: (r['note'] ?? r['wish'] ?? '').toString().isEmpty ? null : (r['note'] ?? r['wish']).toString(),
           );
         }).toList();
@@ -229,6 +267,45 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
         _registrations = [];
       });
     }
+  }
+
+  String? _getWeekdayKeyFromDateString(String dateStr, DateTime monday) {
+    if (_weekDayKeys.contains(dateStr)) return dateStr;
+    DateTime? d;
+    if (dateStr.contains('-')) {
+      final parts = dateStr.split('-');
+      if (parts.length == 3) {
+        if (parts[0].length == 4) {
+          d = DateTime.tryParse(dateStr);
+        } else if (parts[2].length == 4) {
+          final day = int.tryParse(parts[0]);
+          final month = int.tryParse(parts[1]);
+          final year = int.tryParse(parts[2]);
+          if (day != null && month != null && year != null) {
+            d = DateTime(year, month, day);
+          }
+        }
+      }
+    } else if (dateStr.contains('/')) {
+      final parts = dateStr.split('/');
+      if (parts.length == 3) {
+        final day = int.tryParse(parts[0]);
+        final month = int.tryParse(parts[1]);
+        final year = int.tryParse(parts[2]);
+        if (day != null && month != null && year != null) {
+          d = DateTime(year, month, day);
+        }
+      }
+    }
+    if (d != null) {
+      final dOnly = DateTime(d.year, d.month, d.day);
+      final monOnly = DateTime(monday.year, monday.month, monday.day);
+      final diff = dOnly.difference(monOnly).inDays;
+      if (diff >= 0 && diff < 7) {
+        return _weekDayKeys[diff];
+      }
+    }
+    return null;
   }
 
   void _initAssignments() {
@@ -257,12 +334,26 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
 
   Future<void> _addStaffToShift(String dayKey, String shiftName, AssignedStaff staff) async {
     try {
+      final monday = _thisWeekMonday.add(Duration(days: _weekOffset * 7));
+      final dayIndex = _weekDayKeys.indexOf(dayKey);
+      final shiftDate = monday.add(Duration(days: dayIndex >= 0 ? dayIndex : 0));
+      final dateStr =
+          '${shiftDate.day.toString().padLeft(2, '0')}-${shiftDate.month.toString().padLeft(2, '0')}-${shiftDate.year}';
+
+      final shiftInfo = _availableShifts.firstWhere(
+        (s) => s.name == shiftName,
+        orElse: () => _availableShifts.first,
+      );
+      final times = shiftInfo.timeRange.split('-');
+      final start = times.isNotEmpty ? times[0].trim() : '08:00';
+      final end = times.length > 1 ? times[1].trim() : '17:00';
+
       final created = await ShiftRepository().createShift({
         'template': shiftName,
         'employeeId': staff.id,
-        'date': dayKey,
-        'scheduledStart': '08:00',
-        'scheduledEnd': '17:00',
+        'date': dateStr,
+        'scheduledStart': start,
+        'scheduledEnd': end,
       });
       if (!mounted) return;
       setState(() {
@@ -391,8 +482,14 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
           }),
           selectedIndex: _selectedDayIndex,
           onDaySelected: (index) => setState(() => _selectedDayIndex = index),
-          onPrevWeek: () => setState(() => _weekOffset--),
-          onNextWeek: () => setState(() => _weekOffset++),
+          onPrevWeek: () => setState(() {
+            _weekOffset--;
+            _fetchRealData();
+          }),
+          onNextWeek: () => setState(() {
+            _weekOffset++;
+            _fetchRealData();
+          }),
         ),
         const Divider(height: 1),
 
@@ -1031,12 +1128,36 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
   // TAB 2: NGUYỆN VỌNG ĐĂNG KÝ CỦA NHÂN SỰ
   // ─────────────────────────────────────────────────────────────
   Widget _buildEmployeeListView() {
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      children: [
-        ..._registrations.map((reg) => _buildRegistrationCard(reg)),
-        const SizedBox(height: 20),
-      ],
+    if (_registrations.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _fetchRealData,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: const [
+            SizedBox(height: 120),
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  FaIcon(FontAwesomeIcons.calendarXmark, size: 48, color: AppColors.textSecondary),
+                  SizedBox(height: 12),
+                  Text('Chưa có đăng ký nguyện vọng nào', style: TextStyle(color: AppColors.textSecondary)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: _fetchRealData,
+      child: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        children: [
+          ..._registrations.map((reg) => _buildRegistrationCard(reg)),
+          const SizedBox(height: 20),
+        ],
+      ),
     );
   }
 

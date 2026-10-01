@@ -11,8 +11,9 @@ import '../../schedule_registration/presentation/registration.dart';
 import '../../tasks/data/service.dart';
 import '../../tasks/data/task_repository.dart';
 import '../../schedule/data/shift_repository.dart';
-import '../../tasks/presentation/tasks.dart';
 import '../../attendance/data/attendance_repository.dart';
+import '../../wifi_config/data/wifi_config_repository.dart';
+import '../../tasks/presentation/tasks.dart';
 
 class HomeScreen extends StatefulWidget {
   final UserModel currentUser;
@@ -35,6 +36,84 @@ class _HomeScreenState extends State<HomeScreen> {
   UserModel get currentUser => widget.currentUser;
 
   @override
+  void initState() {
+    super.initState();
+    _restoreAttendanceState();
+  }
+
+  Future<void> _restoreAttendanceState() async {
+    try {
+      final user = widget.currentUser;
+      final empId = user.id.isNotEmpty ? user.id : user.email;
+      final now = DateTime.now();
+      final dayStr = now.day.toString().padLeft(2, '0');
+      final monthStr = now.month.toString().padLeft(2, '0');
+      final todaySlash = '$dayStr/$monthStr';
+      final todayDash = '$dayStr-$monthStr';
+      final isoDate = '${now.year}-$monthStr-$dayStr';
+
+      final records = await AttendanceRepository().getAttendance(
+        employeeId: empId,
+      );
+
+      final active = records.where((r) {
+        final matchesDate = r.date.contains(todaySlash) ||
+            r.date.contains(todayDash) ||
+            r.date.contains(isoDate);
+        final hasCheckIn = r.checkIn != null && r.checkIn!.isNotEmpty;
+        final notCheckedOut = r.checkOut == null || r.checkOut!.isEmpty;
+        return matchesDate && hasCheckIn && notCheckedOut;
+      }).firstOrNull;
+
+      if (active != null && active.shiftId.isNotEmpty) {
+        final shifts = await ShiftRepository().getShifts().catchError((_) => <ApiShiftModel>[]);
+        final matched = shifts.firstWhere(
+          (s) => s.id == active.shiftId || s.template == active.shiftId,
+          orElse: () => ApiShiftModel(
+            id: active.shiftId,
+            date: active.date,
+            template: 'Ca làm việc',
+            scheduledStart: active.checkIn ?? '08:00',
+            scheduledEnd: '17:00',
+          ),
+        );
+
+        double hours = 4.0;
+        try {
+          final sp = matched.scheduledStart.split(':');
+          final ep = matched.scheduledEnd.split(':');
+          hours = ((int.parse(ep[0]) * 60 + int.parse(ep[1])) - (int.parse(sp[0]) * 60 + int.parse(sp[1]))) / 60.0;
+          if (hours <= 0) hours = 4.0;
+        } catch (_) {}
+
+        DateTime checkInDateTime = now;
+        if (active.checkIn != null && active.checkIn!.contains(':')) {
+          final parts = active.checkIn!.split(':');
+          final h = int.tryParse(parts[0]) ?? now.hour;
+          final m = int.tryParse(parts.length > 1 ? parts[1] : '0') ?? now.minute;
+          checkInDateTime = DateTime(now.year, now.month, now.day, h, m);
+        }
+
+        if (mounted) {
+          setState(() {
+            _checkedInShift = ShiftDetail(
+              id: matched.id,
+              shiftName: matched.template,
+              startTime: matched.scheduledStart,
+              endTime: matched.scheduledEnd,
+              hours: hours,
+              branch: matched.branchSlug ?? '',
+              role: '',
+              status: 'in_progress',
+            );
+            _checkedInTime = checkInDateTime;
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -53,15 +132,21 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context),
-              const SizedBox(height: 20),
-              _buildCheckInOutButton(context),
-              const SizedBox(height: 24),
+        child: RefreshIndicator(
+          onRefresh: () async {
+            await _restoreAttendanceState();
+            if (mounted) setState(() {});
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(context),
+                const SizedBox(height: 20),
+                _buildCheckInOutButton(context),
+                const SizedBox(height: 24),
 
                   // Lưới tác vụ nhanh 2x2 chuẩn HRM (Lịch làm việc, Đăng ký nghỉ, Kỳ lương, Bảng tin)
                   Row(
@@ -126,6 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
+        ),
     );
   }
 
@@ -383,23 +469,52 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showCheckInSheet() async {
     final branch = BranchScope.selectedBranch(context);
-    // ignore: unused_local_variable
-    final String wifiSsid = '${CompanyConfig.brandCode}_${branch?.code ?? '01'}';
+    String wifiSsid = '${CompanyConfig.brandCode}_${branch?.code ?? '01'}';
+    String wifiBssid = '00:11:22:33:44:55';
+    try {
+      final configs = await WifiConfigRepository().getWifiConfigs(branch: branch?.code);
+      final active = configs.where((c) => c.status == 'hoạt động').firstOrNull;
+      if (active != null) {
+        wifiSsid = active.ssid;
+        wifiBssid = active.bssid;
+      }
+    } catch (_) {}
 
     // Lấy ca hôm nay từ API thật (GET /api/shifts). Không dùng mock cứng.
     List<ShiftDetail> assignedShifts = [];
     try {
+      final user = widget.currentUser;
+      final canManage = user.canManage;
       final api = await ShiftRepository().getShifts();
       final now = DateTime.now();
       final todayStr = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}';
+      final dashStr = '${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}';
       final isoStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-      assignedShifts = api.where((s) => s.date.contains(todayStr) || s.date.contains(isoStr)).map((s) {
+      assignedShifts = api
+          .where((s) {
+            final dateMatch = s.date.contains(todayStr) || s.date.contains(dashStr) || s.date.contains(isoStr);
+            if (!dateMatch) return false;
+            if (!canManage && s.employeeId != null && s.employeeId!.isNotEmpty) {
+              return s.employeeId == user.id ||
+                  s.employeeId == user.email ||
+                  s.employeeId == user.name;
+            }
+            return true;
+          })
+          .map((s) {
+        double hours = 4.0;
+        try {
+          final sp = s.scheduledStart.split(':');
+          final ep = s.scheduledEnd.split(':');
+          hours = ((int.parse(ep[0]) * 60 + int.parse(ep[1])) - (int.parse(sp[0]) * 60 + int.parse(sp[1]))) / 60.0;
+          if (hours <= 0) hours = 4.0;
+        } catch (_) {}
         return ShiftDetail(
           id: s.id,
           shiftName: s.template,
           startTime: s.scheduledStart,
           endTime: s.scheduledEnd,
-          hours: 4.0,
+          hours: hours,
           branch: s.branchSlug ?? branch?.name ?? '',
           role: '',
           status: ScheduleService.calculateShiftStatus(date: now, startTime: s.scheduledStart, endTime: s.scheduledEnd),
@@ -558,9 +673,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                               ),
                               const SizedBox(height: 4),
-                              const Text(
-                                'BSSID: 00:11:22:33:44:55 (Hợp lệ)',
-                                style: TextStyle(color: AppColors.success, fontSize: 12),
+                              Text(
+                                'BSSID: $wifiBssid (Hợp lệ)',
+                                style: const TextStyle(color: AppColors.success, fontSize: 12),
                               ),
                             ],
                           ),
@@ -579,7 +694,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           try {
                             await AttendanceRepository().checkIn(
                               employeeId: currentUser.id.isNotEmpty ? currentUser.id : currentUser.email,
-                              shiftId: targetShift.shiftName,
+                              shiftId: targetShift.id.isNotEmpty ? targetShift.id : targetShift.shiftName,
                               wifiSsid: wifiSsid,
                               checkinTime: '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
                             );
@@ -632,11 +747,21 @@ class _HomeScreenState extends State<HomeScreen> {
     return str.replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
   }
 
-  void _showCheckOutSheet(BuildContext context) {
+  void _showCheckOutSheet(BuildContext context) async {
     if (_checkedInShift == null) return;
     final shift = _checkedInShift!;
     final branch = BranchScope.selectedBranch(context);
-    final String wifiSsid = '${CompanyConfig.brandCode}_${branch?.code ?? '01'}';
+    String wifiSsid = '${CompanyConfig.brandCode}_${branch?.code ?? '01'}';
+    String wifiBssid = '00:11:22:33:44:55';
+    try {
+      final configs = await WifiConfigRepository().getWifiConfigs(branch: branch?.code);
+      final active = configs.where((c) => c.status == 'hoạt động').firstOrNull;
+      if (active != null) {
+        wifiSsid = active.ssid;
+        wifiBssid = active.bssid;
+      }
+    } catch (_) {}
+    if (!mounted || !context.mounted) return;
 
     final String checkInTimeStr = _checkedInTime != null
         ? '${_checkedInTime!.hour.toString().padLeft(2, '0')}:${_checkedInTime!.minute.toString().padLeft(2, '0')}'
@@ -754,9 +879,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                             ),
                             const SizedBox(height: 4),
-                            const Text(
-                              'BSSID: 00:11:22:33:44:55 (Hợp lệ)',
-                              style: TextStyle(color: AppColors.success, fontSize: 12),
+                            Text(
+                              'BSSID: $wifiBssid (Hợp lệ)',
+                              style: const TextStyle(color: AppColors.success, fontSize: 12),
                             ),
                           ],
                         ),
@@ -843,7 +968,7 @@ class _HomeScreenState extends State<HomeScreen> {
 try {
                       await AttendanceRepository().checkOut(
                         employeeId: currentUser.id.isNotEmpty ? currentUser.id : currentUser.email,
-                        shiftId: shiftOut?.shiftName,
+                        shiftId: (shiftOut?.id.isNotEmpty == true) ? shiftOut!.id : shiftOut?.shiftName,
                         checkoutTime: '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
                       );
                       if (!context.mounted) return;

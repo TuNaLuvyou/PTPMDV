@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/state/user_scope.dart';
 import '../../schedule/data/shift_repository.dart';
 import '../../../core/widgets/week_strip.dart';
 import 'staff_detail.dart';
 
 class StaffInShift {
+  final String id;
+  final String shiftId;
   final String name;
   final String role;
   final String avatarUrl;
@@ -15,6 +18,8 @@ class StaffInShift {
   final String phone;
 
   const StaffInShift({
+    this.id = '',
+    this.shiftId = '',
     required this.name,
     required this.role,
     this.avatarUrl = '',
@@ -83,23 +88,59 @@ class _GeneralScheduleScreenState extends State<GeneralScheduleScreen> {
     _selectedDayIndex = (_today.weekday - 1).clamp(0, 6);
     _fetchShifts();
   }
+  Map<String, Map<String, dynamic>> _empMap = {};
+
   Future<void> _fetchShifts() async {
     try {
-      final list = await ShiftRepository().getShifts();
-      if (mounted) setState(() => _apiShifts = list);
+      final results = await Future.wait([
+        ShiftRepository().getShifts(),
+        ApiClient().getJson('/api/employees').catchError((_) => <dynamic>[]),
+      ]);
+      final list = results[0] as List<ApiShiftModel>;
+      final rawEmps = results[1] is List ? results[1] as List : [];
+      final map = <String, Map<String, dynamic>>{};
+      for (final e in rawEmps.whereType<Map<String, dynamic>>()) {
+        final id = e['id']?.toString() ?? '';
+        final email = e['email']?.toString() ?? '';
+        if (id.isNotEmpty) map[id] = e;
+        if (email.isNotEmpty) map[email] = e;
+      }
+      if (mounted) {
+        setState(() {
+          _apiShifts = list;
+          _empMap = map;
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _apiShifts = []);
     }
   }
+
   List<StaffInShift> _staffForShift(String dateStr, String template) {
-    // Map ca thật từ API (so khớp lỏng dd/mm). Trống khi chưa có phân công.
-    return _apiShifts.where((s) => s.date.contains(dateStr) && s.template == template).map((s) => StaffInShift(
-      name: s.employeeId ?? 'Nhân sự',
-      role: s.branchSlug ?? '',
-      checkInStatus: 'not_yet',
-      checkInTime: '--:--',
-      phone: '',
-    )).toList();
+    // Map ca thật từ API (so khớp dd/mm hoặc dd-mm). Trống khi chưa có phân công.
+    final dashStr = dateStr.replaceAll('/', '-');
+    return _apiShifts.where((s) {
+      final dateMatch = s.date.contains(dateStr) || s.date.contains(dashStr);
+      final templateMatch = s.template.toLowerCase().contains(template.toLowerCase()) ||
+          template.toLowerCase().contains(s.template.toLowerCase());
+      return dateMatch && templateMatch;
+    }).map((s) {
+      final emp = _empMap[s.employeeId];
+      final name = emp?['name']?.toString() ?? (s.employeeId?.isNotEmpty == true ? s.employeeId! : 'Nhân sự');
+      final role = emp?['role']?.toString() ?? s.branchSlug ?? 'Nhân viên';
+      final phone = emp?['phone']?.toString() ?? '';
+      return StaffInShift(
+        id: s.employeeId ?? '',
+        shiftId: s.id,
+        name: name,
+        role: role,
+        checkInStatus: (s.status == 'hoàn thành' || s.status == 'completed')
+            ? 'checked_in'
+            : (s.status == 'active' ? 'in_progress' : 'not_yet'),
+        checkInTime: '--:--',
+        phone: phone,
+      );
+    }).toList();
   }
 
   DateTime get _today {

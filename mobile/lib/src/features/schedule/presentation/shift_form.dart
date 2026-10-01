@@ -60,26 +60,39 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
   // Nhờ làm thay — tải đồng nghiệp thật từ API (GET /api/employees qua gateway)
   String? _selectedColleague;
   List<String> _availableColleagues = [];
+  final Map<String, String> _employeeNameMap = {};
+  final Map<String, String> _employeeRoleMap = {};
   final ShiftRepository _shiftRepo = ShiftRepository();
+
   @override
   void initState() {
     super.initState();
     _fetchColleagues();
   }
+
   Future<void> _fetchColleagues() async {
     try {
       final api = ApiClient();
       final data = await api.getJson('/api/employees');
       final list = data is List ? data : [];
       final names = <String>[];
+      final nameMap = <String, String>{};
+      final roleMap = <String, String>{};
       for (final e in list.whereType<Map<String, dynamic>>()) {
+        final id = (e['id'] ?? '').toString();
         final n = (e['name'] ?? '').toString();
         final r = (e['role'] ?? '').toString();
+        if (id.isNotEmpty && n.isNotEmpty) {
+          nameMap[id] = n;
+          roleMap[id] = r;
+        }
         if (n.isNotEmpty) names.add(r.isNotEmpty ? '$n ($r)' : n);
       }
       if (mounted) {
         setState(() {
           _availableColleagues = names;
+          _employeeNameMap.addAll(nameMap);
+          _employeeRoleMap.addAll(roleMap);
           if (_availableColleagues.isNotEmpty) _selectedColleague = _availableColleagues.first;
         });
       }
@@ -98,19 +111,31 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
   // Phân ca theo ngày lấy từ API thật (GET /api/shifts?date=...). Không mock cứng.
   final Map<String, Map<String, List<ShiftStaffMember>>> _scheduleShiftStaffData = {};
   Future<void> _loadShiftsForDate(DateTime date) async {
-    final key = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final dd = date.day.toString().padLeft(2, '0');
+    final mm = date.month.toString().padLeft(2, '0');
+    final yyyy = date.year.toString();
+    final dmyKey = '$dd-$mm-$yyyy';
+    final ymdKey = '$yyyy-$mm-$dd';
+    final slashKey = '$dd/$mm/$yyyy';
+
     try {
-      final shifts = await _shiftRepo.getShifts(date: key);
+      var shifts = await _shiftRepo.getShifts(date: dmyKey);
+      if (shifts.isEmpty) {
+        final all = await _shiftRepo.getShifts();
+        shifts = all.where((s) => s.date == dmyKey || s.date == ymdKey || s.date == slashKey).toList();
+      }
       final grouped = <String, List<ShiftStaffMember>>{};
       for (final s in shifts) {
         final label = '${s.template} (${s.scheduledStart} - ${s.scheduledEnd})';
+        final empName = _employeeNameMap[s.employeeId] ?? s.employeeId ?? 'Nhân sự';
+        final empRole = _employeeRoleMap[s.employeeId] ?? s.branchSlug ?? '';
         grouped.putIfAbsent(label, () => []).add(
-          ShiftStaffMember(id: s.id, name: s.employeeId ?? 'Nhân sự', role: s.branchSlug ?? ''),
+          ShiftStaffMember(id: s.id, name: empName, role: empRole),
         );
       }
-      if (mounted) setState(() => _scheduleShiftStaffData[key] = grouped);
+      if (mounted) setState(() => _scheduleShiftStaffData[dmyKey] = grouped);
     } catch (_) {
-      if (mounted) setState(() => _scheduleShiftStaffData[key] = {});
+      if (mounted) setState(() => _scheduleShiftStaffData[dmyKey] = {});
     }
   }
 
@@ -219,31 +244,37 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
     }
 
     String successMsg = '';
-    String reqType = 'leave';
+    final user = UserScope.currentUser(context);
+    final empId = (user?.id.isNotEmpty == true) ? user!.id : (user?.email ?? '1');
+    final payload = <String, dynamic>{
+      'content': _reasonController.text.trim(),
+      'employeeId': empId,
+    };
+
     switch (widget.actionType) {
       case ShiftActionType.cover:
-        reqType = 'overtime';
+        payload['type'] = 'other';
+        payload['title'] = 'Nhờ làm thay: ${widget.shift.shiftName}${_selectedColleague != null ? " ($_selectedColleague)" : ""}';
         successMsg = '✅ Đã gửi lời nhờ làm thay tới $_selectedColleague!';
         break;
       case ShiftActionType.swap:
-        reqType = 'overtime';
+        payload['type'] = 'shift_swap';
+        payload['title'] = 'Đổi ca: ${widget.shift.shiftName} với ${_selectedSwapStaff?.displayName ?? ""}';
+        if (widget.shift.id.isNotEmpty) payload['sourceShiftId'] = widget.shift.id;
+        if (_selectedSwapStaff != null && _selectedSwapStaff!.id.isNotEmpty) {
+          payload['targetShiftId'] = _selectedSwapStaff!.id;
+        }
         successMsg = '✅ Đã gửi yêu cầu đổi ca tới ${_selectedSwapStaff?.displayName}!';
         break;
       case ShiftActionType.leave:
-        reqType = 'leave';
+        payload['type'] = 'leave';
+        payload['title'] = 'Xin nghỉ ca: ${widget.shift.shiftName} ($_selectedLeaveReason)';
         successMsg = '✅ Đã gửi đơn xin nghỉ ca tới Quản lý chi nhánh!';
         break;
     }
 
     try {
-      final user = UserScope.currentUser(context);
-      final empId = (user?.id.isNotEmpty == true) ? user!.id : (user?.email ?? '1');
-      await LeaveRepository().createRequest({
-        'type': reqType,
-        'title': '${widget.actionType == ShiftActionType.leave ? "Xin nghỉ ca" : "Đổi ca"}: ${widget.shift.shiftName}',
-        'content': _reasonController.text.trim(),
-        'employeeId': empId,
-      });
+      await LeaveRepository().createRequest(payload);
       if (!mounted) return;
       Navigator.pop(context, true);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -490,7 +521,7 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
   // ── Form fields: Đổi ca làm việc ──────────────────────────────────────
   Widget _buildSwapFields() {
     final String? dateKey = _swapDate != null
-        ? '${_swapDate!.year}-${_swapDate!.month.toString().padLeft(2, '0')}-${_swapDate!.day.toString().padLeft(2, '0')}'
+        ? '${_swapDate!.day.toString().padLeft(2, '0')}-${_swapDate!.month.toString().padLeft(2, '0')}-${_swapDate!.year}'
         : null;
 
     final String formattedDate = _swapDate != null

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/state/user_scope.dart';
+import '../../attendance/data/attendance_repository.dart';
+import '../../attendance/presentation/adjustment.dart';
+import '../../schedule/data/shift_repository.dart';
 import 'general.dart';
 
 class StaffGeneralShiftDetailScreen extends StatelessWidget {
@@ -227,26 +230,62 @@ class StaffGeneralShiftDetailScreen extends StatelessWidget {
               const SizedBox(height: 10),
               if (isCheckedIn && !isLate) ...[
                 // Đúng giờ: Quản lý / Admin có quyền Hủy ca
-                _buildActionButton(title: 'Hủy ca', icon: FontAwesomeIcons.circleXmark, color: Colors.red.shade700, bgColor: Colors.red.shade50, onTap: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('🗑️ Đã hủy ca ${shift.shiftName} của ${staff.name}'), backgroundColor: Colors.red.shade700));
+                _buildActionButton(title: 'Hủy ca', icon: FontAwesomeIcons.circleXmark, color: Colors.red.shade700, bgColor: Colors.red.shade50, onTap: () async {
+                  try {
+                    final targetShiftId = staff.shiftId.isNotEmpty ? staff.shiftId : shift.id;
+                    if (targetShiftId.isNotEmpty) {
+                      await ShiftRepository().deleteShift(targetShiftId);
+                    }
+                    if (!context.mounted) return;
+                    Navigator.pop(context, true);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('🗑️ Đã hủy ca ${shift.shiftName} của ${staff.name}'), backgroundColor: Colors.red.shade700));
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Không thể hủy ca: $e'), backgroundColor: AppColors.error));
+                  }
                 }),
               ] else ...[
                 // Quên / Trễ / Chưa / Đang làm: Quản lý / Admin có quyền Hủy ca hoặc Chấm công dùm
-                _buildActionButton(title: 'Hủy ca', icon: FontAwesomeIcons.circleXmark, color: Colors.red.shade700, bgColor: Colors.red.shade50, onTap: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('🗑️ Đã hủy ca ${shift.shiftName} của ${staff.name}'), backgroundColor: Colors.red.shade700));
+                _buildActionButton(title: 'Hủy ca', icon: FontAwesomeIcons.circleXmark, color: Colors.red.shade700, bgColor: Colors.red.shade50, onTap: () async {
+                  try {
+                    final targetShiftId = staff.shiftId.isNotEmpty ? staff.shiftId : shift.id;
+                    if (targetShiftId.isNotEmpty) {
+                      await ShiftRepository().deleteShift(targetShiftId);
+                    }
+                    if (!context.mounted) return;
+                    Navigator.pop(context, true);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('🗑️ Đã hủy ca ${shift.shiftName} của ${staff.name}'), backgroundColor: Colors.red.shade700));
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Không thể hủy ca: $e'), backgroundColor: AppColors.error));
+                  }
                 }),
                 const SizedBox(height: 8),
-                _buildActionButton(title: 'Chấm công', icon: FontAwesomeIcons.circleCheck, color: AppColors.success, bgColor: AppColors.success.withValues(alpha: 0.08), onTap: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('✅ Đã chấm công cho ${staff.name} - ${shift.shiftName}'), backgroundColor: AppColors.success));
+                _buildActionButton(title: 'Chấm công', icon: FontAwesomeIcons.circleCheck, color: AppColors.success, bgColor: AppColors.success.withValues(alpha: 0.08), onTap: () async {
+                  try {
+                    final targetShiftId = staff.shiftId.isNotEmpty ? staff.shiftId : shift.id;
+                    final targetEmpId = staff.id.isNotEmpty ? staff.id : staff.name;
+                    if (targetShiftId.isNotEmpty) {
+                      await AttendanceRepository().checkIn(
+                        employeeId: targetEmpId,
+                        shiftId: targetShiftId,
+                      );
+                    }
+                    if (!context.mounted) return;
+                    Navigator.pop(context, true);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('✅ Đã chấm công cho ${staff.name} - ${shift.shiftName}'), backgroundColor: AppColors.success));
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Không thể chấm công: $e'), backgroundColor: AppColors.error));
+                  }
                 }),
                 if (isForgot || isLate) ...[
                   const SizedBox(height: 8),
                   _buildActionButton(title: 'Bổ sung chấm công', icon: FontAwesomeIcons.calendarPlus, color: Colors.orange.shade700, bgColor: Colors.orange.shade50, onTap: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('✅ Đã gửi yêu cầu bổ sung chấm công cho ${staff.name}'), backgroundColor: Colors.orange.shade700));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AttendanceAdjustmentScreen()),
+                    );
                   }),
                 ],
               ],
@@ -255,8 +294,10 @@ class StaffGeneralShiftDetailScreen extends StatelessWidget {
               const Text('Tùy chọn', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
               const SizedBox(height: 10),
               _buildActionButton(title: 'Bổ sung chấm công', icon: FontAwesomeIcons.calendarPlus, color: Colors.orange.shade700, bgColor: Colors.orange.shade50, onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Đã gửi yêu cầu bổ sung chấm công tới quản lý'), backgroundColor: Color(0xFFEA580C)));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AttendanceAdjustmentScreen()),
+                );
               }),
             ],
             if (isOwnShift && isCheckedIn && !isLate && !canManage) ...[

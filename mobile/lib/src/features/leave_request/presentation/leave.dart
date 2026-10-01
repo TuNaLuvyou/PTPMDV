@@ -220,6 +220,10 @@ try {
 
   @override
   Widget build(BuildContext context) {
+    const totalAnnualLeave = 12;
+    final usedLeaveDays = _requests.where((r) => r.status == 'approved').length;
+    final remainingDays = (totalAnnualLeave - usedLeaveDays).clamp(0, totalAnnualLeave);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -257,20 +261,20 @@ try {
                 ),
               ],
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Phép năm còn lại', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                    SizedBox(height: 4),
-                    Text('10 / 12 ngày', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 2),
-                    Text('Đã dùng 2 ngày • Hạn đến 31/12/2026', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                    const Text('Phép năm còn lại', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    Text('$remainingDays / $totalAnnualLeave ngày', style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 2),
+                    Text('Đã dùng $usedLeaveDays ngày • Hạn đến 31/12/${DateTime.now().year}', style: const TextStyle(color: Colors.white70, fontSize: 11)),
                   ],
                 ),
-                CircleAvatar(
+                const CircleAvatar(
                   radius: 26,
                   backgroundColor: Colors.white24,
                   child: FaIcon(FontAwesomeIcons.umbrellaBeach, color: Colors.white, size: 28),
@@ -283,7 +287,20 @@ try {
           const Text('Lịch sử đơn nghỉ phép', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
           const SizedBox(height: 10),
 
-          ..._requests.map((r) => _buildRequestCard(r)),
+          if (_requests.isEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              alignment: Alignment.center,
+              child: const Column(
+                children: [
+                  FaIcon(FontAwesomeIcons.umbrellaBeach, size: 36, color: AppColors.textSecondary),
+                  SizedBox(height: 10),
+                  Text('Chưa có đơn nghỉ phép nào', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                ],
+              ),
+            )
+          else
+            ..._requests.map((r) => _buildRequestCard(r)),
         ],
       ),
     ),

@@ -76,6 +76,7 @@ class _StaffMonitorScreenState extends State<StaffMonitorScreen>
       }
 
       if (mounted) {
+        final attendedEmpIds = list.map((a) => a.employeeId).toSet();
         final apiList = list.map((m) {
           StaffAttendanceStatus st = StaffAttendanceStatus.present;
           if (m.status == 'absent') st = StaffAttendanceStatus.absent;
@@ -96,6 +97,28 @@ class _StaffMonitorScreenState extends State<StaffMonitorScreen>
             avatar: name.isNotEmpty ? name[0].toUpperCase() : 'N',
           );
         }).toList();
+
+        for (final e in rawEmps.whereType<Map<String, dynamic>>()) {
+          final id = e['id']?.toString() ?? '';
+          final email = e['email']?.toString() ?? '';
+          if (!attendedEmpIds.contains(id) && !attendedEmpIds.contains(email)) {
+            final name = (e['name'] ?? 'Nhân sự').toString();
+            final role = (e['role'] ?? 'Nhân viên').toString();
+            apiList.add(
+              StaffMemberStatus(
+                id: id.isNotEmpty ? id : email,
+                name: name,
+                role: role,
+                shift: 'Chưa vào ca',
+                checkInTime: '--:--',
+                checkOutTime: null,
+                status: StaffAttendanceStatus.offShift,
+                avatar: name.isNotEmpty ? name[0].toUpperCase() : 'N',
+              ),
+            );
+          }
+        }
+
         setState(() {
           _staffList = apiList;
         });

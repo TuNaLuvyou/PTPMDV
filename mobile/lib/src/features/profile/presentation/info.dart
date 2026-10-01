@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/models/user.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/state/branch_scope.dart';
 import '../../../core/state/user_scope.dart';
+import '../../auth/data/auth_repository.dart';
+import '../../auth/presentation/login.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
   final String name;
@@ -80,14 +83,19 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              final current = UserScope.currentUser(context);
-              if (current != null) {
+              await AuthRepository().logout();
+              if (mounted) {
                 UserScope.setUser(context, null);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(backgroundColor: AppColors.error, content: Text('✅ Đã xác nhận — bạn đã đăng xuất khỏi hệ thống.')),
+                );
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
               }
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: AppColors.error, content: Text('✅ Đã xác nhận — bạn đã đăng xuất khỏi hệ thống.')));
-              Navigator.pop(context);
             },
             child: const Text('Xác nhận nghỉ', style: TextStyle(color: Colors.white)),
           ),
@@ -96,14 +104,34 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     );
   }
 
-  void _toggleEdit() {
+  Future<void> _toggleEdit() async {
     if (_isEditing) {
-      // Lưu
+      final empId = widget.user?.id;
+      final newName = _nameCtrl.text.trim();
+      final newPhone = _phoneCtrl.text.trim();
+      final newCccd = _cccdCtrl.text.trim();
+
+      if (empId != null && empId.isNotEmpty) {
+        try {
+          await ApiClient().putJson('/api/employees/$empId', {
+            'name': newName,
+            if (newPhone.isNotEmpty && newPhone != 'Chưa cập nhật') 'phone': newPhone,
+            if (newCccd.isNotEmpty && newCccd != 'Chưa cập nhật') 'cccd': newCccd,
+          });
+        } catch (_) {
+          // Vẫn cập nhật local nếu server offline
+        }
+      }
+
       setState(() {
-        _cccd = _cccdCtrl.text.trim();
+        _cccd = newCccd;
         _isEditing = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: AppColors.success, content: Text('✅ Đã lưu thông tin cá nhân')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(backgroundColor: AppColors.success, content: Text('✅ Đã lưu thông tin cá nhân')),
+        );
+      }
     } else {
       setState(() => _isEditing = true);
     }

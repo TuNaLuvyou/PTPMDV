@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/models/attendance.dart';
 import '../../../core/state/user_scope.dart';
+import '../../attendance/data/attendance_repository.dart';
+import '../../attendance/presentation/adjustment.dart';
 import 'schedule.dart';
 import 'shift_form.dart';
 
@@ -22,6 +25,30 @@ class ShiftDetailScreen extends StatefulWidget {
 }
 
 class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
+  AttendanceModel? _attendance;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAttendance();
+  }
+
+  Future<void> _fetchAttendance() async {
+    final user = UserScope.currentUser(context);
+    final empId = user?.id;
+    if (empId == null || empId.isEmpty) return;
+    try {
+      final records = await AttendanceRepository().getAttendance(employeeId: empId);
+      final d1 = widget.date.replaceAll('/', '-');
+      final match = records.where((a) {
+        if (a.shiftId.isNotEmpty && a.shiftId == widget.shift.id) return true;
+        final aDate = a.date.replaceAll('/', '-');
+        return aDate.contains(d1) || d1.contains(aDate);
+      }).firstOrNull;
+      if (mounted) setState(() => _attendance = match);
+    } catch (_) {}
+  }
+
   /// Chuẩn hóa ngày hiển thị: dd/mm -> dd/mm/yyyy hiện tại; đã đủ năm thì giữ nguyên.
   String _fullDate(String d) {
     final slashes = '/'.allMatches(d).length;
@@ -50,17 +77,18 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
     final String statusText = ScheduleService.getStatusLabel(shift.status);
 
     // Giờ chấm công lấy từ API attendance khi có; chưa có thì hiện neutral.
-    // Không dùng giờ cứng 07:55/07:58/12:05.
-    final String checkIn = shift.status == 'completed'
-        ? '--:--'
-        : (shift.status == 'active'
-            ? 'Đang trong ca'
-            : (shift.status == 'missed' ? 'Chưa chấm công' : '--:--'));
-    final String checkOut = shift.status == 'completed'
-        ? '--:--'
-        : (shift.status == 'active'
-            ? 'Đang trong ca'
-            : (shift.status == 'missed' ? 'Chưa chấm công' : '--:--'));
+    final String checkIn = _attendance?.checkIn ??
+        (shift.status == 'completed'
+            ? '--:--'
+            : (shift.status == 'active'
+                ? 'Đang trong ca'
+                : (shift.status == 'missed' ? 'Chưa chấm công' : '--:--')));
+    final String checkOut = _attendance?.checkOut ??
+        (shift.status == 'completed'
+            ? '--:--'
+            : (shift.status == 'active'
+                ? 'Đang trong ca'
+                : (shift.status == 'missed' ? 'Chưa chấm công' : '--:--')));
     final String tongGioTinhCong = shift.status == 'completed'
         ? '${shift.hours} giờ'
         : (shift.status == 'active'
@@ -205,8 +233,12 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
                       _buildInfoRow(
                         FontAwesomeIcons.circleExclamation,
                         'Khấu trừ phạt ca',
-                        '0 ₫ (Không bị phạt)',
-                        valueColor: Colors.green.shade700,
+                        (_attendance != null && _attendance!.penaltyAmount > 0)
+                            ? '-${_formatCurrency(_attendance!.penaltyAmount)} ₫ (${_attendance!.penaltyNote ?? "Đi muộn/về sớm"})'
+                            : '0 ₫ (Không bị phạt)',
+                        valueColor: (_attendance != null && _attendance!.penaltyAmount > 0)
+                            ? Colors.red.shade700
+                            : Colors.green.shade700,
                       ),
                   ],
                 ],
@@ -251,7 +283,10 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
                 color: Colors.orange.shade700,
                 bgColor: Colors.orange.shade50,
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Đã gửi yêu cầu bổ sung chấm công tới quản lý'), backgroundColor: Color(0xFFEA580C)));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AttendanceAdjustmentScreen()),
+                  );
                 },
               ),
             ] else ...[

@@ -156,6 +156,32 @@ class _ScheduleRegistrationScreenState extends State<ScheduleRegistrationScreen>
     if (weekData.noteSent && weekData.note != null) {
       _noteController.text = weekData.note!;
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadUserRegistrations();
+    });
+  }
+
+  Future<void> _loadUserRegistrations() async {
+    try {
+      final user = UserScope.currentUser(context);
+      final empId = user?.id;
+      if (empId == null || empId.isEmpty) return;
+      final regs = await ShiftRepository().getRegistrations(employeeId: empId);
+      if (!mounted || regs.isEmpty) return;
+
+      setState(() {
+        for (final reg in regs) {
+          final pref = reg['preference']?.toString() ?? '';
+          final shiftId = reg['shiftId']?.toString() ?? '';
+          final currentWeek = _getOrCreateWeekData(_weekOffset);
+          for (final d in currentWeek.days) {
+            if (d.dateStr == pref && shiftId.isNotEmpty) {
+              d.selectedShiftId = shiftId;
+            }
+          }
+        }
+      });
+    } catch (_) {}
   }
 
   void _onWeekChanged(int newOffset) {
@@ -169,6 +195,7 @@ class _ScheduleRegistrationScreenState extends State<ScheduleRegistrationScreen>
         _noteController.text = weekData.note ?? '';
       }
     });
+    _loadUserRegistrations();
   }
 
   Future<void> _onSelectShift(DayShiftRegistration day, String shiftId) async {

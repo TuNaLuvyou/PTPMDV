@@ -382,7 +382,36 @@ class _WifiConfigScreenState extends State<WifiConfigScreen> {
         ),
         const SizedBox(height: 12),
 
-        for (int i = 0; i < _entries.length; i++) _buildNetworkCard(_entries[i], i),
+        if (_entries.isEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Center(
+              child: Column(
+                children: [
+                  FaIcon(FontAwesomeIcons.wifi, size: 36, color: Colors.grey.shade400),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Chưa có mạng Wi-Fi nào được cấu hình',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Bấm nút "Thêm mạng Wi-Fi" bên dưới để thiết lập điểm chấm công cho chi nhánh.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          for (int i = 0; i < _entries.length; i++) _buildNetworkCard(_entries[i], i),
         const SizedBox(height: 12),
 
         SizedBox(

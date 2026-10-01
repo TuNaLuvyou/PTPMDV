@@ -81,8 +81,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       final isToday = dayDate.year == today.year && dayDate.month == today.month && dayDate.day == today.day;
       final dateStr = '${dayDate.day.toString().padLeft(2, '0')}/${dayDate.month.toString().padLeft(2, '0')}';
       final shifts = _apiShifts.where((s) {
-        // API date có thể là dd/mm/yyyy hoặc ISO — so khớp lỏng
-        return s.date.contains(dateStr) || s.date.contains('${dayDate.year}-${dayDate.month.toString().padLeft(2, '0')}-${dayDate.day.toString().padLeft(2, '0')}');
+        final dashStr = '${dayDate.day.toString().padLeft(2, '0')}-${dayDate.month.toString().padLeft(2, '0')}';
+        final isoStr = '${dayDate.year}-${dayDate.month.toString().padLeft(2, '0')}-${dayDate.day.toString().padLeft(2, '0')}';
+        return s.date.contains(dateStr) || s.date.contains(dashStr) || s.date.contains(isoStr);
       }).map((s) {
         double hours = 4.0;
         try {

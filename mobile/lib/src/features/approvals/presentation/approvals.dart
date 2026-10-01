@@ -65,7 +65,7 @@ class _ShiftRequestScreenState extends State<ShiftRequestScreen>
   Future<void> _fetchPendingRequests() async {
     try {
       final results = await Future.wait([
-        _approvalRepo.getPending(),
+        _approvalRepo.getAllRequests(),
         ApiClient().getJson('/api/employees').catchError((_) => <dynamic>[]),
       ]);
       final list = results[0] as List<LeaveRequestModel>;
@@ -81,11 +81,24 @@ class _ShiftRequestScreenState extends State<ShiftRequestScreen>
       if (mounted) {
         final apiRequests = list.map((m) {
           ShiftRequestType t = ShiftRequestType.leave;
-          if (m.type == 'advance') {
+          final typeStr = m.type.toLowerCase();
+          if (typeStr == 'advance') {
             t = ShiftRequestType.advance;
-          } else if (m.type == 'overtime') {
+          } else if (typeStr == 'overtime') {
             t = ShiftRequestType.coverMe;
+          } else if (typeStr == 'swap') {
+            t = ShiftRequestType.swap;
+          } else if (typeStr.contains('adjust')) {
+            t = ShiftRequestType.adjustment;
           }
+
+          ShiftRequestStatus st = ShiftRequestStatus.pending;
+          if (m.status.toLowerCase() == 'approved') {
+            st = ShiftRequestStatus.approved;
+          } else if (m.status.toLowerCase() == 'rejected') {
+            st = ShiftRequestStatus.rejected;
+          }
+
           final emp = empMap[m.employeeId];
           final staffName = emp?['name']?.toString() ??
               (m.employeeId.isNotEmpty ? 'Nhân sự #${m.employeeId}' : 'Nhân sự');
@@ -99,7 +112,7 @@ class _ShiftRequestScreenState extends State<ShiftRequestScreen>
             currentShift: m.title,
             reason: m.content,
             submittedAt: m.createdAt ?? 'Vừa xong',
-            status: ShiftRequestStatus.pending,
+            status: st,
           );
         }).toList();
         setState(() {

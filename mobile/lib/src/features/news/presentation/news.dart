@@ -199,39 +199,42 @@ class _NewsScreenState extends State<NewsScreen> {
                       return;
                     }
 
-                    Color tagColor = Colors.blue;
-                    if (selectedTag == 'Khẩn cấp') tagColor = Colors.red;
-                    if (selectedTag == 'Nghỉ lễ') tagColor = Colors.orange;
-                    if (selectedTag == 'Khen thưởng') tagColor = Colors.amber.shade800;
-                    if (selectedTag == 'Vận hành') tagColor = Colors.teal;
+                    String tagTone = 'primary';
+                    if (selectedTag == 'Khẩn cấp') tagTone = 'danger';
+                    if (selectedTag == 'Nghỉ lễ') tagTone = 'warning';
+                    if (selectedTag == 'Khen thưởng') tagTone = 'success';
+                    if (selectedTag == 'Vận hành') tagTone = 'primary';
 
-                    final now = DateTime.now();
-                    final dateStr = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+                    try {
+                      _newsRepo.createNews({
+                        'title': titleCtrl.text.trim(),
+                        'summary': contentCtrl.text.trim().length > 90
+                            ? '${contentCtrl.text.trim().substring(0, 90)}...'
+                            : contentCtrl.text.trim(),
+                        'content': contentCtrl.text.trim(),
+                        'author': '${widget.currentUser.name} (${widget.currentUser.roleTitle})',
+                        'tag': selectedTag,
+                        'tagTone': tagTone,
+                        'pinned': selectedTag == 'Khẩn cấp',
+                      }).then((_) {
+                        _fetchNews();
+                      }).catchError((_) {});
 
-                    final newArticle = NewsArticle(
-                      id: 'n-${DateTime.now().millisecondsSinceEpoch}',
-                      title: titleCtrl.text.trim(),
-                      summary: contentCtrl.text.trim().length > 90
-                          ? '${contentCtrl.text.trim().substring(0, 90)}...'
-                          : contentCtrl.text.trim(),
-                      content: contentCtrl.text.trim(),
-                      author: '${widget.currentUser.name} (${widget.currentUser.roleTitle})',
-                      date: dateStr,
-                      tag: selectedTag,
-                      tagColor: tagColor,
-                    );
-
-                    setState(() {
-                      _articles.insert(0, newArticle);
-                    });
-
-                    Navigator.pop(sheetCtx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('✓ Đã phát hành thông báo mới thành công!'),
-                        backgroundColor: AppColors.success,
-                      ),
-                    );
+                      Navigator.pop(sheetCtx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('✓ Đã phát hành thông báo mới thành công!'),
+                          backgroundColor: AppColors.success,
+                        ),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('❌ Đăng thông báo thất bại: $e'),
+                          backgroundColor: AppColors.error,
+                        ),
+                      );
+                    }
                   },
                   child: const Text('Phát hành thông báo ngay', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
@@ -269,9 +272,26 @@ class _NewsScreenState extends State<NewsScreen> {
           : null,
       body: RefreshIndicator(
         onRefresh: _fetchNews,
-        child: ListView.separated(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          itemCount: _articles.length,
+        child: _articles.isEmpty
+            ? ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const [
+                  SizedBox(height: 120),
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        FaIcon(FontAwesomeIcons.newspaper, size: 48, color: AppColors.textSecondary),
+                        SizedBox(height: 12),
+                        Text('Chưa có thông báo nào', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            : ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                itemCount: _articles.length,
           separatorBuilder: (_, __) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
             final a = _articles[index];

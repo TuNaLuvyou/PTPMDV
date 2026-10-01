@@ -95,48 +95,32 @@ class _CompanyRegulationsScreenState extends State<CompanyRegulationsScreen> {
                   badge: r.scope,
                 );
               })
-            else ...[
-              _buildSection(
-                number: '1',
-                title: 'Quy định giờ giấc & Chấm công Wi-Fi',
-                icon: FontAwesomeIcons.clock,
-                color: Colors.blue,
-                content:
-                    '• Nhân sự phải có mặt và kết nối Wi-Fi chi nhánh để chấm công trước giờ vào ca ít nhất 5 phút.\n'
-                    '• Thời gian ân hạn (grace period) là 5 phút. Đi trễ từ 6 - 15 phút bị trừ 20.000 đ/lần. Trễ trên 15 phút phải có sự đồng ý của Quản lý chi nhánh.\n'
-                    '• Khi kết thúc ca làm việc, bắt buộc bấm "Chấm công ra ca" để hệ thống tính tròn giờ công.',
+            else
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  children: [
+                    FaIcon(FontAwesomeIcons.bookOpen, size: 40, color: Colors.grey.shade400),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Chưa có nội quy từ máy chủ',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5, color: AppColors.textPrimary),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Dữ liệu nội quy doanh nghiệp sẽ được cập nhật trực tiếp từ hệ thống.',
+                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
-              _buildSection(
-                number: '2',
-                title: 'Quy trình Xin nghỉ & Đổi ca',
-                icon: FontAwesomeIcons.calendarCheck,
-                color: Colors.orange,
-                content:
-                    '• Nghỉ phép năm: Nộp đơn trên ứng dụng trước ít nhất 48 giờ để Quản lý sắp xếp người làm thay.\n'
-                    '• Nghỉ ốm đột xuất: Báo ngay cho Quản lý chi nhánh trước ca trực 2 giờ và bổ sung giấy chỉ định y tế khi đi làm lại.\n'
-                    '• Đổi ca / Nhờ làm thay: Hai nhân viên tự thỏa thuận và xác nhận đồng ý với nhau trên ứng dụng là hoàn tất đổi ca. Trường hợp phát sinh gấp hoặc bận, Quản lý chi nhánh có quyền duyệt đồng ý hộ.',
-              ),
-              _buildSection(
-                number: '3',
-                title: 'Tác phong & Văn hóa doanh nghiệp',
-                icon: FontAwesomeIcons.circleCheck,
-                color: Colors.teal,
-                content:
-                    '• Trang phục gọn gàng, lịch sự hoặc đồng phục theo quy định của từng bộ phận.\n'
-                    '• Giữ thái độ thân thiện, hợp tác với đồng nghiệp và chu đáo với khách hàng.\n'
-                    '• Tuyệt đối bảo mật thông tin nội bộ và dữ liệu khách hàng của doanh nghiệp.',
-              ),
-              _buildSection(
-                number: '4',
-                title: 'Chính sách Lương, Thưởng & Phúc lợi',
-                icon: FontAwesomeIcons.coins,
-                color: Colors.green,
-                content:
-                    '• Kỳ tính lương: Từ ngày 01 đến ngày cuối cùng của tháng.\n'
-                    '• Ngày nhận lương: Ngày 05 hằng tháng qua tài khoản ngân hàng.\n'
-                    '• Hạn mức tạm ứng lương: Tối đa 50% số tiền đã kiếm được trong kỳ, gửi yêu cầu qua mục "Tạm ứng lương".',
-              ),
-            ],
             const SizedBox(height: 20),
           ],
         ),

@@ -9,7 +9,12 @@ class ApprovalRepository {
   ApprovalRepository({ApiClient? api}) : api = api ?? ApiClient();
 
   Future<List<LeaveRequestModel>> getPending() async {
-    final data = await api.getJson('/api/requests', query: {'status': 'pending'});
+    return getAllRequests(status: 'pending');
+  }
+
+  Future<List<LeaveRequestModel>> getAllRequests({String? status}) async {
+    final query = status != null ? {'status': status} : <String, String>{};
+    final data = await api.getJson('/api/requests', query: query.isEmpty ? null : query);
     final List list = data is List ? data : [];
     return list
         .whereType<Map<String, dynamic>>()

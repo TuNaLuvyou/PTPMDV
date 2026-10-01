@@ -194,17 +194,25 @@ class _AttendanceAdjustmentScreenState extends State<AttendanceAdjustmentScreen>
                     'content': 'Vào: ${inController.text.trim()}, Ra: ${outController.text.trim()}. Lý do: $reason',
                     'employeeId': empId,
                   });
-                } catch (_) {}
-                if (!mounted) return;
-                Navigator.pop(context);
-                await _loadData();
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    backgroundColor: AppColors.success,
-                    content: Text('✅ Đã gửi đơn bổ sung công! Quản lý sẽ xem xét duyệt.'),
-                  ),
-                );
+                  if (!mounted) return;
+                  Navigator.pop(context);
+                  await _loadData();
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      backgroundColor: AppColors.success,
+                      content: Text('✅ Đã gửi đơn bổ sung công! Quản lý sẽ xem xét duyệt.'),
+                    ),
+                  );
+                } catch (e) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: AppColors.error,
+                      content: Text('❌ Gửi yêu cầu thất bại: $e'),
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
@@ -269,7 +277,20 @@ class _AttendanceAdjustmentScreenState extends State<AttendanceAdjustmentScreen>
             const SizedBox(height: 18),
             const Text('Danh sách yêu cầu bổ sung công', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
             const SizedBox(height: 10),
-            ..._items.map((item) => _buildItemCard(item)),
+            if (_items.isEmpty && !_isLoading)
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 40),
+                alignment: Alignment.center,
+                child: const Column(
+                  children: [
+                    FaIcon(FontAwesomeIcons.clockRotateLeft, size: 36, color: AppColors.textSecondary),
+                    SizedBox(height: 10),
+                    Text('Chưa có yêu cầu bổ sung công nào', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                  ],
+                ),
+              )
+            else
+              ..._items.map((item) => _buildItemCard(item)),
           ],
         ),
       ),
