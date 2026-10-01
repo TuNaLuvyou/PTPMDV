@@ -16,13 +16,17 @@ interface Props {
   onCloseOne: (p: Payslip) => void;
   onPrint: (p: Payslip) => void;
   onBulkClose?: () => void;
+  onGenerate?: () => void;
+  selectedMonth: string;
+  onMonthChange: (month: string) => void;
+  monthOptions: string[];
 }
 
-export default function PayslipSection({ payslips, onEdit, onCloseOne, onPrint, onBulkClose }: Props) {
+export default function PayslipSection({ payslips, onEdit, onCloseOne, onPrint, onBulkClose, onGenerate, selectedMonth, onMonthChange, monthOptions }: Props) {
   const columns: Column<Payslip>[] = [
     { key: "employee", header: "Nhân viên", render: (p) => <span className="font-semibold text-gray-800">{p.employee}</span> },
     { key: "month", header: "Kỳ lương", render: (p) => <Badge tone="gray">{p.month}</Badge> },
-    { key: "days", header: "Công", render: (p) => <span className="text-gray-600">{p.days} ngày</span> },
+    { key: "days", header: "Công", render: (p) => <span className="text-gray-600">{p.days > 0 ? `${p.days} ngày` : "—"}</span> },
     { key: "salary", header: "Lương cơ bản", render: (p) => <span className="text-gray-700">{formatVND(p.salary)}</span> },
     { key: "bonus", header: "Thưởng", render: (p) => <span className="text-success">{formatVND(p.bonus)}</span> },
     { key: "penalty", header: "Phạt", render: (p) => <span className="text-danger">{formatVND(p.penalty)}</span> },
@@ -48,10 +52,17 @@ export default function PayslipSection({ payslips, onEdit, onCloseOne, onPrint, 
       <CardHeader>
         <CardTitle>Phiếu lương theo tháng</CardTitle>
         <div className="flex gap-2">
-          <Select className="w-auto py-1.5" defaultValue="08/2026">
-            <option value="08/2026">Tháng 08/2026</option>
-            <option value="07/2026">Tháng 07/2026</option>
+          <Select className="w-auto py-1.5" value={selectedMonth} onChange={(e) => onMonthChange(e.target.value)}>
+            <option value="all">Tất cả các kỳ</option>
+            {monthOptions.map((m) => (
+              <option key={m} value={m}>Tháng {m}</option>
+            ))}
           </Select>
+          {onGenerate && (
+            <Button size="sm" variant="white" onClick={onGenerate}>
+              <FontAwesomeIcon icon={faPencil} fontSize={14} /> Tạo phiếu lương tháng
+            </Button>
+          )}
           {onBulkClose && (
             <Button size="sm" onClick={onBulkClose}>
               <FontAwesomeIcon icon={faLock} fontSize={14} /> Chốt phiếu lương
