@@ -179,7 +179,7 @@ Mốc đầu tiên của A là gateway + identity. Cần bám sát để chạy 
 
 Các mục sau không có trong tài liệu phân công. Không tự quyết định rồi coi như đã chốt. Hỏi A (nhóm trưởng) hoặc ghi rõ giả định trong PR.
 
-- **Cơ sở dữ liệu và ORM:** tài liệu không nhắc Prisma, ORM hay loại CSDL nào. Lớp lưu trữ đặt trong `src/infrastructure`. Hỏi A trước khi chọn.
+- **Cơ sở dữ liệu và ORM (đã chốt 5 DB):** E sở hữu DB riêng `hrm_integration` (4005) với Prisma schema + migration + `DATABASE_URL` riêng. Lớp lưu trữ đặt trong `src/infrastructure`. Cấm join xuyên DB; SOAP tạo lệnh chi thì gọi HTTP `POST /api/payroll/payouts` của D, duyệt `shift_swap`/`work_supplement` thì gọi HTTP sang work-service của B.
 - **Cách service nhận danh tính người dùng (vai trò `admin`/`manager`/`staff`):** tài liệu chỉ nêu middleware `hrm-session` gắn `req.user` ở identity-service. Cách các service khác lấy được danh tính và vai trò chưa được quy định. Hỏi A trước khi làm phần phân quyền.
 - **Đường dẫn chính xác của requests, notifications và thao tác approve/reject/read:** tài liệu PTPMDV chỉ nêu phương thức HTTP, không nêu đường dẫn. **Phụ trách: E** đề xuất, A duyệt khi cấu hình gateway (A §5) **(suy ra)**.
 - **Cấu trúc WSDL:** không được nêu chi tiết, chỉ yêu cầu WSDL hợp lệ.

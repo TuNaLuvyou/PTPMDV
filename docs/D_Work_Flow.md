@@ -156,7 +156,7 @@ Mốc đầu tiên của A là gateway + identity. Cần bám sát để chạy 
 
 Các mục sau không có trong tài liệu phân công. Không tự quyết định rồi coi như đã chốt. Hỏi A (nhóm trưởng) hoặc ghi rõ giả định trong PR.
 
-- **Cơ sở dữ liệu và ORM:** tài liệu không nhắc Prisma, ORM hay loại CSDL nào. Lớp lưu trữ đặt trong `src/infrastructure`. Hỏi A trước khi chọn.
+- **Cơ sở dữ liệu và ORM (đã chốt 5 DB):** D sở hữu DB riêng `hrm_payroll` (4004) với Prisma schema + migration + `DATABASE_URL` riêng. Lớp lưu trữ đặt trong `src/infrastructure`. Cấm join xuyên DB; cần `penaltyAmount` thì gọi HTTP `GET /api/attendance` của B, cần `baseSalary` thì gọi HTTP `GET /api/employees/:id` của B.
 - **Cách service nhận danh tính người dùng (vai trò `admin`/`manager`/`staff`):** tài liệu chỉ nêu middleware `hrm-session` gắn `req.user` ở identity-service. Cách các service khác lấy được danh tính và vai trò chưa được quy định. Hỏi A trước khi làm phần phân quyền.
 - **Schema tài khoản công ty (bank-accounts) và cách quản lý số dư:** không được nêu.
 - **Giá trị `status` của Payout và Payslip:** không được nêu.

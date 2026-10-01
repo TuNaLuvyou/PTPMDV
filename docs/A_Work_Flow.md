@@ -103,7 +103,7 @@ Tài liệu PTPMDV không nêu định dạng body của `/health`. Nên giữ t
 - [x] `GET /health` cho gateway.
 - [x] Viết `docker-compose` chạy đủ 6 thành phần (gateway + 5 service).
 - [x] Đặt timeout tối đa 5000ms khi proxy về service phía sau (suy ra từ mục 2.4).
-- [ ] Rate-limiting và xác thực JWT đầu vào tại gateway (Tech.md §4.5) **(suy ra — chưa làm)**.
+- [ ] Rate-limiting và xác thực JWT đầu vào tại gateway (TECHS.md §6.3) **(suy ra — chưa làm)**.
 
 Gợi ý kỹ thuật **(suy ra)**: phiên dùng cookie `hrm-session`, nên CORS cần cho phép credentials và chỉ định origin cụ thể, không dùng `*`.
 
@@ -115,12 +115,12 @@ Gợi ý kỹ thuật **(suy ra)**: phiên dùng cookie `hrm-session`, nên CORS
 - [x] Phân quyền theo vai trò: `admin`, `manager`, `staff`.
 - [x] Seed 3 tài khoản: `admin`, `manager`, `staff`.
 - [x] `GET /health`.
-- [x] `POST /api/auth/refresh` — cấp lại access token bằng refresh token (Tech.md §2.3) **(đã xong trên feat/identity-auth)**.
+- [x] `POST /api/auth/refresh` — cấp lại access token bằng refresh token (TECHS.md §6.1) **(đã xong trên feat/identity-auth)**.
 - [x] `POST /api/auth/change-password` — đổi mật khẩu qua bcrypt + PostgreSQL/memory **(đã xong trên feat/identity-auth)**.
 - [x] `POST /api/auth/forgot-password` — đặt lại mật khẩu về mặc định 123456 **(đã xong trên feat/identity-auth)**.
 - [x] `GET /api/auth/devices` và `DELETE /api/auth/devices/:id` — danh sách và gỡ thiết bị/phiên đăng nhập **(đã xong trên feat/identity-auth)**.
 
-> Quyết định đã chốt: DB dùng **Supabase Postgres + Prisma**; auth dùng **JWT + cookie `hrm-session` HttpOnly**; seed pass mặc định `123456`. Test unit + integration 10/10 pass.
+> Quyết định đã chốt: DB dùng **5 Postgres riêng (database-per-service)** — `hrm_identity` (A/4001), `hrm_organization` (B/4002), `hrm_work` (B/4003), `hrm_payroll` (D/4004), `hrm_integration` (E/4005), mỗi DB 1 Prisma schema + `DATABASE_URL` riêng, cấm join xuyên DB; auth dùng **JWT + cookie `hrm-session` HttpOnly**; seed pass mặc định `123456`. Test unit + integration 10/10 pass.
 
 ### Task 3 — Mobile (Flutter, thư mục `mobile/`) — 🟡 LÀM MỘT PHẦN
 - [x] Đồng bộ models mobile với schema backend (mục 6) — đã thêm `payslip/payout/leave_request/app_notification/attendance/device_session` (PR `feat/mobile-api`).
@@ -157,10 +157,10 @@ Gợi ý kỹ thuật **(suy ra)**: phiên dùng cookie `hrm-session`, nên CORS
 - [ ] Demo **REST idempotent** end-to-end trên cả web và mobile: gửi lệnh chi hai lần với cùng `idempotencyKey`, lần hai trả bản ghi cũ kèm `deduped: true`.
 - [ ] Demo **SOAP end-to-end** trên cả web và mobile: gọi `/soap/payroll`, tạo được lệnh chi, lỗi trả `soap:Fault`.
 - [ ] Optimize sau khi luồng chạy đúng.
-- [ ] Demo **SAGA compensating transaction** cho luồng chi lương khi thất bại giữa chừng (Tech.md §4.2, phối hợp cùng D và E) **(suy ra)**.
-- [ ] **API Composition** cho trang dashboard web (gộp organization + work + payroll) và **BFF** payload gọn cho mobile (Tech.md §4.4, §4.5) **(suy ra)**.
+- [ ] Demo **SAGA compensating transaction** cho luồng chi lương khi thất bại giữa chừng (TECHS.md §6.3, phối hợp cùng D và E) **(suy ra)**.
+- [ ] **API Composition** cho trang dashboard web (gộp organization + work + payroll) và **BFF** payload gọn cho mobile (TECHS.md §6.3) **(suy ra)**.
 
-### Task 5 — Web Portal (`frontend/`) — 🟡 LÀM MỘT PHẦN — Phụ trách: **A** (Tech.md yêu cầu demo trên web)
+### Task 5 — Web Portal (`frontend/`) — 🟡 LÀM MỘT PHẦN — Phụ trách: **A** (TECHS.md yêu cầu demo trên web)
 > Tài liệu phân công gốc không giao web cho ai; A nhận phụ trách toàn diện.
 - [x] Chủ sở hữu `frontend/`: **A**.
 - [x] Đấu đăng nhập web qua gateway, phiên cookie `hrm-session` thật, bỏ mock (nhánh `feat/frontend-auth`).
@@ -285,14 +285,14 @@ Thứ tự ưu tiên: hoàn thành gateway và identity trước, vì các thàn
 
 Các mục sau không có trong tài liệu phân công. Không tự quyết định rồi coi như đã chốt. Hỏi người A hoặc ghi rõ giả định trong PR.
 
-- **Cơ sở dữ liệu và ORM:** tài liệu không nhắc Prisma, ORM hay loại CSDL nào. Lớp lưu trữ đặt trong `src/infrastructure`. Nếu cần chọn cho `identity-service`, hỏi trước.
+- **Cơ sở dữ liệu và ORM (đã chốt 5 DB):** mỗi service 1 Postgres + Prisma riêng — A giữ `hrm_identity`; B giữ `hrm_organization` + `hrm_work`; D giữ `hrm_payroll`; E giữ `hrm_integration`. Lớp lưu trữ đặt trong `src/infrastructure`. Cấm join xuyên DB, cần dữ liệu chéo thì gọi HTTP timeout 5000ms. `api-gateway` (4000) không cần DB — chỉ routing và proxy. B duy nhất sở hữu 2 DB (`hrm_organization` và `hrm_work`).
 - **Ai soạn schema chung:** không có người được giao riêng việc thiết kế dữ liệu. Mỗi người tự lo model của service mình, còn mục 6 là chuẩn chung.
 - **Body request và response của `/api/auth/login`, `/api/auth/me`:** không được quy định chi tiết, chỉ bắt buộc đúng envelope.
 - **Mật khẩu và thông tin 3 tài khoản seed:** không được nêu.
 - **Đường dẫn chính xác của shifts, attendance, tasks, requests, notifications:** xem mục 5, cần xác nhận.
 - **Định dạng body của `/health`:** tài liệu PTPMDV không nêu, xem mục 2.3.
 - **Ứng dụng web:** tài liệu nhắc demo trên web nhưng không giao ai làm web. Đã phân công cho **A** (Task 5) **(suy ra)**.
-- **API versioning `/api/v1/`:** Tech.md §4.6 yêu cầu versioning nhưng toàn bộ route ở mục 5 dùng `/api/...`. Cần chốt trước nghiệm thu **(suy ra)**. **Phụ trách: A** (cấu hình route ở gateway).
+- **API versioning `/api/v1/`:** TECHS.md §6.3 yêu cầu versioning nhưng toàn bộ route ở mục 5 dùng `/api/...`. Cần chốt trước nghiệm thu **(suy ra)**. **Phụ trách: A** (cấu hình route ở gateway).
 - **Công thức `netSalary` đang lệch 3 bản:** A §6 và B ghi `baseSalary + bonus - totalPenalty`; D ghi `baseSalary - totalPenalty`; `AGENTS.md` §2.6 ghi `baseSalary - totalPenalties + allowances`. Cần chốt một bản duy nhất **(đã chỉnh D theo A §6 ngày 24-09-2026)**. **Phụ trách chốt: A** cùng D.
 
 ---

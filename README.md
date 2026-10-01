@@ -18,7 +18,7 @@ Chi nhánh: HN-1 Hoàn Kiếm, HN-2 Cầu Giấy, DN-1 Đà Nẵng.
 ```text
 hrm-enterprise/
 ├── README.md
-├── AGENTS.md
+├── docs/        # TECHS, RULES, AGENTS, SKILLS + Work_Flow từng thành viên
 ├── frontend/   # Web Portal quản trị (Next.js 16 App Router + Tailwind v4)
 ├── mobile/     # App nhân viên & quản lý (Flutter 3.x, Material 3)
 └── backend/    # Core Server nội bộ (Express: REST + SOAP chi lương)
