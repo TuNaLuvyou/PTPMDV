@@ -26,6 +26,8 @@ export interface SoapTransaction {
   soapAction: string;
   xmlPayload: string;
   xmlResponse: string;
+  /** Có khi backend trả deduped:true (trùng idempotencyKey) — dùng để hiện badge "Trùng". */
+  deduped?: boolean;
 }
 
 export interface SoapGatewayConfig {
