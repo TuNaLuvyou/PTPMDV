@@ -8,9 +8,12 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: hrm
     ports:
-      - "5432:5432"
+      # Host dùng 5433 để né container Postgres của dự án khác đang chiếm 5432.
+      # Trong mạng compose các service vẫn gọi db:5432.
+      - "5433:5432"
     volumes:
       - hrm-pgdata:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -42,8 +45,7 @@ services:
     container_name: hrm-gateway
     build: ./backend/api-gateway
     restart: unless-stopped
-    env_file:
-      - ./backend/api-gateway/.env
+    # Không dùng env_file (file .env không commit) — mọi biến có default trong environment.
     environment:
       PORT: 4000
       SERVICE_NAME: api-gateway
@@ -53,29 +55,111 @@ services:
       WORK_URL: http://work-service:4003
       PAYROLL_URL: http://payroll-service:4004
       INTEGRATION_URL: http://integration-service:4005
+      # JWT_SECRET phải trùng identity-service để verify chữ ký.
+      # Đặt cùng giá trị trong backend/identity-service/.env và backend/api-gateway/.env.
+      JWT_SECRET: ${JWT_SECRET:-dev_only_secret_thay_khi_deploy}
     ports:
       - "4000:4000"
     depends_on:
       - identity-service
+      - organization-service
+      - work-service
+      - payroll-service
+      - integration-service
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/health"]
       interval: 15s
       timeout: 5s
       retries: 3
 
-  # --- Các service của B/D/E: chủ sở hữu bật khi đã có code (giữ đúng cổng) ---
-  # organization-service: # B — 4002
-  #   build: ./backend/organization-service
-  #   ports: ["4002:4002"]
-  # work-service: # B — 4003
-  #   build: ./backend/work-service
-  #   ports: ["4003:4003"]
-  # payroll-service: # D — 4004
-  #   build: ./backend/payroll-service
-  #   ports: ["4004:4004"]
-  # integration-service: # E — 4005
-  #   build: ./backend/integration-service
-  #   ports: ["4005:4005"]
+  organization-service: # B — 4002
+    container_name: hrm-organization
+    build: ./backend/organization-service
+    restart: unless-stopped
+    environment:
+      PORT: 4002
+      SERVICE_NAME: organization-service
+      CORS_ORIGIN: http://localhost:3000
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/hrm_organization
+    ports:
+      - "4002:4002"
+    depends_on:
+      db:
+        condition: service_healthy
+    # Đồng bộ schema Prisma (db push) rồi mới chạy — image production thiếu prisma CLI nên cài dev-dep lúc boot.
+    command: sh -c "npm install --no-audit --no-fund --include=dev >/dev/null 2>&1; npx prisma db push --accept-data-loss; node server.js"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4002/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  work-service: # B — 4003
+    container_name: hrm-work
+    build: ./backend/work-service
+    restart: unless-stopped
+    environment:
+      PORT: 4003
+      SERVICE_NAME: work-service
+      CORS_ORIGIN: http://localhost:3000
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/hrm_work
+    ports:
+      - "4003:4003"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "npm install --no-audit --no-fund --include=dev >/dev/null 2>&1; npx prisma db push --accept-data-loss; node server.js"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4003/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  payroll-service: # D — 4004
+    container_name: hrm-payroll
+    build: ./backend/payroll-service
+    restart: unless-stopped
+    environment:
+      PORT: 4004
+      SERVICE_NAME: payroll-service
+      CORS_ORIGIN: http://localhost:3000
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/hrm_payroll
+      ORGANIZATION_URL: http://organization-service:4002
+      WORK_URL: http://work-service:4003
+    ports:
+      - "4004:4004"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "npm install --no-audit --no-fund --include=dev >/dev/null 2>&1; npx prisma db push --accept-data-loss; node server.js"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4004/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  integration-service: # E — 4005
+    container_name: hrm-integration
+    build: ./backend/integration-service
+    restart: unless-stopped
+    environment:
+      PORT: 4005
+      SERVICE_NAME: integration-service
+      CORS_ORIGIN: http://localhost:3000
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/hrm_integration
+      PAYROLL_SERVICE_URL: http://payroll-service:4004
+      WORK_SERVICE_URL: http://work-service:4003
+    ports:
+      - "4005:4005"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "npm install --no-audit --no-fund --include=dev >/dev/null 2>&1; npx prisma db push --accept-data-loss; node server.js"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4005/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
 
 volumes:
   hrm-pgdata:

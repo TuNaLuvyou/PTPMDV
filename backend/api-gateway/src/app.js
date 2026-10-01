@@ -7,6 +7,8 @@ const morgan = require("morgan");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 const config = require("../config");
 const { errorHandler } = require("./api/middlewares/errorHandler");
+const { createAuthMiddleware } = require("./api/middlewares/auth");
+const { createRateLimitMiddleware } = require("./api/middlewares/rateLimit");
 
 const app = express();
 
@@ -19,6 +21,10 @@ app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok", service: config.serviceName, time: new Date().toISOString() });
 });
 
+// Giới hạn tần suất + xác thực JWT trước khi proxy (TECHS.md §6.3).
+app.use(createRateLimitMiddleware());
+app.use(createAuthMiddleware());
+
 function proxyTo(pathFilter, target, label) {
   // http-proxy-middleware v3: pathFilter nằm trong options, app.use không gắn
   // path Express để giữ nguyên full path /api/... khi forward. Timeout 5000ms.
@@ -30,6 +36,14 @@ function proxyTo(pathFilter, target, label) {
     timeout: config.timeoutMs,
     logLevel: "warn",
     on: {
+      proxyReq: (proxyReq, req) => {
+        // Chuyển danh tính đã verify sang service phía sau, service không cần re-verify.
+        if (req.user) {
+          if (req.user.userId) proxyReq.setHeader("x-user-id", String(req.user.userId));
+          if (req.user.role) proxyReq.setHeader("x-user-role", String(req.user.role));
+          if (req.user.branchSlug) proxyReq.setHeader("x-branch-slug", String(req.user.branchSlug));
+        }
+      },
       error: (err, _req, res) => {
         console.warn(`[gateway] ${label} lỗi:`, err.message);
         if (!res.headersSent) {

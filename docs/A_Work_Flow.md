@@ -103,7 +103,7 @@ Tài liệu PTPMDV không nêu định dạng body của `/health`. Nên giữ t
 - [x] `GET /health` cho gateway.
 - [x] Viết `docker-compose` chạy đủ 6 thành phần (gateway + 5 service).
 - [x] Đặt timeout tối đa 5000ms khi proxy về service phía sau (suy ra từ mục 2.4).
-- [ ] Rate-limiting và xác thực JWT đầu vào tại gateway (TECHS.md §6.3) **(suy ra — chưa làm)**.
+- [x] Rate-limiting và xác thực JWT đầu vào tại gateway (TECHS.md §6.3) **(đã xong trên `feat/gateway-hardening`: `auth.js` verify JWT + cookie `hrm-session`, `rateLimit.js` 429, forward `x-user-*`, E2E login qua gateway pass)**.
 
 Gợi ý kỹ thuật **(suy ra)**: phiên dùng cookie `hrm-session`, nên CORS cần cho phép credentials và chỉ định origin cụ thể, không dùng `*`.
 
