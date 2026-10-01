@@ -82,18 +82,18 @@ Mỗi service có `GET /health`. Tài liệu PTPMDV không nêu định dạng b
 
 Tài liệu PTPMDV chỉ nêu phần việc của B ở mức chức năng. Chi tiết endpoint dưới đây **(suy ra)** từ danh sách chức năng ở mục 0 và schema mục 5.
 
-### Task 1 — organization-service (cổng 4002)
-- [ ] CRUD **branches**: `GET /api/branches`, `GET /api/branches/:slug`, `POST /api/branches`, `PUT /api/branches/:slug`, `DELETE /api/branches/:slug`.
-- [ ] CRUD **departments**: `GET /api/departments`, `GET /api/departments/:id`, `POST`, `PUT`, `DELETE`.
-- [ ] CRUD **employees** đúng schema, validate email và systemRole, phân quyền.
+### Task 1 — organization-service (cổng 4002) — ✅ XONG (nhánh `feat/organization-work-b`)
+- [x] CRUD **branches**: `GET /api/branches`, `GET /api/branches/:slug`, `POST /api/branches`, `PUT /api/branches/:slug`, `DELETE /api/branches/:slug`.
+- [x] CRUD **departments**: `GET /api/departments`, `GET /api/departments/:id`, `POST`, `PUT`, `DELETE`.
+- [x] CRUD **employees** đúng schema, validate email và systemRole, phân quyền.
   - `GET /api/employees?branchSlug=&departmentId=&systemRole=`
   - `GET /api/employees/:id`
   - `POST /api/employees`, `PUT /api/employees/:id`, `DELETE /api/employees/:id`
   - Email không trùng; `systemRole` chỉ nhận `admin`/`manager`/`staff`.
-- [ ] `GET /health`.
+- [x] `GET /health`.
 
-### Task 2 — work-service (cổng 4003)
-- [ ] **Shifts (lịch ca / phân ca):**
+### Task 2 — work-service (cổng 4003) — ✅ XONG (nhánh `feat/organization-work-b`)
+- [x] **Shifts (lịch ca / phân ca):**
   - `GET /api/shifts?branchSlug=&date=YYYY-MM-DD&employeeId=` — danh sách ca.
   - `POST /api/shifts` — tạo ca mới (admin/manager).
   - `PUT /api/shifts/:id` — cập nhật ca (admin/manager).
@@ -101,17 +101,17 @@ Tài liệu PTPMDV chỉ nêu phần việc của B ở mức chức năng. Chi 
   - `POST /api/shifts/:id/assign` — phân công ca cho nhân viên (chức năng `shift_assignment`).
   - `POST /api/shifts/register` — nhân viên tự đăng ký ca (chức năng `schedule_registration`).
   - `GET /api/shifts/registrations?branchSlug=&week=` — danh sách nguyện vọng đăng ký ca của nhân viên, phục vụ bảng "Quản lý đăng ký ca" trên web (`RegTimetable`, `WeekWishes`) **(suy ra)**.
-- [ ] **Attendance (chấm công):**
+- [x] **Attendance (chấm công):**
   - `POST /api/attendance/checkin` — check-in.
   - `POST /api/attendance/checkout` — check-out, tính phạt tự động.
   - `GET /api/attendance?employeeId=&month=YYYY-MM` — lịch sử chấm công.
   - `GET /api/attendance?branchSlug=&date=YYYY-MM-DD` — giám sát toàn bộ nhân sự trong ngày (chức năng `staff_monitor`).
   - `GET /api/attendance/config` — lấy cấu hình phạt chấm công.
   - `PUT /api/attendance/config` — cập nhật cấu hình phạt (admin).
-- [ ] **Tasks (tác vụ):** CRUD toàn bộ.
+- [x] **Tasks (tác vụ):** CRUD toàn bộ.
   - `GET /api/tasks?branchSlug=&assignedTo=&status=`
   - `POST /api/tasks`, `PUT /api/tasks/:id`, `DELETE /api/tasks/:id`.
-- [ ] `GET /health`.
+- [x] `GET /health`.
 
 ---
 
