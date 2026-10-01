@@ -184,7 +184,7 @@ Mốc đầu tiên của A là gateway + identity. Cần bám sát để chạy 
 
 Các mục sau không có trong tài liệu phân công. Không tự quyết định rồi coi như đã chốt. Hỏi A (nhóm trưởng) hoặc ghi rõ giả định trong PR.
 
-- **Cơ sở dữ liệu và ORM (đã chốt 5 DB trên 5 link Supabase riêng):** B sở hữu 2 DB riêng `hrm_organization` (4002) và `hrm_work` (4003), mỗi DB 1 Prisma schema + migration + `DATABASE_URL` riêng trỏ link Supabase riêng. Lớp lưu trữ đặt trong `src/infrastructure`. Cấm join xuyên DB, cần dữ liệu chéo thì gọi HTTP timeout 5000ms.
+- **Cơ sở dữ liệu và ORM (đã chốt 5 DB trên 5 link Supabase riêng):** B sở hữu 2 DB riêng `hrm_organization` (4002) và `hrm_work` (4003), mỗi DB 1 Prisma schema + migration + `DATABASE_URL` riêng trỏ link Supabase riêng. Lớp lưu trữ đặt trong `src/infrastructure`. Cấm join xuyên cơ sở dữ liệu, cần dữ liệu chéo thì gọi HTTP timeout 5000ms.
 - **Cách service nhận danh tính người dùng (vai trò `admin`/`manager`/`staff`):** tài liệu chỉ nêu middleware `hrm-session` gắn `req.user` ở identity-service. Cách các service khác lấy được danh tính và vai trò chưa được quy định. Hỏi A trước khi làm phần phân quyền.
 - **Luật tính phạt chấm công:** mức phạt cụ thể lưu trong `AttendanceConfig`. Xem mục 5 để biết schema. Giá trị mặc định: `latePenaltyAmount=20000`, `gracePeriodMinutes=5`.
 - **Luồng `shift_swap`:** khi E tiếp nhận yêu cầu đổi ca và duyệt, có thể cần gọi vào `PUT /api/shifts/:id` của bạn để cập nhật phân công. Xác nhận luồng này với E trước khi làm.

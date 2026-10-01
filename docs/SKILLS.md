@@ -39,7 +39,7 @@ Text('Xin chào', style: AppTypography.titleMedium);
 AppBar(backgroundColor: Color(0xFF8E1B2F));
 ```
 
-- Độ trong suốt: bắt buộc dùng `.withValues(alpha: ...)`, cấm dùng `.withOpacity()`.
+- Alpha (độ trong suốt của màu): bắt buộc dùng `.withValues(alpha: ...)`, cấm dùng `.withOpacity()`.
 
 ```dart
 // ĐÚNG
@@ -61,7 +61,7 @@ Container(color: AppColors.primary.withOpacity(0.12));
 
 ### 2.1. Nguyên tắc thiết kế
 
-1. Controller thật mỏng: chỉ bóc `req.params`, `req.query`, `req.body`, gọi Use Case rồi trả envelope.
+1. Controller thật mỏng: chỉ trích xuất `req.params`, `req.query`, `req.body`, gọi Use Case rồi trả envelope.
 2. Nghiệp vụ nằm trong `domain/entities` và `src/services`. Cấm viết nghiệp vụ trong controller.
 3. Truy xuất dữ liệu chỉ qua repository. Cấm viết SQL trực tiếp trong controller hay Use Case.
 4. Tầng `domain/` thuần khiết, không import Express, ORM hay HTTP client.
@@ -99,7 +99,7 @@ async execute(payload) {
 }
 ```
 
-Hết số dư phải ném lỗi ánh xạ thành HTTP `422` với mã `INSUFFICIENT_FUNDS` và thông điệp tiếng Việt.
+Hết số dư phải ném ngoại lệ ánh xạ thành HTTP `422` với mã `INSUFFICIENT_FUNDS` và thông điệp tiếng Việt.
 
 ### 2.4. Mẫu client gọi liên service
 
@@ -115,13 +115,13 @@ async function getAttendance(employeeId, month) {
 }
 ```
 
-Luôn đặt `timeout: 5000`, đặt adapter trong `src/infrastructure/external-clients/`, không import chéo mã nguồn service khác.
+Luôn đặt `timeout: 5000`, cài đặt adapter trong `src/infrastructure/external-clients/`, không import chéo mã nguồn service khác.
 
 ### 2.5. Kỹ năng làm việc với 5 database riêng (đã chốt)
 
-1. Mỗi service chỉ chạm 1 DB của mình: identity → `hrm_identity`, organization → `hrm_organization`, work → `hrm_work`, payroll → `hrm_payroll`, integration → `hrm_integration`. Gateway không có DB.
+1. Mỗi service chỉ truy cập 1 DB của mình: identity → `hrm_identity`, organization → `hrm_organization`, work → `hrm_work`, payroll → `hrm_payroll`, integration → `hrm_integration`. Gateway không có DB.
 2. Mỗi service có `prisma/schema.prisma`, migration, seed và `DATABASE_URL` riêng. Cấm trỏ 2 service về cùng 1 DB.
-3. Cấm join xuyên DB và FK xuyên DB. Tham chiếu chéo chỉ lưu chuỗi (`employeeId`, `branchSlug`, `shiftId`):
+3. Cấm join xuyên cơ sở dữ liệu và FK xuyên cơ sở dữ liệu. Tham chiếu chéo chỉ lưu chuỗi (`employeeId`, `branchSlug`, `shiftId`):
 
 ```javascript
 // ĐÚNG — payroll lưu employeeId dạng chuỗi, cần chi tiết thì gọi HTTP
@@ -196,7 +196,7 @@ Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HomePage()));
 
 1. Trỏ base URL về Gateway (cổng 4000), tự phân biệt iOS `localhost` và Android `10.0.2.2`.
 2. Repository viết sẵn cho cả API thật và mock dự phòng khi service khác chưa xong.
-3. Màn hình lương, thông báo, đơn từ, ca, chấm công phải đấu đúng endpoint đã chốt, đúng envelope `{data}` / `{error}` và đúng định dạng ngày.
+3. Màn hình lương, thông báo, đơn từ, ca, chấm công phải tích hợp đúng endpoint đã chốt, đúng envelope `{data}` / `{error}` và đúng định dạng ngày.
 4. Sau mỗi thay đổi mobile phải chạy `flutter analyze` và `flutter test`.
 
 ---

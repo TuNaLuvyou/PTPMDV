@@ -46,7 +46,7 @@ Mọi service trong `backend/<ten-service>/` phải tuân thủ đúng cấu tr�
 backend/<ten-service>/
 ├── config/
 │   ├── index.js                # Đọc và kiểm tra biến môi trường, có giá trị mặc định
-│   └── database.js             # Kết nối CSDL (PostgreSQL / MongoDB) hoặc kho lưu trữ trong bộ nhớ
+│   └── database.js             # Kết nối CSDL (PostgreSQL / MongoDB) hoặc kho lưu trữ trong bộ nhớ (in-memory)
 ├── src/
 │   ├── api/
 │   │   ├── controllers/        # Nhận req/res, gọi Use Case, trả JSON (không chứa nghiệp vụ)
@@ -86,7 +86,7 @@ backend/<ten-service>/
    - Cấm tham chiếu package của service khác bằng đường dẫn tương đối (`../../service-khac/node_modules`).
 
 2. **Điểm vào (`server.js`) và khởi tạo Express (`src/app.js`)**:
-   - `server.js` nằm ở gốc service, nạp `.env`, nối CSDL, lắng nghe cổng, xuất `app` cho kiểm thử.
+   - `server.js` nằm ở gốc service, nạp `.env`, nối CSDL, lắng nghe cổng, xuất đối tượng `app` cho kiểm thử.
    - `src/app.js` cấu hình Express, middleware toàn cục và gắn route.
    - Bắt buộc có route `GET /health` trả về:
 
@@ -98,8 +98,8 @@ backend/<ten-service>/
    }
    ```
 
-3. **Tầng trình bày (`src/api/`)**:
-   - `controllers/` chỉ nhận `(req, res, next)`, bóc tham số, gọi Use Case, trả JSON chuẩn. Cấm viết nghiệp vụ, SQL hay sửa dữ liệu trực tiếp.
+4. **Tầng trình bày (`src/api/`)**:
+   - `controllers/` chỉ nhận `(req, res, next)`, trích xuất tham số, gọi Use Case, trả JSON chuẩn. Cấm viết nghiệp vụ, SQL hay sửa dữ liệu trực tiếp.
    - `middlewares/` gồm `auth.js` (kiểm tra Bearer Token hoặc cookie `hrm-session`, gắn `req.user`), `validation.js` (kiểm tra body/query/params theo `validators/`), `errorHandler.js` (ánh xạ lỗi domain sang mã HTTP).
    - `routes/` gắn động từ HTTP với controller, ví dụ `router.post("/", controller.create)`.
 
@@ -207,7 +207,7 @@ lib/src/
 - Triển khai: **5 link Supabase riêng** (mỗi service 1 project/link Supabase với `DATABASE_URL` riêng trong `.env.example` của chính mình). Môi trường local dùng `docker-compose.yml` với 5 database tương ứng để dev/test. Gateway (4000) stateless, không có DB.
 - Tuân thủ ACID trong phạm vi từng DB, hỗ trợ transaction, khóa bi quan / lạc quan khi giải ngân lương, index phong phú, JSONB cho cấu hình linh hoạt.
 - Prisma: mỗi service có `prisma/schema.prisma` + migration + seed riêng, truy vấn type-safe. Cấm dùng chung schema Prisma giữa các service.
-- Cấm tuyệt đối: join xuyên DB, foreign key xuyên DB, đọc bảng của service khác trực tiếp. Tham chiếu chéo chỉ lưu dạng chuỗi (`employeeId`, `branchSlug`, `shiftId`), cần chi tiết thì gọi HTTP qua `external-clients/` (timeout 5000ms).
+- Cấm tuyệt đối: join xuyên cơ sở dữ liệu, foreign key xuyên cơ sở dữ liệu, đọc bảng của service khác trực tiếp. Tham chiếu chéo chỉ lưu dạng chuỗi (`employeeId`, `branchSlug`, `shiftId`), cần chi tiết thì gọi HTTP qua `external-clients/` (timeout 5000ms).
 - Single-tenant: cả 5 DB đều không có `tenantId`.
 - Bảng sở hữu chi tiết:
   - `hrm_identity`: `users`, `refresh_tokens`, `device_sessions`.
@@ -219,7 +219,7 @@ lib/src/
 ### 6.3. Các mẫu kiến trúc trong môn PTPMDV
 
 - **IPC (giao tiếp giữa các service)**: gọi qua `src/infrastructure/external-clients/` bằng HTTP REST, timeout tối đa 5000ms; cấm import code trực tiếp giữa các service; `integration-service` dùng SOAP XML mô phỏng cổng ngân hàng.
-- **SAGA (giao dịch phân tán)**: SAGA điều phối cho luồng chi lương `payroll-service` → `integration-service` (cổng SOAP) → phát sinh giao dịch bù nếu thất bại; mỗi bước ghi log `PENDING → SUCCESS / COMPENSATED`.
+- **SAGA (giao dịch phân tán)**: SAGA điều phối cho luồng chi lương `payroll-service` → `integration-service` (cổng SOAP) → phát sinh giao dịch bù trừ nếu thất bại; mỗi bước ghi log `PENDING → SUCCESS / COMPENSATED`.
 - **DDD và Event Sourcing**: tách domain rõ theo từng service (`domain/entities/`, `domain/value-objects/`, `domain/errors/`); sự kiện quan trọng (checkout ca, duyệt đơn, tạo phiếu lương) thiết kế dạng event để tái hiện trạng thái.
 - **CQRS và API Composition**: Gateway tổng hợp dữ liệu nhiều service thành một response cho frontend; tách luồng đọc (GET) và luồng ghi (POST/PUT/DELETE) ở controller.
 - **API Gateway và BFF**: Gateway (cổng 4000) là điểm vào duy nhất, làm xác thực JWT, giới hạn tần suất, định tuyến, không chứa nghiệp vụ; Web nhận payload đầy đủ cho quản trị, Mobile nhận payload gọn cho băng thông di động.

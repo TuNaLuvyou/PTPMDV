@@ -93,7 +93,7 @@ const taxResult = await payrollClient.getTaxCalculation(payload);
 ```
 
 4. Không được để lộ `role` hay `branchSlug` trên URL route của frontend.
-5. **Cấm join xuyên DB, cấm foreign key xuyên DB, cấm đọc bảng của service khác trực tiếp.** Tham chiếu chéo chỉ lưu dạng chuỗi (`employeeId`, `branchSlug`, `shiftId`); cần chi tiết thì gọi HTTP. Ví dụ payroll cần `penaltyAmount` thì gọi `GET /api/attendance?employeeId=&month=` của work-service, cần `baseSalary` thì gọi `GET /api/employees/:id` của organization-service; integration tạo lệnh chi SOAP thì gọi `POST /api/payroll/payouts` của payroll-service.
+5. **Cấm join xuyên cơ sở dữ liệu, cấm foreign key xuyên cơ sở dữ liệu, cấm đọc bảng của service khác trực tiếp.** Tham chiếu chéo chỉ lưu dạng chuỗi (`employeeId`, `branchSlug`, `shiftId`); cần chi tiết thì gọi HTTP. Ví dụ payroll cần `penaltyAmount` thì gọi `GET /api/attendance?employeeId=&month=` của work-service, cần `baseSalary` thì gọi `GET /api/employees/:id` của organization-service; integration tạo lệnh chi SOAP thì gọi `POST /api/payroll/payouts` của payroll-service.
 6. Mỗi service có `prisma/schema.prisma`, migration, seed và `DATABASE_URL` riêng trỏ về link Supabase riêng của mình. Cấm dùng chung schema Prisma hay trỏ 2 service về cùng 1 link DB.
 
 ## 7. Quy Tắc Nghiệp Vụ Cốt Lõi

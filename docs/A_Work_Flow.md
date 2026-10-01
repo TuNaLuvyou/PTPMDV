@@ -14,7 +14,7 @@
 | Đề tài | Hệ thống HRM theo kiến trúc hướng dịch vụ (SOA): nhiều service độc lập giao tiếp qua REST và SOAP |
 | Thành viên | A (nhóm trưởng), B, D, E |
 | Phần A sở hữu | `backend/api-gateway` (4000), `backend/identity-service` (4001), `mobile/` (Flutter), `frontend/` (Web Portal) |
-| Nhiệm vụ cuối | Đấu nối, demo REST idempotent và SOAP end-to-end trên cả web và mobile, optimize |
+| Nhiệm vụ cuối | Kết nối, demo REST idempotent và SOAP end-to-end trên cả web và mobile, optimize |
 
 ---
 
@@ -120,40 +120,40 @@ Gợi ý kỹ thuật **(suy ra)**: phiên dùng cookie `hrm-session`, nên CORS
 - [x] `POST /api/auth/forgot-password` — đặt lại mật khẩu về mặc định 123456 **(đã xong trên feat/identity-auth)**.
 - [x] `GET /api/auth/devices` và `DELETE /api/auth/devices/:id` — danh sách và gỡ thiết bị/phiên đăng nhập **(đã xong trên feat/identity-auth)**.
 
-> Quyết định đã chốt: DB dùng **5 Postgres riêng trên 5 link Supabase riêng (database-per-service)** — `hrm_identity` (A/4001), `hrm_organization` (B/4002), `hrm_work` (B/4003), `hrm_payroll` (D/4004), `hrm_integration` (E/4005), mỗi DB 1 Prisma schema + `DATABASE_URL` riêng trỏ link Supabase riêng, cấm join xuyên DB; auth dùng **JWT + cookie `hrm-session` HttpOnly**; seed pass mặc định `123456`. Test unit + integration 10/10 pass.
+> Quyết định đã chốt: DB dùng **5 Postgres riêng trên 5 link Supabase riêng (database-per-service)** — `hrm_identity` (A/4001), `hrm_organization` (B/4002), `hrm_work` (B/4003), `hrm_payroll` (D/4004), `hrm_integration` (E/4005), mỗi DB 1 Prisma schema + `DATABASE_URL` riêng trỏ link Supabase riêng, cấm join xuyên cơ sở dữ liệu; auth dùng **JWT + cookie `hrm-session` HttpOnly**; seed pass mặc định `123456`. Test unit + integration 10/10 pass.
 
 ### Task 3 — Mobile (Flutter, thư mục `mobile/`) — 🟡 LÀM MỘT PHẦN
 - [x] Đồng bộ models mobile với schema backend (mục 6) — đã thêm `payslip/payout/leave_request/app_notification/attendance/device_session` (PR `feat/mobile-api`).
-- [x] Đấu màn hình `salary` về API thật qua gateway (kèm fallback mock khi payroll của D chưa có).
-- [ ] Đấu màn hình `notifications` về API thật — ⏳ chờ E xong integration-service (4005). Repository đã viết sẵn.
-- [ ] Đấu màn hình `leave_request` về API thật — ⏳ chờ E (4005). Repository đã viết sẵn.
-- [ ] Đấu màn hình `approvals` về API thật — ⏳ chờ E (4005). Repository đã viết sẵn.
-- [ ] Đấu màn hình `salary_advance` về API thật (`POST /api/requests` với `type: advance`) — ⏳ chờ E (4005).
-- [ ] Đấu màn hình `tasks` về API thật (`GET/POST /api/tasks`) — ⏳ chờ B (4003).
-- [ ] Đấu màn hình `attendance` (checkin/checkout) về API thật — ⏳ chờ B (4003).
-- [ ] Đấu màn hình `general_schedule` + `staff_monitor` về API thật (`GET /api/shifts`, `GET /api/attendance`) — ⏳ chờ B (4003).
-- [ ] Đấu màn hình `shift_assignment` (phân ca) + `schedule_registration` (đăng ký ca) về API thật — ⏳ chờ B (4003).
-- [ ] Đấu màn hình `news` về API thật — ⏳ chờ E (4005).
-- [ ] Đấu màn hình `regulations` về API thật — ⏳ chờ E (4005).
-- [ ] Đấu màn hình `wifi_config` về API thật — ⏳ chờ E (4005).
+- [x] Tích hợp màn hình `salary` về API thật qua gateway (kèm fallback mock khi payroll của D chưa có).
+- [ ] Tích hợp màn hình `notifications` về API thật — ⏳ chờ E xong integration-service (4005). Repository đã viết sẵn.
+- [ ] Tích hợp màn hình `leave_request` về API thật — ⏳ chờ E (4005). Repository đã viết sẵn.
+- [ ] Tích hợp màn hình `approvals` về API thật — ⏳ chờ E (4005). Repository đã viết sẵn.
+- [ ] Tích hợp màn hình `salary_advance` về API thật (`POST /api/requests` với `type: advance`) — ⏳ chờ E (4005).
+- [ ] Tích hợp màn hình `tasks` về API thật (`GET/POST /api/tasks`) — ⏳ chờ B (4003).
+- [ ] Tích hợp màn hình `attendance` (checkin/checkout) về API thật — ⏳ chờ B (4003).
+- [ ] Tích hợp màn hình `general_schedule` + `staff_monitor` về API thật (`GET /api/shifts`, `GET /api/attendance`) — ⏳ chờ B (4003).
+- [ ] Tích hợp màn hình `shift_assignment` (phân ca) + `schedule_registration` (đăng ký ca) về API thật — ⏳ chờ B (4003).
+- [ ] Tích hợp màn hình `news` về API thật — ⏳ chờ E (4005).
+- [ ] Tích hợp màn hình `regulations` về API thật — ⏳ chờ E (4005).
+- [ ] Tích hợp màn hình `wifi_config` về API thật — ⏳ chờ E (4005).
 - [x] Cấu hình base URL và company, trỏ về gateway; tự nhận diện iOS (localhost) vs Android (10.0.2.2).
-- [x] Đấu màn hình login + splash về API thật (phiên `hrm-session`, PR `feat/mobile-auth`).
-- [x] Đấu màn hình `profile/password.dart` (đổi mật khẩu) về API thật `POST /api/auth/change-password`, bỏ mock `Future.delayed` (nhánh `feat/mobile-auth`).
-- [x] Đấu màn hình `profile/devices.dart` (quản lý thiết bị) về API thật `GET/DELETE /api/auth/devices`, bỏ mock (nhánh `feat/mobile-auth`).
+- [x] Tích hợp màn hình login + splash về API thật (phiên `hrm-session`, PR `feat/mobile-auth`).
+- [x] Tích hợp màn hình `profile/password.dart` (đổi mật khẩu) về API thật `POST /api/auth/change-password`, bỏ mock `Future.delayed` (nhánh `feat/mobile-auth`).
+- [x] Tích hợp màn hình `profile/devices.dart` (quản lý thiết bị) về API thật `GET/DELETE /api/auth/devices`, bỏ mock (nhánh `feat/mobile-auth`).
 - [x] Nối nút "Quên mật khẩu?" trên login mobile vào `POST /api/auth/forgot-password` thật, bỏ mock (nhánh `feat/mobile-auth`).
-- [ ] Đấu màn hình `schedule` (lịch cá nhân, `shift_detail`, `shift_form`) về API thật — ⏳ chờ B (4003) **(suy ra)**.
-- [ ] Đấu màn hình `home` (nút check-in/check-out) về API `attendance` thật — ⏳ chờ B (4003) **(suy ra)**.
-- [ ] Đấu màn hình `attendance/adjustment` (điều chỉnh chấm công) về API thật — ⏳ chờ B (4003) + gói `work_supplement` của E **(suy ra)**.
-- [ ] Đấu màn hình `notifications/request_detail` về API thật — ⏳ chờ E (4005) **(suy ra)**.
-- [ ] Đấu màn hình `help` về API thật hoặc xác nhận nội dung tĩnh **(suy ra)**.
+- [ ] Tích hợp màn hình `schedule` (lịch cá nhân, `shift_detail`, `shift_form`) về API thật — ⏳ chờ B (4003) **(suy ra)**.
+- [ ] Tích hợp màn hình `home` (nút check-in/check-out) về API `attendance` thật — ⏳ chờ B (4003) **(suy ra)**.
+- [ ] Tích hợp màn hình `attendance/adjustment` (điều chỉnh chấm công) về API thật — ⏳ chờ B (4003) + module `work_supplement` của E **(suy ra)**.
+- [ ] Tích hợp màn hình `notifications/request_detail` về API thật — ⏳ chờ E (4005) **(suy ra)**.
+- [ ] Tích hợp màn hình `help` về API thật hoặc xác nhận nội dung tĩnh **(suy ra)**.
 - [ ] Build và kiểm thử bản iOS.
 - [x] `flutter analyze` pass (0 issues).
 - [x] `flutter test` pass.
 
-> Ngoài phạm vi gốc nhưng đã được A duyệt: đấu login web về API thật (PR `feat/frontend-auth`); sửa lỗi iOS AppIcon thiếu; sửa base URL tự nhận diện platform; bỏ mock đổi mật khẩu và thiết bị mobile.
+> Ngoài phạm vi gốc nhưng đã được A duyệt: tích hợp login web về API thật (PR `feat/frontend-auth`); sửa lỗi iOS AppIcon thiếu; sửa base URL tự nhận diện platform; bỏ mock đổi mật khẩu và thiết bị mobile.
 
-### Task 4 — Đấu nối, demo và optimize (làm cuối) — ⏳ CHƯA LÀM (chờ D xong payouts 4004, E xong SOAP/requests 4005)
-- [ ] Đấu nối toàn hệ thống khi các service khác đã xong.
+### Task 4 — Kết nối, demo và optimize (làm cuối) — ⏳ CHƯA LÀM (chờ D xong payouts 4004, E xong SOAP/requests 4005)
+- [ ] Kết nối toàn hệ thống khi các service khác đã xong.
 - [ ] Demo **REST idempotent** end-to-end trên cả web và mobile: gửi lệnh chi hai lần với cùng `idempotencyKey`, lần hai trả bản ghi cũ kèm `deduped: true`.
 - [ ] Demo **SOAP end-to-end** trên cả web và mobile: gọi `/soap/payroll`, tạo được lệnh chi, lỗi trả `soap:Fault`.
 - [ ] Optimize sau khi luồng chạy đúng.
@@ -163,9 +163,9 @@ Gợi ý kỹ thuật **(suy ra)**: phiên dùng cookie `hrm-session`, nên CORS
 ### Task 5 — Web Portal (`frontend/`) — 🟡 LÀM MỘT PHẦN — Phụ trách: **A** (TECHS.md yêu cầu demo trên web)
 > Tài liệu phân công gốc không giao web cho ai; A nhận phụ trách toàn diện.
 - [x] Chủ sở hữu `frontend/`: **A**.
-- [x] Đấu đăng nhập web qua gateway, phiên cookie `hrm-session` thật, bỏ mock (nhánh `feat/frontend-auth`).
+- [x] Tích hợp đăng nhập web qua gateway, phiên cookie `hrm-session` thật, bỏ mock (nhánh `feat/frontend-auth`).
 - [x] Nút "Quên mật khẩu?" của web nối với `POST /api/auth/forgot-password` qua gateway, bỏ mock (nhánh `feat/frontend-auth`).
-- [ ] Đấu 13 trang dashboard (employees, departments, branches, shifts, tasks, requests, payslips, bank, news, regulations, wifi, dashboard tổng) về API thật qua gateway (chờ các service 4002–4005 sẵn sàng).
+- [ ] Tích hợp 13 trang dashboard (employees, departments, branches, shifts, tasks, requests, payslips, bank, news, regulations, wifi, dashboard tổng) về API thật qua gateway (chờ các service 4002–4005 sẵn sàng).
 - [ ] RBAC menu theo `buildMenuItems(role)` nối với role thật từ identity-service.
 - [ ] Chốt ma trận phân quyền theo vai trò cho từng endpoint — **Phụ trách: A** (B §9 ghi chưa quy định) **(suy ra)**.
 
@@ -237,7 +237,7 @@ Lưu ý: `/soap/payroll` nhận và trả XML, và trả `soap:Fault` khi lỗi.
 
 Ghi chú định dạng ngày: `date` và `joinDate` dùng `DD-MM-YYYY`; `Payslip.month` dùng `MM-YYYY`; query attendance dùng `month=YYYY-MM`. Ba định dạng này khác nhau — chú ý khi parse.
 
-Quy tắc cần biết khi đấu:
+Quy tắc cần biết khi tích hợp:
 - Payout trùng `idempotencyKey` trả lại bản ghi cũ kèm `deduped: true`.
 - Payout hết số dư trả HTTP `422`.
 - Duyệt hoặc từ chối yêu cầu tự sinh thông báo. Màn hình `approvals` và `notifications` phản ánh đúng liên động này.
@@ -250,8 +250,8 @@ Quy tắc cần biết khi đấu:
 
 | Mốc | Việc của A | Việc của người khác (phụ thuộc) |
 |---|---|---|
-| 1 | Xong gateway + identity + đấu API mobile | B xong organization + work; D xong lệnh chi; E xong requests, notifications, SOAP |
-| 2 | Xong build và kiểm thử iOS, đấu nối, demo REST idempotent và SOAP end-to-end, rồi optimize | E xong bảng tin, nội quy, Wi-Fi |
+| 1 | Xong gateway + identity + tích hợp API mobile | B xong organization + work; D xong lệnh chi; E xong requests, notifications, SOAP |
+| 2 | Xong build và kiểm thử iOS, kết nối, demo REST idempotent và SOAP end-to-end, rồi optimize | E xong bảng tin, nội quy, Wi-Fi |
 
 Thứ tự ưu tiên: hoàn thành gateway và identity trước, vì các thành viên khác và mobile phụ thuộc vào chúng.
 
@@ -285,7 +285,7 @@ Thứ tự ưu tiên: hoàn thành gateway và identity trước, vì các thàn
 
 Các mục sau không có trong tài liệu phân công. Không tự quyết định rồi coi như đã chốt. Hỏi người A hoặc ghi rõ giả định trong PR.
 
-- **Cơ sở dữ liệu và ORM (đã chốt 5 DB trên 5 link Supabase riêng):** mỗi service 1 Postgres + Prisma riêng — A giữ `hrm_identity`; B giữ `hrm_organization` + `hrm_work`; D giữ `hrm_payroll`; E giữ `hrm_integration`, mỗi DB 1 `DATABASE_URL` riêng trỏ link Supabase riêng. Lớp lưu trữ đặt trong `src/infrastructure`. Cấm join xuyên DB, cần dữ liệu chéo thì gọi HTTP timeout 5000ms. `api-gateway` (4000) không cần DB — chỉ routing và proxy. B duy nhất sở hữu 2 DB (`hrm_organization` và `hrm_work`).
+- **Cơ sở dữ liệu và ORM (đã chốt 5 DB trên 5 link Supabase riêng):** mỗi service 1 Postgres + Prisma riêng — A giữ `hrm_identity`; B giữ `hrm_organization` + `hrm_work`; D giữ `hrm_payroll`; E giữ `hrm_integration`, mỗi DB 1 `DATABASE_URL` riêng trỏ link Supabase riêng. Lớp lưu trữ đặt trong `src/infrastructure`. Cấm join xuyên cơ sở dữ liệu, cần dữ liệu chéo thì gọi HTTP timeout 5000ms. `api-gateway` (4000) không cần DB — chỉ routing và proxy. B duy nhất sở hữu 2 DB (`hrm_organization` và `hrm_work`).
 - **Ai soạn schema chung:** không có người được giao riêng việc thiết kế dữ liệu. Mỗi người tự lo model của service mình, còn mục 6 là chuẩn chung.
 - **Body request và response của `/api/auth/login`, `/api/auth/me`:** không được quy định chi tiết, chỉ bắt buộc đúng envelope.
 - **Mật khẩu và thông tin 3 tài khoản seed:** không được nêu.
@@ -306,5 +306,5 @@ Các mục sau không có trong tài liệu phân công. Không tự quyết đ�
 5. Không commit thẳng vào `dev` hoặc `main`. Mỗi thay đổi đi qua nhánh `feat/...` và PR về `dev`.
 6. Sau mỗi thay đổi ở mobile, chạy `flutter analyze` và `flutter test`. Sau mỗi thay đổi ở backend, kiểm tra `GET /health` và chạy test của service.
 7. Khi báo kết quả, nói rõ đã chạy lệnh nào và kết quả ra sao. Không báo "pass" khi chưa chạy.
-8. Ưu tiên theo thứ tự: gateway + identity, đến đấu API mobile, đến build iOS, cuối cùng là đấu nối, demo REST idempotent và SOAP end-to-end, optimize.
+8. Ưu tiên theo thứ tự: gateway + identity, đến tích hợp API mobile, đến build iOS, cuối cùng là kết nối, demo REST idempotent và SOAP end-to-end, optimize.
 9. **Luật cập nhật tiến độ (bắt buộc):** sau khi hoàn thành mỗi task và trước khi nhờ review/merge PR, phải cập nhật file `Work_flow` của mình — đánh dấu `[x]` các việc đã xong, ghi rõ nhánh/PR liên quan và việc nào đang chờ thành viên khác. File `Work_flow` là kênh thông báo tiến độ chính cho cả nhóm; không để người khác phải hỏi mới biết làm đến đâu.

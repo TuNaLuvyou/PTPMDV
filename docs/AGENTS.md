@@ -24,8 +24,8 @@
 
 Quy tắc ranh giới:
 
-1. Agent được giao service nào thì chỉ tạo/sửa file trong `backend/<ten-service>/` đó **và chỉ chạm database của chính service đó**.
-2. Cấm đọc/ghi trực tiếp DB của service khác, cấm join xuyên DB, cấm FK xuyên DB. Cần dữ liệu chéo thì gọi HTTP qua `external-clients/` (timeout 5000ms).
+1. Agent được giao service nào thì chỉ tạo/sửa file trong `backend/<ten-service>/` đó **và chỉ truy cập database của chính service đó**.
+2. Cấm đọc/ghi trực tiếp DB của service khác, cấm join xuyên cơ sở dữ liệu, cấm FK xuyên cơ sở dữ liệu. Cần dữ liệu chéo thì gọi HTTP qua `external-clients/` (timeout 5000ms).
 2. Không sửa service của người khác, `frontend/` hay `mobile/` trừ khi đề bài ghi rõ.
 3. Khi cần thay đổi ở phần của người khác (thiếu endpoint, sai schema, sai envelope), không tự sửa. Ghi lại service, endpoint, kỳ vọng và thực tế rồi báo cho chủ service hoặc nhóm trưởng.
 
@@ -69,7 +69,7 @@ Agent phải tự kiểm tra toàn bộ mục sau và tick đầy đủ trước
 - [ ] Response đúng envelope `{data}` hoặc `{error: {code, message}}` theo `docs/RULES.md` (trừ tuyến SOAP trả XML).
 - [ ] Có `GET /health` đúng khuôn.
 - [ ] Có `.env.example` và `Dockerfile`.
-- [ ] Gọi liên service qua HTTP, timeout tối đa 5000ms, không import chéo mã nguồn, không join xuyên DB.
+- [ ] Gọi liên service qua HTTP, timeout tối đa 5000ms, không import chéo mã nguồn, không join xuyên cơ sở dữ liệu.
 - [ ] Đúng database của service mình (`hrm_identity` / `hrm_organization` / `hrm_work` / `hrm_payroll` / `hrm_integration`), có migration và `DATABASE_URL` riêng.
 - [ ] Nhánh đặt tên `feat/...` hoặc `fix/...`, đích pull request là `dev`.
 - [ ] Không sửa file thuộc phần của thành viên khác.
@@ -82,4 +82,4 @@ Agent phải tự kiểm tra toàn bộ mục sau và tick đầy đủ trước
 1. Các mục gắn nhãn **(suy ra)** hoặc **(chưa quy định)** trong file Work_Flow không phải yêu cầu chốt. Không tự quyết rồi coi như đã xong.
 2. Những điểm hay thiếu gồm: body chi tiết của login/me, mật khẩu seed, đường dẫn shifts/attendance/tasks/requests/notifications, body của `/health`, phân phiên bản `/api/v1/`, ma trận phân quyền chi tiết. Riêng CSDL và ORM đã chốt: 5 Postgres riêng + Prisma mỗi service 1 schema (xem `docs/TECHS.md` §6.2, `docs/RULES.md` §6).
 3. Cách xử lý: nêu giả định trong pull request, hỏi nhóm trưởng, chờ chốt rồi mới code tiếp.
-4. Ưu tiên làm theo thứ tự: hạ tầng dùng chung (gateway + identity) trước, rồi tới service nghiệp vụ, rồi tới đấu nối mobile/web, cuối cùng là demo idempotent và SOAP end-to-end rồi mới tối ưu.
+4. Ưu tiên làm theo thứ tự: hạ tầng dùng chung (gateway + identity) trước, rồi tới service nghiệp vụ, rồi tới kết nối mobile/web, cuối cùng là demo idempotent và SOAP end-to-end rồi mới tối ưu.
