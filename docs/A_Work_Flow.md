@@ -166,6 +166,7 @@ Gợi ý kỹ thuật **(suy ra)**: phiên dùng cookie `hrm-session`, nên CORS
 - [x] Tích hợp đăng nhập web qua gateway, phiên cookie `hrm-session` thật, bỏ mock (nhánh `feat/frontend-auth`).
 - [x] Nút "Quên mật khẩu?" của web nối với `POST /api/auth/forgot-password` qua gateway, bỏ mock (nhánh `feat/frontend-auth`).
 - [ ] Tích hợp 13 trang dashboard (employees, departments, branches, shifts, tasks, requests, payslips, bank, news, regulations, wifi, dashboard tổng) về API thật qua gateway (chờ các service 4002–4005 sẵn sàng).
+- [x] [Agent 2 – Task B1] Tích hợp trang bank (Ngân hàng & Chi lương: REST Idempotent + SOAP) về API thật qua gateway (nhánh `feat/frontend-payroll-content-api`, PR về `dev`).
 - [ ] RBAC menu theo `buildMenuItems(role)` nối với role thật từ identity-service.
 - [ ] Chốt ma trận phân quyền theo vai trò cho từng endpoint — **Phụ trách: A** (B §9 ghi chưa quy định) **(suy ra)**.
 
