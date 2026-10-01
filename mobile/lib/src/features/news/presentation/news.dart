@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/models/user.dart';
+import '../data/news_repository.dart';
 
 class NewsArticle {
   final String id;
@@ -43,7 +44,28 @@ class NewsScreen extends StatefulWidget {
 }
 
 class _NewsScreenState extends State<NewsScreen> {
-  final List<NewsArticle> _articles = [
+  final NewsRepository _newsRepo = NewsRepository();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchNews();
+  }
+
+  Future<void> _fetchNews() async {
+    try {
+      final list = await _newsRepo.getNews();
+      if (list.isNotEmpty && mounted) {
+        setState(() {
+          _articles = list;
+        });
+      }
+    } catch (_) {
+      // Fallback danh sách tĩnh khi mất mạng/service chưa sẵn sàng
+    }
+  }
+
+  List<NewsArticle> _articles = [
     const NewsArticle(
       id: 'n-1',
       title: 'Thông báo lịch nghỉ lễ Quốc khánh 02/09',
@@ -288,59 +310,62 @@ class _NewsScreenState extends State<NewsScreen> {
               label: const Text('Đăng thông báo', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             )
           : null,
-      body: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        itemCount: _articles.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final a = _articles[index];
-          return Card(
-            margin: EdgeInsets.zero,
-            elevation: 0.5,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-              side: BorderSide(color: Colors.grey.shade200),
-            ),
-            child: InkWell(
-              onTap: () => _showDetail(context, a),
-              borderRadius: BorderRadius.circular(14),
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                          decoration: BoxDecoration(color: a.tagColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
-                          child: Text(a.tag, style: TextStyle(color: a.tagColor, fontSize: 10.5, fontWeight: FontWeight.bold)),
-                        ),
-                        Text(a.date, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(a.title, style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                    const SizedBox(height: 4),
-                    Text(a.summary, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const FaIcon(FontAwesomeIcons.user, size: 13, color: AppColors.textSecondary),
-                        const SizedBox(width: 4),
-                        Text(a.author, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                        const Spacer(),
-                        const Text('Chi tiết', style: TextStyle(fontSize: 11.5, color: AppColors.primary, fontWeight: FontWeight.bold)),
-                        const FaIcon(FontAwesomeIcons.chevronRight, size: 14, color: AppColors.primary),
-                      ],
-                    ),
-                  ],
+      body: RefreshIndicator(
+        onRefresh: _fetchNews,
+        child: ListView.separated(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          itemCount: _articles.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final a = _articles[index];
+            return Card(
+              margin: EdgeInsets.zero,
+              elevation: 0.5,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(color: Colors.grey.shade200),
+              ),
+              child: InkWell(
+                onTap: () => _showDetail(context, a),
+                borderRadius: BorderRadius.circular(14),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            decoration: BoxDecoration(color: a.tagColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+                            child: Text(a.tag, style: TextStyle(color: a.tagColor, fontSize: 10.5, fontWeight: FontWeight.bold)),
+                          ),
+                          Text(a.date, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(a.title, style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                      const SizedBox(height: 4),
+                      Text(a.summary, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const FaIcon(FontAwesomeIcons.user, size: 13, color: AppColors.textSecondary),
+                          const SizedBox(width: 4),
+                          Text(a.author, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                          const Spacer(),
+                          const Text('Chi tiết', style: TextStyle(fontSize: 11.5, color: AppColors.primary, fontWeight: FontWeight.bold)),
+                          const FaIcon(FontAwesomeIcons.chevronRight, size: 14, color: AppColors.primary),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

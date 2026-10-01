@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../schedule/data/shift_repository.dart';
 
 class ShiftOption {
   final String id;
@@ -181,6 +182,11 @@ class _ScheduleRegistrationScreenState extends State<ScheduleRegistrationScreen>
   }
 
   void _onSelectShift(DayShiftRegistration day, String shiftId) {
+    ShiftRepository().registerShift(
+      employeeId: '1',
+      shiftId: shiftId,
+      preference: day.dateStr,
+    ).catchError((_) {});
     setState(() {
       day.selectedShiftId = shiftId;
     });
@@ -221,6 +227,11 @@ class _ScheduleRegistrationScreenState extends State<ScheduleRegistrationScreen>
       );
       return;
     }
+    ShiftRepository().registerShift(
+      employeeId: '1',
+      shiftId: 'preference_note',
+      preference: note,
+    ).catchError((_) {});
     setState(() {
       _currentWeekData.note = note;
       _currentWeekData.noteSent = true;

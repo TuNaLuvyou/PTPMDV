@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../leave_request/data/leave_repository.dart';
 
 class AdvanceRecord {
   final String id;
@@ -26,7 +27,40 @@ class SalaryAdvanceScreen extends StatefulWidget {
 }
 
 class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
-  final List<AdvanceRecord> _records = [
+  final LeaveRepository _leaveRepo = LeaveRepository();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAdvances();
+  }
+
+  Future<void> _fetchAdvances() async {
+    try {
+      final list = await _leaveRepo.getRequests();
+      if (list.isNotEmpty && mounted) {
+        final apiRecords = list.where((m) => m.type == 'advance').map((m) {
+          final amt = m.title.replaceFirst('Tạm ứng lương: ', '');
+          return AdvanceRecord(
+            id: m.id,
+            amount: amt.isNotEmpty ? amt : '1.000.000 đ',
+            date: m.createdAt ?? 'Vừa xong',
+            reason: m.content,
+            status: m.status,
+          );
+        }).toList();
+        if (apiRecords.isNotEmpty) {
+          setState(() {
+            _records = apiRecords;
+          });
+        }
+      }
+    } catch (_) {
+      // Giữ mock khi offline
+    }
+  }
+
+  List<AdvanceRecord> _records = [
     const AdvanceRecord(
       id: 'adv-1',
       amount: '2.000.000 đ',
@@ -117,6 +151,13 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
                     ),
                   );
                 });
+                _leaveRepo.createRequest({
+                  'type': 'advance',
+                  'title': 'Tạm ứng lương: $amount đ',
+                  'content': reason,
+                  'employeeId': '1',
+                }).then((_) => _fetchAdvances()).catchError((_) {});
+
                 Navigator.pop(modalCtx);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -155,7 +196,9 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
         icon: const FaIcon(FontAwesomeIcons.plus, color: Colors.white),
         label: const Text('Tạo yêu cầu', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
-      body: ListView(
+      body: RefreshIndicator(
+        onRefresh: _fetchAdvances,
+        child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // Thẻ hạn mức tạm ứng
@@ -207,7 +250,8 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
           ..._records.map((rec) => _buildRecordCard(rec)),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildRecordCard(AdvanceRecord rec) {

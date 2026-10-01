@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../leave_request/data/leave_repository.dart';
 
 class AdjustmentItem {
   final String id;
@@ -32,6 +33,7 @@ class AttendanceAdjustmentScreen extends StatefulWidget {
 }
 
 class _AttendanceAdjustmentScreenState extends State<AttendanceAdjustmentScreen> {
+  bool _isLoading = false;
   final List<AdjustmentItem> _items = [
     const AdjustmentItem(
       id: 'adj-1',
@@ -54,6 +56,40 @@ class _AttendanceAdjustmentScreenState extends State<AttendanceAdjustmentScreen>
       createdAt: '12/08 19:00',
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    try {
+      final requests = await LeaveRepository().getRequests();
+      final supps = requests.where((r) => r.type == 'work_supplement').toList();
+      if (supps.isNotEmpty && mounted) {
+        setState(() {
+          _items.clear();
+          for (final r in supps) {
+            _items.add(AdjustmentItem(
+              id: r.id,
+              date: r.createdAt != null && r.createdAt!.length >= 10
+                  ? r.createdAt!.substring(0, 10)
+                  : 'Hôm nay',
+              shiftName: r.title,
+              checkIn: '--:--',
+              checkOut: '--:--',
+              reason: r.content,
+              status: r.status,
+              createdAt: r.createdAt ?? '',
+            ));
+          }
+        });
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _isLoading = false);
+  }
 
   void _showCreateModal() {
     String selectedShift = 'Ca Sáng (08:00 - 12:00)';
@@ -182,6 +218,11 @@ class _AttendanceAdjustmentScreenState extends State<AttendanceAdjustmentScreen>
                     ),
                   );
                 });
+                LeaveRepository().createRequest({
+                  'type': 'work_supplement',
+                  'title': 'Bổ sung chấm công: $selectedShift',
+                  'content': 'Vào: ${inController.text.trim()}, Ra: ${outController.text.trim()}. Lý do: $reason',
+                }).then((_) {}).catchError((_) {});
                 Navigator.pop(modalCtx);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -220,34 +261,42 @@ class _AttendanceAdjustmentScreenState extends State<AttendanceAdjustmentScreen>
         icon: const FaIcon(FontAwesomeIcons.plus, color: Colors.white),
         label: const Text('Tạo yêu cầu', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0FDF4),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFBBF7D0)),
-            ),
-            child: const Row(
-              children: [
-                FaIcon(FontAwesomeIcons.circleCheck, color: Color(0xFF16A34A), size: 22),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Đơn giải trình hợp lệ sẽ được Quản lý chi nhánh duyệt và cập nhật công ca vào bảng lương tháng.',
-                    style: TextStyle(fontSize: 12.5, color: Color(0xFF15803D), height: 1.3),
+      body: RefreshIndicator(
+        onRefresh: _loadData,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: [
+            if (_isLoading) ...[
+              const LinearProgressIndicator(),
+              const SizedBox(height: 12),
+            ],
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFBBF7D0)),
+              ),
+              child: const Row(
+                children: [
+                  FaIcon(FontAwesomeIcons.circleCheck, color: Color(0xFF16A34A), size: 22),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Đơn giải trình hợp lệ sẽ được Quản lý chi nhánh duyệt và cập nhật công ca vào bảng lương tháng.',
+                      style: TextStyle(fontSize: 12.5, color: Color(0xFF15803D), height: 1.3),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 18),
-          const Text('Danh sách yêu cầu bổ sung công', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-          const SizedBox(height: 10),
-          ..._items.map((item) => _buildItemCard(item)),
-        ],
+            const SizedBox(height: 18),
+            const Text('Danh sách yêu cầu bổ sung công', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+            const SizedBox(height: 10),
+            ..._items.map((item) => _buildItemCard(item)),
+          ],
+        ),
       ),
     );
   }

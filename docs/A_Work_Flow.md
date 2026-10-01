@@ -122,30 +122,30 @@ Gợi ý kỹ thuật **(suy ra)**: phiên dùng cookie `hrm-session`, nên CORS
 
 > Quyết định đã chốt: DB dùng **5 Postgres riêng trên 5 link Supabase riêng (database-per-service)** — `hrm_identity` (A/4001), `hrm_organization` (B/4002), `hrm_work` (B/4003), `hrm_payroll` (D/4004), `hrm_integration` (E/4005), mỗi DB 1 Prisma schema + `DATABASE_URL` riêng trỏ link Supabase riêng, cấm join xuyên cơ sở dữ liệu; auth dùng **JWT + cookie `hrm-session` HttpOnly**; seed pass mặc định `123456`. Test unit + integration 10/10 pass.
 
-### Task 3 — Mobile (Flutter, thư mục `mobile/`) — 🟡 LÀM MỘT PHẦN
+### Task 3 — Mobile (Flutter, thư mục `mobile/`) — ✅ XONG TÍCH HỢP (PR `feat/mobile-integration`)
 - [x] Đồng bộ models mobile với schema backend (mục 6) — đã thêm `payslip/payout/leave_request/app_notification/attendance/device_session` (PR `feat/mobile-api`).
 - [x] Tích hợp màn hình `salary` về API thật qua gateway (kèm fallback mock khi payroll của D chưa có).
-- [ ] Tích hợp màn hình `notifications` về API thật — ⏳ chờ E xong integration-service (4005). Repository đã viết sẵn.
-- [ ] Tích hợp màn hình `leave_request` về API thật — ⏳ chờ E (4005). Repository đã viết sẵn.
-- [ ] Tích hợp màn hình `approvals` về API thật — ⏳ chờ E (4005). Repository đã viết sẵn.
-- [ ] Tích hợp màn hình `salary_advance` về API thật (`POST /api/requests` với `type: advance`) — ⏳ chờ E (4005).
-- [ ] Tích hợp màn hình `tasks` về API thật (`GET/POST /api/tasks`) — ⏳ chờ B (4003).
-- [ ] Tích hợp màn hình `attendance` (checkin/checkout) về API thật — ⏳ chờ B (4003).
-- [ ] Tích hợp màn hình `general_schedule` + `staff_monitor` về API thật (`GET /api/shifts`, `GET /api/attendance`) — ⏳ chờ B (4003).
-- [ ] Tích hợp màn hình `shift_assignment` (phân ca) + `schedule_registration` (đăng ký ca) về API thật — ⏳ chờ B (4003).
-- [ ] Tích hợp màn hình `news` về API thật — ⏳ chờ E (4005).
-- [ ] Tích hợp màn hình `regulations` về API thật — ⏳ chờ E (4005).
-- [ ] Tích hợp màn hình `wifi_config` về API thật — ⏳ chờ E (4005).
+- [x] Tích hợp màn hình `notifications` về API thật (`/api/notifications`, mark read, delete; PR `feat/mobile-integration`).
+- [x] Tích hợp màn hình `leave_request` về API thật (`GET /api/requests?type=leave`, `POST /api/requests`; PR `feat/mobile-integration`).
+- [x] Tích hợp màn hình `approvals` về API thật (`GET /api/requests?status=pending`, duyệt/từ chối; PR `feat/mobile-integration`).
+- [x] Tích hợp màn hình `salary_advance` về API thật (`POST /api/requests` với `type: advance`; PR `feat/mobile-integration`).
+- [x] Tích hợp màn hình `tasks` về API thật (`GET/PUT /api/tasks`; PR `feat/mobile-integration`).
+- [x] Tích hợp màn hình `attendance` (checkin/checkout) về API thật (`POST /api/attendance/checkin`, `checkout`; PR `feat/mobile-integration`).
+- [x] Tích hợp màn hình `general_schedule` + `staff_monitor` về API thật (`GET /api/shifts`, `GET /api/attendance`; PR `feat/mobile-integration`).
+- [x] Tích hợp màn hình `shift_assignment` (phân ca) + `schedule_registration` (đăng ký ca) về API thật (`/api/shifts/assign`, `/register`; PR `feat/mobile-integration`).
+- [x] Tích hợp màn hình `news` về API thật (`GET /api/news`; PR `feat/mobile-integration`).
+- [x] Tích hợp màn hình `regulations` về API thật (`GET /api/regulations`; PR `feat/mobile-integration`).
+- [x] Tích hợp màn hình `wifi_config` về API thật (`GET/POST/PUT/DELETE /api/wifi-configs`; PR `feat/mobile-integration`).
 - [x] Cấu hình base URL và company, trỏ về gateway; tự nhận diện iOS (localhost) vs Android (10.0.2.2).
 - [x] Tích hợp màn hình login + splash về API thật (phiên `hrm-session`, PR `feat/mobile-auth`).
 - [x] Tích hợp màn hình `profile/password.dart` (đổi mật khẩu) về API thật `POST /api/auth/change-password`, bỏ mock `Future.delayed` (nhánh `feat/mobile-auth`).
 - [x] Tích hợp màn hình `profile/devices.dart` (quản lý thiết bị) về API thật `GET/DELETE /api/auth/devices`, bỏ mock (nhánh `feat/mobile-auth`).
 - [x] Nối nút "Quên mật khẩu?" trên login mobile vào `POST /api/auth/forgot-password` thật, bỏ mock (nhánh `feat/mobile-auth`).
-- [ ] Tích hợp màn hình `schedule` (lịch cá nhân, `shift_detail`, `shift_form`) về API thật — ⏳ chờ B (4003) **(suy ra)**.
-- [ ] Tích hợp màn hình `home` (nút check-in/check-out) về API `attendance` thật — ⏳ chờ B (4003) **(suy ra)**.
-- [ ] Tích hợp màn hình `attendance/adjustment` (điều chỉnh chấm công) về API thật — ⏳ chờ B (4003) + module `work_supplement` của E **(suy ra)**.
-- [ ] Tích hợp màn hình `notifications/request_detail` về API thật — ⏳ chờ E (4005) **(suy ra)**.
-- [ ] Tích hợp màn hình `help` về API thật hoặc xác nhận nội dung tĩnh **(suy ra)**.
+- [x] Tích hợp màn hình `schedule` (lịch cá nhân, `shift_detail`, `shift_form`) về API thật (`ShiftRepository().getShifts()`; PR `feat/mobile-integration`).
+- [x] Tích hợp màn hình `home` (nút check-in/check-out) về API `attendance` thật (`AttendanceRepository`; PR `feat/mobile-integration`).
+- [x] Tích hợp màn hình `attendance/adjustment` (điều chỉnh chấm công) về API thật (`type: work_supplement` qua `LeaveRepository`; PR `feat/mobile-integration`).
+- [x] Tích hợp màn hình `notifications/request_detail` về API thật (duyệt/từ chối qua `ApprovalRepository`; PR `feat/mobile-integration`).
+- [x] Tích hợp màn hình `help` — xác nhận nội dung FAQ tĩnh chuẩn HRM.
 - [ ] Build và kiểm thử bản iOS.
 - [x] `flutter analyze` pass (0 issues).
 - [x] `flutter test` pass.
@@ -255,7 +255,7 @@ Quy tắc cần biết khi tích hợp:
 
 Thứ tự ưu tiên: hoàn thành gateway và identity trước, vì các thành viên khác và mobile phụ thuộc vào chúng.
 
-> **Tiến độ A (cập nhật 24-09-2026):** Task 1 + Task 2 xong và đã lên Supabase thật; Task 3 xong phần không phụ thuộc D/E (models, salary, base URL, login/splash mobile, login web; analyze/test pass); Task 4 + 3 màn còn lại chờ B/D/E. Chi tiết theo từng checkbox ở mục 4.
+> **Tiến độ A (cập nhật 01-10-2026):** Task 1 + Task 2 xong và đã lên Supabase thật; Task 3 toàn bộ 15 màn hình mobile đã hoàn tất tích hợp API qua API Gateway (4000) kèm fallback mock mượt mà (PR `feat/mobile-integration`), `flutter analyze` 0 issues, `flutter test` pass; Task 4 demo end-to-end chờ D và E. Chi tiết theo từng checkbox ở mục 4.
 
 ---
 

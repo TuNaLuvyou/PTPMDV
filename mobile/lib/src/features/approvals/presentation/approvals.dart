@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/widgets/branch_selector.dart';
+import '../data/approval_repository.dart';
 
 // ─── Models ──────────────────────────────────────────────────────────────────
 
@@ -47,6 +48,7 @@ class ShiftRequestScreen extends StatefulWidget {
 
 class _ShiftRequestScreenState extends State<ShiftRequestScreen>
     with SingleTickerProviderStateMixin {
+  final ApprovalRepository _approvalRepo = ApprovalRepository();
   late TabController _tabController;
   late List<ShiftRequest> _requests;
 
@@ -113,6 +115,40 @@ class _ShiftRequestScreenState extends State<ShiftRequestScreen>
         status: ShiftRequestStatus.approved,
       ),
     ];
+    _fetchPendingRequests();
+  }
+
+  Future<void> _fetchPendingRequests() async {
+    try {
+      final list = await _approvalRepo.getPending();
+      if (list.isNotEmpty && mounted) {
+        final apiRequests = list.map((m) {
+          ShiftRequestType t = ShiftRequestType.leave;
+          if (m.type == 'advance') {
+            t = ShiftRequestType.advance;
+          } else if (m.type == 'overtime') {
+            t = ShiftRequestType.coverMe;
+          }
+          return ShiftRequest(
+            id: m.id,
+            staffName: 'Nhân sự #${m.employeeId}',
+            staffRole: m.branchSlug ?? 'Nhân viên',
+            staffAvatar: m.employeeId.isNotEmpty ? m.employeeId[0].toUpperCase() : 'N',
+            type: t,
+            currentShift: m.title,
+            reason: m.content,
+            submittedAt: m.createdAt ?? 'Vừa xong',
+            status: ShiftRequestStatus.pending,
+          );
+        }).toList();
+        setState(() {
+          final nonPending = _requests.where((r) => r.status != ShiftRequestStatus.pending).toList();
+          _requests = [...apiRequests, ...nonPending];
+        });
+      }
+    } catch (_) {
+      // Giữ mock khi offline
+    }
   }
 
   @override
@@ -129,6 +165,7 @@ class _ShiftRequestScreenState extends State<ShiftRequestScreen>
       _requests.where((r) => r.status == ShiftRequestStatus.rejected).toList();
 
   void _approve(ShiftRequest request) {
+    _approvalRepo.approve(request.id).catchError((_) {});
     setState(() => request.status = ShiftRequestStatus.approved);
     final text = request.type == ShiftRequestType.swap
         ? '✅ Quản lý đã duyệt đồng ý hộ đổi ca cho ${request.staffName}'
@@ -142,6 +179,7 @@ class _ShiftRequestScreenState extends State<ShiftRequestScreen>
   }
 
   void _reject(ShiftRequest request) {
+    _approvalRepo.reject(request.id).catchError((_) {});
     setState(() => request.status = ShiftRequestStatus.rejected);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -211,11 +249,14 @@ class _ShiftRequestScreenState extends State<ShiftRequestScreen>
         ),
       );
     }
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: requests.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) => _buildRequestCard(requests[index], showActions: showActions),
+    return RefreshIndicator(
+      onRefresh: _fetchPendingRequests,
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: requests.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (context, index) => _buildRequestCard(requests[index], showActions: showActions),
+      ),
     );
   }
 

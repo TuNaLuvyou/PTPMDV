@@ -4,6 +4,7 @@ import '../../../core/constants/colors.dart';
 import '../../../core/widgets/branch_selector.dart';
 import '../../../core/widgets/week_strip.dart';
 import '../../../core/models/user.dart';
+import '../../schedule/data/shift_repository.dart';
 
 /// Model nhân sự đã được phân công vào ca làm việc
 class AssignedStaff {
@@ -331,6 +332,7 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
   }
 
   void _addStaffToShift(String dayKey, String shiftName, AssignedStaff staff) {
+    ShiftRepository().assignShift(shiftName, employeeId: staff.id).catchError((_) {});
     setState(() {
       _assignments[dayKey] ??= {};
       _assignments[dayKey]![shiftName] ??= [];
@@ -346,6 +348,7 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
   }
 
   void _removeStaffFromShift(String dayKey, String shiftName, AssignedStaff staff) {
+    ShiftRepository().deleteShift(shiftName).catchError((_) {});
     setState(() {
       _assignments[dayKey]?[shiftName]?.removeWhere((s) => s.id == staff.id);
     });

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../leave_request/data/leave_repository.dart';
 import 'schedule.dart';
 
 enum ShiftActionType {
@@ -210,17 +211,28 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
     }
 
     String successMsg = '';
+    String reqType = 'leave';
     switch (widget.actionType) {
       case ShiftActionType.cover:
+        reqType = 'overtime';
         successMsg = '✅ Đã gửi lời nhờ làm thay tới $_selectedColleague!';
         break;
       case ShiftActionType.swap:
+        reqType = 'overtime';
         successMsg = '✅ Đã gửi yêu cầu đổi ca tới ${_selectedSwapStaff?.displayName}!';
         break;
       case ShiftActionType.leave:
+        reqType = 'leave';
         successMsg = '✅ Đã gửi đơn xin nghỉ ca tới Quản lý chi nhánh!';
         break;
     }
+
+    LeaveRepository().createRequest({
+      'type': reqType,
+      'title': '${widget.actionType == ShiftActionType.leave ? "Xin nghỉ ca" : "Đổi ca"}: ${widget.shift.shiftName}',
+      'content': _reasonController.text.trim(),
+      'employeeId': '1',
+    }).then((_) {}).catchError((_) {});
 
     Navigator.pop(context, true);
     ScaffoldMessenger.of(context).showSnackBar(

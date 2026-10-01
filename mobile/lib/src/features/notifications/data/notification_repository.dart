@@ -19,4 +19,7 @@ class NotificationRepository {
 
   Future<void> markRead(String id) =>
       api.putJson('/api/notifications/$id/read', {});
+
+  Future<void> deleteNotification(String id) =>
+      api.delete('/api/notifications/$id');
 }

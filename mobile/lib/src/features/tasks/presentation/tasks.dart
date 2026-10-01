@@ -3,6 +3,7 @@ import '../../../core/constants/colors.dart';
 import '../../../core/widgets/branch_selector.dart';
 import '../../../core/models/user.dart';
 import '../data/service.dart';
+import '../data/task_repository.dart';
 
 class TaskListScreen extends StatefulWidget {
   final UserModel currentUser;
@@ -24,6 +25,7 @@ class TaskListScreen extends StatefulWidget {
 }
 
 class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProviderStateMixin {
+  final TaskRepository _taskRepo = TaskRepository();
   late TabController _tabController;
   late List<TaskModel> _tasks;
 
@@ -56,10 +58,21 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
     super.dispose();
   }
 
-  void _loadTasks() {
+  Future<void> _loadTasks() async {
     setState(() {
       _tasks = TaskService.getTasksForUser(userEmail: widget.currentUser.email);
     });
+
+    try {
+      final remoteTasks = await _taskRepo.getTasks();
+      if (remoteTasks.isNotEmpty && mounted) {
+        setState(() {
+          _tasks = remoteTasks;
+        });
+      }
+    } catch (_) {
+      // Giữ mock khi offline
+    }
   }
 
   List<TaskModel> _filterTasks(int tabIndex) {
@@ -80,6 +93,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
   void _handleCompleteTask(TaskModel task) {
     if (task.computedStatus == TaskStatus.completed) {
       // Cho phép hủy đánh dấu nếu cần
+      _taskRepo.updateTaskStatus(task.id, 'pending').catchError((_) {});
       TaskService.updateTaskStatus(task.id, TaskStatus.pending);
       _loadTasks();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -96,6 +110,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
       _showPhotoProofSheet(task);
     } else {
       // Không yêu cầu chụp ảnh -> Hoàn thành trực tiếp
+      _taskRepo.updateTaskStatus(task.id, 'completed').catchError((_) {});
       TaskService.completeTask(task.id);
       _loadTasks();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -890,14 +905,17 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
             );
           }
 
-          return ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            itemCount: filtered.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (ctx, index) {
-              final task = filtered[index];
-              return _buildTaskCard(task);
-            },
+          return RefreshIndicator(
+            onRefresh: _loadTasks,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              itemCount: filtered.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (ctx, index) {
+                final task = filtered[index];
+                return _buildTaskCard(task);
+              },
+            ),
           );
         }),
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../data/notification_repository.dart';
 import 'request_detail.dart';
 
 // ─── State Quản lý số lượng thông báo chưa đọc ────────────────────────────────
@@ -82,6 +83,7 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
+  final NotificationRepository _repo = NotificationRepository();
   bool _isSelecting = false;
   final Set<String> _selectedIds = {};
 
@@ -186,6 +188,35 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
     ];
     _syncUnreadCount();
+    _fetchNotifications();
+  }
+
+  Future<void> _fetchNotifications() async {
+    try {
+      final list = await _repo.getNotifications();
+      if (list.isNotEmpty && mounted) {
+        final remoteItems = list.map((m) {
+          final isReq = m.title.toLowerCase().contains('ca') ||
+              m.title.toLowerCase().contains('đổi') ||
+              m.title.toLowerCase().contains('nhờ');
+          return NotificationItem(
+            id: m.id,
+            title: m.title,
+            content: m.body,
+            time: m.createdAt ?? 'Vừa xong',
+            icon: isReq ? FontAwesomeIcons.arrowsLeftRight : FontAwesomeIcons.bell,
+            iconColor: isReq ? AppColors.primary : Colors.blue,
+            isRead: m.isRead,
+          );
+        }).toList();
+        setState(() {
+          _notifications = remoteItems;
+        });
+        _syncUnreadCount();
+      }
+    } catch (_) {
+      // Giữ mock khi offline/service lỗi
+    }
   }
 
   void _syncUnreadCount() {
@@ -202,6 +233,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }
     });
     _syncUnreadCount();
+    for (var item in _notifications) {
+      _repo.markRead(item.id).catchError((_) {});
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         backgroundColor: Colors.green,
@@ -230,6 +264,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   void _markSelectedAsRead() {
     if (_selectedIds.isEmpty) return;
+    for (final id in _selectedIds) {
+      _repo.markRead(id).catchError((_) {});
+    }
     setState(() {
       for (var item in _notifications) {
         if (_selectedIds.contains(item.id)) {
@@ -266,6 +303,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
+              for (final id in _selectedIds) {
+                _repo.deleteNotification(id).catchError((_) {});
+              }
               setState(() {
                 _notifications.removeWhere((n) => _selectedIds.contains(n.id));
                 _isSelecting = false;
@@ -293,6 +333,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   void _deleteSingle(NotificationItem item) {
+    _repo.deleteNotification(item.id).catchError((_) {});
     final index = _notifications.indexOf(item);
     setState(() {
       _notifications.remove(item);
@@ -319,6 +360,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _openRequestDetail(NotificationItem item) async {
+    _repo.markRead(item.id).catchError((_) {});
     setState(() => item.isRead = true);
     _syncUnreadCount();
 
@@ -364,6 +406,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   void _showNotificationDetail(NotificationItem item) {
+    _repo.markRead(item.id).catchError((_) {});
     setState(() => item.isRead = true);
     _syncUnreadCount();
 
@@ -501,14 +544,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ],
               ),
             )
-          : ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              itemCount: _notifications.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final item = _notifications[index];
-                return _buildNotificationCard(item);
-              },
+          : RefreshIndicator(
+              onRefresh: _fetchNotifications,
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                itemCount: _notifications.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final item = _notifications[index];
+                  return _buildNotificationCard(item);
+                },
+              ),
             ),
       bottomNavigationBar: _isSelecting ? _buildSelectionBottomBar() : null,
     );
