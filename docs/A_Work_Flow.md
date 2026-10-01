@@ -160,7 +160,7 @@ Gợi ý kỹ thuật **(suy ra)**: phiên dùng cookie `hrm-session`, nên CORS
 - [ ] Demo **SAGA compensating transaction** cho luồng chi lương khi thất bại giữa chừng (TECHS.md §6.3, phối hợp cùng D và E) **(suy ra)**.
 - [ ] **API Composition** cho trang dashboard web (gộp organization + work + payroll) và **BFF** payload gọn cho mobile (TECHS.md §6.3) **(suy ra)**.
 
-### Task 5 — Web Portal (`frontend/`) — 🟡 LÀM MỘT PHẦN — Phụ trách: **A** (TECHS.md yêu cầu demo trên web)
+### Task 5 — Web Portal (`frontend/`) — ✅ XONG — Phụ trách: **A** (TECHS.md yêu cầu demo trên web)
 > Tài liệu phân công gốc không giao web cho ai; A nhận phụ trách toàn diện.
 - [x] Chủ sở hữu `frontend/`: **A**.
 - [x] Tích hợp đăng nhập web qua gateway, phiên cookie `hrm-session` thật, bỏ mock (nhánh `feat/frontend-auth`).
@@ -176,9 +176,9 @@ Gợi ý kỹ thuật **(suy ra)**: phiên dùng cookie `hrm-session`, nên CORS
 - [x] [Agent 2 – Task B3] Tích hợp trang news (tạo/sửa/xóa bài viết) về API thật qua gateway (nhánh `feat/frontend-news`).
 - [x] [Agent 2 – Task B4] Tích hợp trang regulations (tạo/sửa/xóa/ghim văn bản) về API thật qua gateway (nhánh `feat/frontend-regulations`).
 - [x] [Agent 2 – Task B5] Tích hợp trang wifi (thêm/sửa/xóa cấu hình chấm công) về API thật qua gateway (nhánh `feat/frontend-wifi`).
-- [ ] Tích hợp các trang dashboard còn lại (dashboard tổng) về API thật qua gateway.
-- [ ] RBAC menu theo `buildMenuItems(role)` nối với role thật từ identity-service.
-- [ ] Chốt ma trận phân quyền theo vai trò cho từng endpoint — **Phụ trách: A** (B §9 ghi chưa quy định) **(suy ra)**.
+- [x] Tích hợp toàn bộ 11/11 trang dashboard về API thật qua gateway (trang tổng `/dashboard` chuyển hướng về `/dashboard/employees`).
+- [x] RBAC menu theo `buildMenuItems(role)` nối với role thật từ identity-service qua `AuthContext`.
+- [x] Chốt ma trận phân quyền theo vai trò cho từng endpoint (Admin toàn quyền hệ thống; Manager phụ trách chi nhánh; Staff cá nhân).
 
 
 ---
@@ -266,7 +266,7 @@ Quy tắc cần biết khi tích hợp:
 
 Thứ tự ưu tiên: hoàn thành gateway và identity trước, vì các thành viên khác và mobile phụ thuộc vào chúng.
 
-> **Tiến độ A (cập nhật 01-10-2026):** Task 1 + Task 2 xong và đã lên Supabase thật; Task 3 toàn bộ 15 màn hình mobile đã hoàn tất tích hợp API qua API Gateway (4000) kèm fallback mock mượt mà (PR `feat/mobile-integration`), `flutter analyze` 0 issues, `flutter test` pass; Task 4 demo end-to-end chờ D và E. Chi tiết theo từng checkbox ở mục 4.
+> **Tiến độ A (cập nhật 01-10-2026):** Task 1 + Task 2 xong và đã lên Supabase thật; Task 3 toàn bộ 15 màn hình mobile đã hoàn tất tích hợp API qua API Gateway (4000) kèm fallback mock mượt mà (PR `feat/mobile-integration`), `flutter analyze` 0 issues, `flutter test` pass; Task 5 toàn bộ 11 trang Web Portal Dashboard + Auth + RBAC đã hoàn tất kết nối API thật qua gateway và merge vào dev; Task 4 demo end-to-end chờ D và E. Chi tiết theo từng checkbox ở mục 4.
 
 ---
 
