@@ -3,8 +3,9 @@
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { Field, Input, Select, Checkbox } from "@/components/ui/Form";
-import { employees } from "@/mock-data/portal";
+import { employees as mockEmployees } from "@/mock-data/portal";
 import type { ShiftTemplate } from "@/features/shifts/types";
+import type { Employee } from "@/types";
 
 interface Props {
   open: boolean;
@@ -19,6 +20,7 @@ interface Props {
   isManager?: boolean;
   managerBranch?: string;
   lockedBranch?: string;
+  employees?: Employee[];
   onEmployeeChange: (v: string) => void;
   onBranchChange: (v: string) => void;
   onDateChange: (v: string) => void;
@@ -41,6 +43,7 @@ export default function AssignShiftModal({
   isManager = false,
   managerBranch,
   lockedBranch,
+  employees: employeesProp,
   onEmployeeChange,
   onBranchChange,
   onDateChange,
@@ -49,6 +52,7 @@ export default function AssignShiftModal({
   onRecurringChange,
   onSave,
 }: Props) {
+  const empList = (employeesProp && employeesProp.length > 0) ? employeesProp : mockEmployees;
   const isBranchLocked = isManager || (lockedBranch !== undefined && lockedBranch !== "all" && lockedBranch !== "");
   const branchDisplay = isManager ? (managerBranch ?? branch) : (lockedBranch && lockedBranch !== "all" ? lockedBranch : branch);
   return (
@@ -56,7 +60,7 @@ export default function AssignShiftModal({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1">
         <Field label="Nhân viên" required>
           <Select value={employee} onChange={(e) => onEmployeeChange(e.target.value)}>
-            {employees.filter((e) => e.status === "đang làm").map((emp) => (
+            {empList.filter((e) => e.status === "đang làm").map((emp) => (
               <option key={emp.id} value={emp.name}>{emp.name} ({emp.role})</option>
             ))}
           </Select>
