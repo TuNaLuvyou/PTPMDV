@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { Field, Select } from "@/components/ui/Form";
@@ -7,9 +8,19 @@ import { Field, Select } from "@/components/ui/Form";
 interface Props {
   open: boolean;
   onClose: () => void;
+  defaultMonth: string;
+  pendingCount: number;
+  saving: boolean;
+  onConfirm: (month: string) => void;
 }
 
-export default function BulkClosePayslipModal({ open, onClose }: Props) {
+export default function BulkClosePayslipModal({ open, onClose, defaultMonth, pendingCount, saving, onConfirm }: Props) {
+  const [month, setMonth] = useState(defaultMonth);
+
+  useEffect(() => {
+    if (open) setMonth(defaultMonth);
+  }, [open, defaultMonth]);
+
   return (
     <Modal
       open={open}
@@ -18,32 +29,29 @@ export default function BulkClosePayslipModal({ open, onClose }: Props) {
       size="md"
       footer={
         <>
-          <Button variant="white" onClick={onClose}>Hủy</Button>
-          <Button onClick={onClose}>Chốt</Button>
+          <Button variant="white" onClick={onClose} disabled={saving}>Hủy</Button>
+          <Button onClick={() => onConfirm(month)} disabled={saving}>
+            {saving ? "Đang chốt..." : `Chốt${pendingCount > 0 ? ` ${pendingCount} phiếu` : ""}`}
+          </Button>
         </>
       }
     >
       <Field label="Kỳ lương (theo tháng)" required>
         <div className="grid grid-cols-2 gap-2">
-          <Select defaultValue="08">
-            <option value="08">Tháng 08</option>
-            <option value="07">Tháng 07</option>
+          <Select value={month} onChange={(e) => setMonth(e.target.value)} disabled={saving}>
+            <option value="08/2026">Tháng 08/2026</option>
+            <option value="07/2026">Tháng 07/2026</option>
+            <option value="10/2026">Tháng 10/2026</option>
           </Select>
-          <Select defaultValue="2026">
+          <Select defaultValue="2026" disabled>
             <option value="2026">2026</option>
-            <option value="2025">2025</option>
           </Select>
         </div>
       </Field>
-      <Field label="Phạm vi" required>
-        <Select defaultValue="all">
-          <option value="all">Toàn công ty</option>
-          <option value="hn-1">Chi nhánh HN-1</option>
-          <option value="emp">Từng nhân viên</option>
-        </Select>
-      </Field>
       <div className="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-500">
-        Hệ thống sẽ lập phiếu lương theo tháng đã chọn (công, lương, thưởng / phạt) cho phạm vi trên.
+        Hệ thống sẽ chuyển toàn bộ phiếu <strong>chưa chốt</strong> của kỳ {month} sang{" "}
+        <strong>đã chốt</strong> qua <span className="font-mono">PUT /api/payroll/payslips/:id/status</span>.
+        Sau khi chốt sẽ không thể chỉnh sửa thưởng/phạt.
       </div>
     </Modal>
   );
