@@ -169,12 +169,13 @@ Gợi ý kỹ thuật **(suy ra)**: phiên dùng cookie `hrm-session`, nên CORS
 - [x] [Agent 1 – Task A2] Tích hợp trang branches về API thật `GET/POST/PUT/DELETE /api/branches` qua gateway (nhánh `feat/frontend-branches`).
 - [x] [Agent 1 – Task A3] Tích hợp trang departments về API thật `GET/POST/PUT/DELETE /api/departments` qua gateway (nhánh `feat/frontend-departments`).
 - [x] [Agent 1 – Task A4] Tích hợp trang shifts về API thật `GET/POST/PUT/DELETE /api/shifts`, `/assign`, `/registrations` qua gateway (nhánh `feat/frontend-shifts`).
+- [x] [Agent 1 – Task A5] Tích hợp trang tasks về API thật `GET/POST/PUT/DELETE /api/tasks` qua gateway (nhánh `feat/frontend-tasks`).
 - [x] [Agent 2 – Task B1] Tích hợp trang bank (Ngân hàng & Chi lương: REST Idempotent + SOAP) về API thật qua gateway (nhánh `feat/frontend-payroll-content-api`).
 - [x] [Agent 2 – Task B2] Tích hợp trang payslips (điều chỉnh thưởng/phạt, chốt đơn + hàng loạt, tạo phiếu tháng) về API thật qua gateway (nhánh `feat/frontend-payslips`).
 - [x] [Agent 2 – Task B3] Tích hợp trang news (tạo/sửa/xóa bài viết) về API thật qua gateway (nhánh `feat/frontend-news`).
 - [x] [Agent 2 – Task B4] Tích hợp trang regulations (tạo/sửa/xóa/ghim văn bản) về API thật qua gateway (nhánh `feat/frontend-regulations`).
 - [x] [Agent 2 – Task B5] Tích hợp trang wifi (thêm/sửa/xóa cấu hình chấm công) về API thật qua gateway (nhánh `feat/frontend-wifi`).
-- [ ] Tích hợp các trang dashboard còn lại (tasks, requests, dashboard tổng) về API thật qua gateway.
+- [ ] Tích hợp các trang dashboard còn lại (requests, dashboard tổng) về API thật qua gateway.
 - [ ] RBAC menu theo `buildMenuItems(role)` nối với role thật từ identity-service.
 - [ ] Chốt ma trận phân quyền theo vai trò cho từng endpoint — **Phụ trách: A** (B §9 ghi chưa quy định) **(suy ra)**.
 
