@@ -17,6 +17,8 @@ app.use(
   })
 );
 app.use(express.json({ limit: "1mb" }));
+// SOAP nhận và trả XML nguyên vẹn — không bọc {data}/{error}.
+app.use(express.text({ limit: "1mb", type: ["text/xml", "application/xml", "application/soap+xml"] }));
 app.use(cookieParser());
 
 // Health check endpoint đúng chuẩn: { status: "ok", service: "...", time: "..." }
@@ -32,6 +34,10 @@ app.get("/health", (_req, res) => {
 app.use("/api/news", require("./api/routes/newsRoutes"));
 app.use("/api/regulations", require("./api/routes/regulationRoutes"));
 app.use("/api/wifi-configs", require("./api/routes/wifiConfigRoutes"));
+app.use("/api/requests", require("./api/routes/requestRoutes"));
+app.use("/api/notifications", require("./api/routes/notificationRoutes"));
+// SOAP ngân hàng: chuyển tiếp nguyên vẹn body/headers/status XML.
+app.use("/soap/payroll", require("./api/routes/soapRoutes"));
 
 // Xử lý 404
 app.use((_req, res) => {

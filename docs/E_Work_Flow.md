@@ -80,9 +80,9 @@ Mỗi service có `GET /health`. Tài liệu PTPMDV không nêu định dạng b
 
 ## 4. Danh sách việc của E
 
-### Task 1 — integration-service (cổng 4005)
-- [ ] **SOAP:** `GET /soap/payroll?wsdl` (WSDL hợp lệ) và `POST /soap/payroll` (nhận `PayoutRequest`, trả `PayoutResponse`, lỗi trả `soap:Fault`). SOAP phải tạo được lệnh chi.
-- [ ] **Requests (yêu cầu nội bộ):**
+### Task 1 — integration-service (cổng 4005) — ✅ XONG (nhánh `feat/integration-requests-soap`)
+- [x] **SOAP:** `GET /soap/payroll?wsdl` (WSDL hợp lệ) và `POST /soap/payroll` (nhận `PayoutRequest`, trả `PayoutResponse`, lỗi trả `soap:Fault`). SOAP phải tạo được lệnh chi.
+- [x] **Requests (yêu cầu nội bộ):**
   - `GET /api/requests?employeeId=&branchSlug=&status=&type=` — danh sách yêu cầu.
   - `GET /api/requests/:id` — chi tiết một yêu cầu (phục vụ màn `request_detail` trên mobile) **(suy ra)**.
   - `POST /api/requests` — tạo yêu cầu mới. `type` chấp nhận: `leave`, `overtime`, `advance`, `shift_swap`, `work_supplement`, `other`.
@@ -91,7 +91,7 @@ Mỗi service có `GET /health`. Tài liệu PTPMDV không nêu định dạng b
   - `DELETE /api/requests/:id` — xóa, chỉ khi `status = pending`.
   - **Lưu ý `shift_swap`:** payload cần thêm `sourceShiftId` và `targetShiftId` để xác định ca đổi. Khi duyệt, gọi `PUT /api/shifts/:id` của B (work-service 4003) để cập nhật phân công **(suy ra)**. Xác nhận với B trước.
   - **Lưu ý `work_supplement` (bổ sung công):** có thể cần bổ sung vào `attendance` tương ứng khi được duyệt **(suy ra)**. Xác nhận với B trước.
-- [ ] **Notifications (thông báo):**
+- [x] **Notifications (thông báo):**
   - `GET /api/notifications?employeeId=&branchSlug=` — gồm cả broadcast (`targetEmployeeId = null`).
   - `POST /api/notifications` — gửi thông báo (admin/manager).
   - `PUT /api/notifications/:id/read` — đánh dấu đã đọc.

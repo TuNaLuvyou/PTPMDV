@@ -1,0 +1,13 @@
+"use strict";
+
+const express = require("express");
+const NotificationController = require("../controllers/NotificationController");
+
+const router = express.Router();
+
+router.get("/", NotificationController.listNotifications);
+router.post("/", NotificationController.createNotification);
+router.put("/:id/read", NotificationController.markAsRead);
+router.delete("/:id", NotificationController.deleteNotification);
+
+module.exports = router;
