@@ -120,7 +120,7 @@ Gợi ý kỹ thuật **(suy ra)**: phiên dùng cookie `hrm-session`, nên CORS
 - [x] `POST /api/auth/forgot-password` — đặt lại mật khẩu về mặc định 123456 **(đã xong trên feat/identity-auth)**.
 - [x] `GET /api/auth/devices` và `DELETE /api/auth/devices/:id` — danh sách và gỡ thiết bị/phiên đăng nhập **(đã xong trên feat/identity-auth)**.
 
-> Quyết định đã chốt: DB dùng **5 Postgres riêng (database-per-service)** — `hrm_identity` (A/4001), `hrm_organization` (B/4002), `hrm_work` (B/4003), `hrm_payroll` (D/4004), `hrm_integration` (E/4005), mỗi DB 1 Prisma schema + `DATABASE_URL` riêng, cấm join xuyên DB; auth dùng **JWT + cookie `hrm-session` HttpOnly**; seed pass mặc định `123456`. Test unit + integration 10/10 pass.
+> Quyết định đã chốt: DB dùng **5 Postgres riêng trên 5 link Supabase riêng (database-per-service)** — `hrm_identity` (A/4001), `hrm_organization` (B/4002), `hrm_work` (B/4003), `hrm_payroll` (D/4004), `hrm_integration` (E/4005), mỗi DB 1 Prisma schema + `DATABASE_URL` riêng trỏ link Supabase riêng, cấm join xuyên DB; auth dùng **JWT + cookie `hrm-session` HttpOnly**; seed pass mặc định `123456`. Test unit + integration 10/10 pass.
 
 ### Task 3 — Mobile (Flutter, thư mục `mobile/`) — 🟡 LÀM MỘT PHẦN
 - [x] Đồng bộ models mobile với schema backend (mục 6) — đã thêm `payslip/payout/leave_request/app_notification/attendance/device_session` (PR `feat/mobile-api`).
@@ -285,7 +285,7 @@ Thứ tự ưu tiên: hoàn thành gateway và identity trước, vì các thàn
 
 Các mục sau không có trong tài liệu phân công. Không tự quyết định rồi coi như đã chốt. Hỏi người A hoặc ghi rõ giả định trong PR.
 
-- **Cơ sở dữ liệu và ORM (đã chốt 5 DB):** mỗi service 1 Postgres + Prisma riêng — A giữ `hrm_identity`; B giữ `hrm_organization` + `hrm_work`; D giữ `hrm_payroll`; E giữ `hrm_integration`. Lớp lưu trữ đặt trong `src/infrastructure`. Cấm join xuyên DB, cần dữ liệu chéo thì gọi HTTP timeout 5000ms. `api-gateway` (4000) không cần DB — chỉ routing và proxy. B duy nhất sở hữu 2 DB (`hrm_organization` và `hrm_work`).
+- **Cơ sở dữ liệu và ORM (đã chốt 5 DB trên 5 link Supabase riêng):** mỗi service 1 Postgres + Prisma riêng — A giữ `hrm_identity`; B giữ `hrm_organization` + `hrm_work`; D giữ `hrm_payroll`; E giữ `hrm_integration`, mỗi DB 1 `DATABASE_URL` riêng trỏ link Supabase riêng. Lớp lưu trữ đặt trong `src/infrastructure`. Cấm join xuyên DB, cần dữ liệu chéo thì gọi HTTP timeout 5000ms. `api-gateway` (4000) không cần DB — chỉ routing và proxy. B duy nhất sở hữu 2 DB (`hrm_organization` và `hrm_work`).
 - **Ai soạn schema chung:** không có người được giao riêng việc thiết kế dữ liệu. Mỗi người tự lo model của service mình, còn mục 6 là chuẩn chung.
 - **Body request và response của `/api/auth/login`, `/api/auth/me`:** không được quy định chi tiết, chỉ bắt buộc đúng envelope.
 - **Mật khẩu và thông tin 3 tài khoản seed:** không được nêu.
