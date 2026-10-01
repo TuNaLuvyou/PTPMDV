@@ -105,7 +105,7 @@ Mỗi service có `GET /health`. Tài liệu PTPMDV không nêu định dạng b
 - [ ] **Wi-Fi chấm công:**
   - `GET /api/wifi-configs?branch=`.
   - `POST /api/wifi-configs`, `PUT /api/wifi-configs/:id`, `DELETE /api/wifi-configs/:id`.
-- [ ] `GET /health`.
+- [x] `GET /health` (Đã hoàn thành trên nhánh `feat/integration-service`).
 
 ---
 
