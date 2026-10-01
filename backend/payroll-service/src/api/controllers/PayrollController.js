@@ -1,0 +1,98 @@
+"use strict";
+
+const PayrollRepository = require("../../infrastructure/database/repositories/PayrollRepository");
+const { createPayoutUseCase, generatePayslipUseCase } = require("../../services/PayrollService");
+const { validatePayout, validateGenerate } = require("../validators/payrollValidator");
+const { ValidationError, NotFoundError } = require("../../domain/errors");
+
+async function listBankAccounts(_req, res, next) {
+  try {
+    const rows = await PayrollRepository.listBankAccounts();
+    return res.status(200).json({ data: rows, message: "Thao tác thành công" });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function updateBankAccount(req, res, next) {
+  try {
+    const row = await PayrollRepository.updateBankAccount(req.params.id, req.body);
+    if (!row) throw new NotFoundError("Không tìm thấy tài khoản ngân hàng");
+    return res.status(200).json({ data: row, message: "Thao tác thành công" });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function listPayouts(_req, res, next) {
+  try {
+    const rows = await PayrollRepository.listPayouts();
+    return res.status(200).json({ data: rows, message: "Thao tác thành công" });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function createPayout(req, res, next) {
+  try {
+    const errors = validatePayout(req.body);
+    if (errors.length) throw new ValidationError(errors.join("; "));
+    const row = await createPayoutUseCase(req.body);
+    const status = row.deduped ? 200 : 201;
+    return res.status(status).json({ data: row, message: "Thao tác thành công" });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function listPayslips(req, res, next) {
+  try {
+    const rows = await PayrollRepository.listPayslips(req.query);
+    return res.status(200).json({ data: rows, message: "Thao tác thành công" });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function generatePayslip(req, res, next) {
+  try {
+    const errors = validateGenerate(req.body);
+    if (errors.length) throw new ValidationError(errors.join("; "));
+    const row = await generatePayslipUseCase(req.body);
+    return res.status(201).json({ data: row, message: "Thao tác thành công" });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function updatePayslip(req, res, next) {
+  try {
+    const row = await PayrollRepository.updatePayslip(req.params.id, req.body);
+    if (!row) throw new NotFoundError("Không tìm thấy phiếu lương");
+    return res.status(200).json({ data: row, message: "Thao tác thành công" });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function setPayslipStatus(req, res, next) {
+  try {
+    if (!req.body.status) throw new ValidationError("Thiếu trạng thái phiếu");
+    const row = await PayrollRepository.setPayslipStatus(req.params.id, req.body.status);
+    if (!row) throw new NotFoundError("Không tìm thấy phiếu lương");
+    return res.status(200).json({ data: row, message: "Thao tác thành công" });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+module.exports = {
+  listBankAccounts,
+  updateBankAccount,
+  listPayouts,
+  createPayout,
+  listPayslips,
+  generatePayslip,
+  updatePayslip,
+  setPayslipStatus,
+};

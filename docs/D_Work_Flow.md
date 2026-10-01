@@ -80,18 +80,18 @@ Mỗi service có `GET /health`. Tài liệu PTPMDV không nêu định dạng b
 
 ## 4. Danh sách việc của D
 
-### Task 1 — payroll-service (cổng 4004)
-- [ ] `GET /api/payroll/bank-accounts`.
-- [ ] `PUT /api/payroll/bank-accounts/:id` — sửa cấu hình liên kết ngân hàng (web dùng ở mục "Liên kết Ngân hàng") **(suy ra)**.
-- [ ] `GET /api/payroll/payouts` và `POST /api/payroll/payouts` với `idempotencyKey`:
+### Task 1 — payroll-service (cổng 4004) — ✅ XONG (nhánh `feat/payroll-payouts`)
+- [x] `GET /api/payroll/bank-accounts`.
+- [x] `PUT /api/payroll/bank-accounts/:id` — sửa cấu hình liên kết ngân hàng (web dùng ở mục "Liên kết Ngân hàng") **(suy ra)**.
+- [x] `GET /api/payroll/payouts` và `POST /api/payroll/payouts` với `idempotencyKey`:
   - Trùng key: trả bản ghi cũ kèm `deduped: true`.
   - Sinh `id` dạng `TXN-xxxxxx` và `bankReference` dạng `BANK-xxxxxxxx`.
   - Hết số dư: trả HTTP `422`.
-- [ ] `GET /api/payroll/payslips`.
-- [ ] `PUT /api/payroll/payslips/:id` — điều chỉnh thưởng/phạt của phiếu (modal "Điều chỉnh Thưởng / Phạt" trên web) **(suy ra)**.
-- [ ] `PUT /api/payroll/payslips/:id/status` — chốt phiếu (chưa chốt → đã chốt), phục vụ "Chốt phiếu lương hàng loạt" trên web **(suy ra)**.
-- [ ] `POST /api/payroll/payslips/generate`: tổng hợp phạt theo tháng; `netSalary = baseSalary + bonus - totalPenalty` (đúng SSOT tại `A_Work_Flow.md §6`, trước đây file này ghi thiếu `bonus`); chống trùng cặp `employeeId` + `month`.
-- [ ] `GET /health`.
+- [x] `GET /api/payroll/payslips`.
+- [x] `PUT /api/payroll/payslips/:id` — điều chỉnh thưởng/phạt của phiếu (modal "Điều chỉnh Thưởng / Phạt" trên web) **(suy ra)**.
+- [x] `PUT /api/payroll/payslips/:id/status` — chốt phiếu (chưa chốt → đã chốt), phục vụ "Chốt phiếu lương hàng loạt" trên web **(suy ra)**.
+- [x] `POST /api/payroll/payslips/generate`: tổng hợp phạt theo tháng; `netSalary = baseSalary + bonus - totalPenalty` (đúng SSOT tại `A_Work_Flow.md §6`, trước đây file này ghi thiếu `bonus`); chống trùng cặp `employeeId` + `month`.
+- [x] `GET /health`.
 
 ---
 
