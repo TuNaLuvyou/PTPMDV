@@ -3,6 +3,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/state/branch_scope.dart';
 import '../../../core/widgets/branch_selector.dart';
+import '../../attendance/data/attendance_repository.dart';
 
 // ─── Model ───────────────────────────────────────────────────────────────────
 
@@ -100,10 +101,43 @@ class _StaffMonitorScreenState extends State<StaffMonitorScreen>
     ),
   ];
 
+  final AttendanceRepository _attendanceRepo = AttendanceRepository();
+  late List<StaffMemberStatus> _staffList;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this, initialIndex: 0);
+    _staffList = List.from(_allStaff);
+    _fetchStaffAttendance();
+  }
+
+  Future<void> _fetchStaffAttendance() async {
+    try {
+      final list = await _attendanceRepo.getAttendance();
+      if (list.isNotEmpty && mounted) {
+        final apiList = list.map((m) {
+          StaffAttendanceStatus st = StaffAttendanceStatus.present;
+          if (m.status == 'absent') st = StaffAttendanceStatus.absent;
+          if (m.status == 'late') st = StaffAttendanceStatus.late;
+          return StaffMemberStatus(
+            id: m.id,
+            name: 'Nhân sự #${m.employeeId}',
+            role: 'Nhân viên',
+            shift: 'Ca #${m.shiftId}',
+            checkInTime: m.checkIn ?? '--:--',
+            checkOutTime: m.checkOut,
+            status: st,
+            avatar: m.employeeId.isNotEmpty ? m.employeeId[0].toUpperCase() : 'N',
+          );
+        }).toList();
+        setState(() {
+          _staffList = apiList;
+        });
+      }
+    } catch (_) {
+      // Giữ mock khi offline
+    }
   }
 
   @override
@@ -113,16 +147,16 @@ class _StaffMonitorScreenState extends State<StaffMonitorScreen>
   }
 
   List<StaffMemberStatus> get _presentStaff =>
-      _allStaff.where((s) => s.status == StaffAttendanceStatus.present || s.status == StaffAttendanceStatus.late).toList();
+      _staffList.where((s) => s.status == StaffAttendanceStatus.present || s.status == StaffAttendanceStatus.late).toList();
   List<StaffMemberStatus> get _offShiftStaff =>
-      _allStaff.where((s) => s.status == StaffAttendanceStatus.offShift).toList();
+      _staffList.where((s) => s.status == StaffAttendanceStatus.offShift).toList();
   List<StaffMemberStatus> get _absentStaff =>
-      _allStaff.where((s) => s.status == StaffAttendanceStatus.absent).toList();
+      _staffList.where((s) => s.status == StaffAttendanceStatus.absent).toList();
 
   @override
   Widget build(BuildContext context) {
     final int presentCount = _presentStaff.length;
-    final int lateCount = _allStaff.where((s) => s.status == StaffAttendanceStatus.late).length;
+    final int lateCount = _staffList.where((s) => s.status == StaffAttendanceStatus.late).length;
     final int absentCount = _absentStaff.length;
 
     return Scaffold(
@@ -263,14 +297,17 @@ class _StaffMonitorScreenState extends State<StaffMonitorScreen>
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: staffList.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (context, index) {
-        final staff = staffList[index];
-        return _buildStaffCard(staff);
-      },
+    return RefreshIndicator(
+      onRefresh: _fetchStaffAttendance,
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: staffList.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (context, index) {
+          final staff = staffList[index];
+          return _buildStaffCard(staff);
+        },
+      ),
     );
   }
 

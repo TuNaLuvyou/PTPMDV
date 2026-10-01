@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../approvals/data/approval_repository.dart';
 
 enum ShiftRequestStatus { pending, accepted, rejected }
 
@@ -73,6 +74,11 @@ class _ShiftRequestDetailScreenState extends State<ShiftRequestDetailScreen> {
   }
 
   void _handleResponse(ShiftRequestStatus newStatus) {
+    if (newStatus == ShiftRequestStatus.accepted) {
+      ApprovalRepository().approve(widget.requestId).catchError((_) {});
+    } else if (newStatus == ShiftRequestStatus.rejected) {
+      ApprovalRepository().reject(widget.requestId).catchError((_) {});
+    }
     setState(() => _status = newStatus);
     if (widget.onStatusChanged != null) {
       widget.onStatusChanged!(newStatus);

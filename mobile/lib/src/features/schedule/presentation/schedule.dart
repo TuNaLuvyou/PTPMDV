@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../data/service.dart';
+import '../data/shift_repository.dart';
 import 'shift_detail.dart';
 
 export '../data/service.dart';
@@ -32,6 +33,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     super.initState();
     final todayFormatted = '${_today.day.toString().padLeft(2, '0')}/${_today.month.toString().padLeft(2, '0')}';
     _expandedDays.add(todayFormatted);
+    ShiftRepository().getShifts().then((_) {}).catchError((_) {});
   }
 
   String _getWeekTitle(int offset) {
@@ -83,8 +85,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          try {
+            await ShiftRepository().getShifts();
+          } catch (_) {}
+          if (mounted) setState(() {});
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -225,8 +235,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildWeekTabItem(int offset, {required bool isSelected}) {
     final title = _getWeekTitle(offset);

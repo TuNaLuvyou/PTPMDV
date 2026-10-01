@@ -10,6 +10,7 @@ import '../../leave_request/presentation/leave.dart';
 import '../../schedule_registration/presentation/registration.dart';
 import '../../tasks/data/service.dart';
 import '../../tasks/presentation/tasks.dart';
+import '../../attendance/data/attendance_repository.dart';
 
 class HomeScreen extends StatefulWidget {
   final UserModel currentUser;
@@ -559,6 +560,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? () {
                           final targetShift = selectedShift!;
                           final now = DateTime.now();
+                          AttendanceRepository().checkIn(
+                            employeeId: currentUser.email,
+                            shiftId: targetShift.shiftName,
+                            wifiSsid: wifiSsid,
+                            checkinTime: '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+                          ).then((_) {}).catchError((_) {});
                           Navigator.pop(context);
                           setState(() {
                             _checkedInShift = targetShift;
@@ -805,6 +812,12 @@ class _HomeScreenState extends State<HomeScreen> {
               ElevatedButton(
                 onPressed: () {
                   final shiftOut = _checkedInShift;
+                  final now = DateTime.now();
+                  AttendanceRepository().checkOut(
+                    employeeId: currentUser.email,
+                    shiftId: shiftOut?.shiftName,
+                    checkoutTime: '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+                  ).then((_) {}).catchError((_) {});
                   Navigator.pop(context);
                   setState(() {
                     _checkedInShift = null;

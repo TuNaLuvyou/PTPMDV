@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../data/leave_repository.dart';
 
 class LeaveRequestItem {
   final String id;
@@ -28,7 +29,48 @@ class LeaveRequestScreen extends StatefulWidget {
 }
 
 class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
-  final List<LeaveRequestItem> _requests = [
+  final LeaveRepository _leaveRepo = LeaveRepository();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRequests();
+  }
+
+  Future<void> _fetchRequests() async {
+    try {
+      final list = await _leaveRepo.getRequests();
+      if (list.isNotEmpty && mounted) {
+        final apiItems = list.where((m) => m.type == 'leave').map((m) {
+          final title = m.title.replaceFirst('Đơn xin nghỉ: ', '');
+          String d = 'Hôm nay (Cả ngày)';
+          String r = m.content;
+          if (m.content.contains(' - Lý do: ')) {
+            final parts = m.content.split(' - Lý do: ');
+            d = parts.first;
+            r = parts.last;
+          }
+          return LeaveRequestItem(
+            id: m.id,
+            leaveType: title.isNotEmpty ? title : 'Nghỉ phép',
+            dates: d,
+            reason: r,
+            status: m.status,
+            createdAt: m.createdAt ?? 'Vừa xong',
+          );
+        }).toList();
+        if (apiItems.isNotEmpty) {
+          setState(() {
+            _requests = apiItems;
+          });
+        }
+      }
+    } catch (_) {
+      // Giữ mock khi offline
+    }
+  }
+
+  List<LeaveRequestItem> _requests = [
     const LeaveRequestItem(
       id: 'lr-1',
       leaveType: 'Nghỉ phép năm',
@@ -159,6 +201,13 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                       ),
                     );
                   });
+                  _leaveRepo.createRequest({
+                    'type': 'leave',
+                    'title': 'Đơn xin nghỉ: $selectedType',
+                    'content': '$dateStr ($selectedDuration) - Lý do: $reason',
+                    'employeeId': '1',
+                  }).then((_) => _fetchRequests()).catchError((_) {});
+
                   Navigator.pop(modalCtx);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -198,7 +247,9 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         icon: const FaIcon(FontAwesomeIcons.plus, color: Colors.white),
         label: const Text('Tạo đơn nghỉ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
-      body: ListView(
+      body: RefreshIndicator(
+        onRefresh: _fetchRequests,
+        child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // Thẻ hạn mức phép năm
@@ -248,7 +299,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
           ..._requests.map((r) => _buildRequestCard(r)),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildRequestCard(LeaveRequestItem item) {

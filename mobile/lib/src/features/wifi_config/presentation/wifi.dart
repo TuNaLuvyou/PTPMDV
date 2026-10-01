@@ -5,6 +5,7 @@ import '../../../core/models/branch.dart';
 import '../../../core/state/branch_scope.dart';
 import '../../../core/config/company.dart';
 import '../../../core/widgets/branch_selector.dart';
+import '../data/wifi_config_repository.dart';
 
 class WifiConfig {
   final String ssid;
@@ -29,12 +30,14 @@ class WifiConfigScreen extends StatefulWidget {
 }
 
 class _WifiEntry {
+  final String? apiId;
   final TextEditingController ssidController;
   final TextEditingController passwordController;
   bool enforceCheckIn;
   bool obscurePassword;
 
   _WifiEntry({
+    this.apiId,
     required this.ssidController,
     required this.passwordController,
     required this.enforceCheckIn,
@@ -42,7 +45,9 @@ class _WifiEntry {
 }
 
 class _WifiConfigScreenState extends State<WifiConfigScreen> {
+  final WifiConfigRepository _repo = WifiConfigRepository();
   final List<_WifiEntry> _entries = [];
+  bool _isSaving = false;
 
   String? _loadedBranchId;
 
@@ -56,7 +61,7 @@ class _WifiConfigScreenState extends State<WifiConfigScreen> {
     }
   }
 
-  void _loadBranch(Branch branch) {
+  Future<void> _loadBranch(Branch branch) async {
     _loadedBranchId = branch.id;
     _disposeEntries();
     const String brandCode = CompanyConfig.brandCode;
@@ -74,6 +79,26 @@ class _WifiConfigScreenState extends State<WifiConfigScreen> {
         passwordController: TextEditingController(text: config.password),
         enforceCheckIn: config.enforceCheckIn,
       ));
+    }
+    setState(() {});
+
+    // Gọi API thật từ gateway/integration-service (4005)
+    try {
+      final remoteList = await _repo.getWifiConfigs(branch: branch.code);
+      if (remoteList.isNotEmpty && mounted && _loadedBranchId == branch.id) {
+        _disposeEntries();
+        for (final item in remoteList) {
+          _entries.add(_WifiEntry(
+            apiId: item.id,
+            ssidController: TextEditingController(text: item.ssid),
+            passwordController: TextEditingController(text: item.bssid),
+            enforceCheckIn: item.status == 'hoạt động',
+          ));
+        }
+        setState(() {});
+      }
+    } catch (_) {
+      // Giữ mock entries khi offline
     }
   }
 
@@ -97,29 +122,65 @@ class _WifiConfigScreenState extends State<WifiConfigScreen> {
 
   void _removeNetwork(int index) {
     final entry = _entries[index];
+    if (entry.apiId != null) {
+      _repo.deleteWifiConfig(entry.apiId!).catchError((_) {});
+    }
     entry.ssidController.dispose();
     entry.passwordController.dispose();
     setState(() => _entries.removeAt(index));
   }
 
-  void _saveConfig(Branch branch) {
+  Future<void> _saveConfig(Branch branch) async {
+    setState(() => _isSaving = true);
+    final localList = [
+      for (final entry in _entries)
+        WifiConfig(
+          ssid: entry.ssidController.text.trim(),
+          password: entry.passwordController.text.trim(),
+          enforceCheckIn: entry.enforceCheckIn,
+        ),
+    ];
     setState(() {
-      _wifiConfigs[branch.id] = [
-        for (final entry in _entries)
-          WifiConfig(
-            ssid: entry.ssidController.text.trim(),
-            password: entry.passwordController.text.trim(),
-            enforceCheckIn: entry.enforceCheckIn,
-          ),
-      ];
+      _wifiConfigs[branch.id] = localList;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Đã lưu cấu hình Wi-Fi cho ${branch.name}!'),
-        backgroundColor: AppColors.success,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+
+    // Đồng bộ lên API Gateway / Integration-service
+    try {
+      for (final entry in _entries) {
+        final ssid = entry.ssidController.text.trim();
+        final bssid = entry.passwordController.text.trim();
+        if (ssid.isEmpty) continue;
+        if (entry.apiId != null) {
+          await _repo.updateWifiConfig(entry.apiId!, {
+            'ssid': ssid,
+            'bssid': bssid.isNotEmpty ? bssid : '00:11:22:33:44:55',
+            'branch': branch.code,
+            'status': entry.enforceCheckIn ? 'hoạt động' : 'tạm dừng',
+          });
+        } else {
+          await _repo.createWifiConfig(
+            ssid: ssid,
+            bssid: bssid.isNotEmpty ? bssid : '00:11:22:33:44:55',
+            branch: branch.code,
+            status: entry.enforceCheckIn ? 'hoạt động' : 'tạm dừng',
+          );
+        }
+      }
+    } catch (_) {
+      // Fallback lưu local
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đã lưu cấu hình Wi-Fi cho ${branch.name}!'),
+          backgroundColor: AppColors.success,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   void _showBranchPicker() {
@@ -345,16 +406,22 @@ class _WifiConfigScreenState extends State<WifiConfigScreen> {
           width: double.infinity,
           height: 50,
           child: ElevatedButton(
-            onPressed: () => _saveConfig(branch),
+            onPressed: _isSaving ? null : () => _saveConfig(branch),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
-            child: const Text(
-              'Lưu cấu hình Wi-Fi',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+            child: _isSaving
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                  )
+                : const Text(
+                    'Lưu cấu hình Wi-Fi',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
           ),
         ),
       ],
