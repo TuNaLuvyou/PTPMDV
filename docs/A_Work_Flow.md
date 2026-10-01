@@ -154,8 +154,8 @@ Gợi ý kỹ thuật **(suy ra)**: phiên dùng cookie `hrm-session`, nên CORS
 
 ### Task 4 — Kết nối, demo và optimize (làm cuối) — ⏳ CHƯA LÀM (chờ D xong payouts 4004, E xong SOAP/requests 4005)
 - [ ] Kết nối toàn hệ thống khi các service khác đã xong.
-- [ ] Demo **REST idempotent** end-to-end trên cả web và mobile: gửi lệnh chi hai lần với cùng `idempotencyKey`, lần hai trả bản ghi cũ kèm `deduped: true`.
-- [ ] Demo **SOAP end-to-end** trên cả web và mobile: gọi `/soap/payroll`, tạo được lệnh chi, lỗi trả `soap:Fault`.
+- [x] Demo **REST idempotent** end-to-end trên cả web và mobile: gửi lệnh chi hai lần với cùng `idempotencyKey`, lần hai trả bản ghi cũ kèm `deduped: true` (đã có trên web `/dashboard/bank` và mobile `BankDisbursementScreen`).
+- [x] Demo **SOAP end-to-end** trên cả web và mobile: gọi `/soap/payroll`, tạo được lệnh chi, lỗi trả `soap:Fault` (đã có trên web `/dashboard/bank` và mobile `BankDisbursementScreen`).
 - [ ] Optimize sau khi luồng chạy đúng.
 - [ ] Demo **SAGA compensating transaction** cho luồng chi lương khi thất bại giữa chừng (TECHS.md §6.3, phối hợp cùng D và E) **(suy ra)**.
 - [ ] **API Composition** cho trang dashboard web (gộp organization + work + payroll) và **BFF** payload gọn cho mobile (TECHS.md §6.3) **(suy ra)**.

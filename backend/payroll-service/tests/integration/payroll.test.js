@@ -60,10 +60,11 @@ test("bank-accounts + payout idempotent + payslip generate", async () => {
   assert.equal(res.status, 400);
 
   // Generate payslip: netSalary = base + bonus - penalty
+  const testMonth = `01-${2050 + Math.floor(Math.random() * 40)}`;
   res = await fetch(`${base}/api/payroll/payslips/generate`, {
     method: "POST",
     headers: json,
-    body: JSON.stringify({ employeeId: "e-staff-1", month: "10-2026", baseSalary: 10000000, bonus: 1000000, totalPenalty: 20000 }),
+    body: JSON.stringify({ employeeId: "e-staff-1", month: testMonth, baseSalary: 10000000, bonus: 1000000, totalPenalty: 20000 }),
   });
   body = await res.json();
   assert.equal(res.status, 201);
@@ -73,13 +74,13 @@ test("bank-accounts + payout idempotent + payslip generate", async () => {
   res = await fetch(`${base}/api/payroll/payslips/generate`, {
     method: "POST",
     headers: json,
-    body: JSON.stringify({ employeeId: "e-staff-1", month: "10-2026", baseSalary: 10000000 }),
+    body: JSON.stringify({ employeeId: "e-staff-1", month: testMonth, baseSalary: 10000000 }),
   });
   assert.equal(res.status, 409);
 
   // Điều chỉnh thưởng/phạt -> netSalary tính lại
   const psId = body.data ? null : null;
-  res = await fetch(`${base}/api/payroll/payslips?employeeId=e-staff-1&month=10-2026`);
+  res = await fetch(`${base}/api/payroll/payslips?employeeId=e-staff-1&month=${testMonth}`);
   body = await res.json();
   const slip = body.data[0];
   res = await fetch(`${base}/api/payroll/payslips/${slip.id}`, {

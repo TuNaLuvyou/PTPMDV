@@ -21,8 +21,18 @@ export default function PhotoProofModal({
   onConfirmComplete,
 }: PhotoProofModalProps) {
   const [selectedPhoto, setSelectedPhoto] = useState<string>(
-    task?.proofPhotoUrl || "https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=600"
+    task?.proofPhotoUrl || ""
   );
+
+  const handleFileChange = async (file: File | undefined) => {
+    if (!file) return;
+    // Đọc file thật từ thiết bị, không dùng ảnh mẫu mạng
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") setSelectedPhoto(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
 
   if (!task) return null;
 
@@ -102,19 +112,17 @@ export default function PhotoProofModal({
                     </span>
                   </div>
                   <div className="flex justify-center gap-2">
-                    <Button
-                      variant="white"
-                      size="sm"
-                      onClick={() => setSelectedPhoto("https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=600")}
-                    >
-                      Ảnh mẫu 1 (Quầy bar)
-                    </Button>
-                    <Button
-                      variant="white"
-                      size="sm"
-                      onClick={() => setSelectedPhoto("https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600")}
-                    >
-                      Ảnh mẫu 2 (Kho hàng)
+                    <label className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-gray-200 cursor-pointer hover:border-primary">
+                      Chọn ảnh khác từ thiết bị
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleFileChange(e.target.files?.[0])}
+                      />
+                    </label>
+                    <Button variant="white" size="sm" onClick={() => setSelectedPhoto("")}>
+                      Xóa ảnh
                     </Button>
                   </div>
                 </div>
@@ -129,14 +137,16 @@ export default function PhotoProofModal({
                   <p className="text-xs text-gray-500 mt-1">
                     Công việc này bắt buộc phải có ảnh minh chứng thực tế trước khi hoàn thành
                   </p>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    className="mt-3"
-                    onClick={() => setSelectedPhoto("https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=600")}
-                  >
-                    Chụp ảnh ngay
-                  </Button>
+                  <label className="inline-block mt-3 px-4 py-2 rounded-lg text-sm font-semibold bg-primary text-white cursor-pointer hover:bg-primary-dark">
+                    Chụp / Tải ảnh lên
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) => handleFileChange(e.target.files?.[0])}
+                    />
+                  </label>
                 </div>
               )}
             </div>

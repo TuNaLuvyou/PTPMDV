@@ -5,6 +5,7 @@ import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import { Field, Input, Textarea, Select } from "@/components/ui/Form";
 import type { Regulation, RegulationStatus, RegulationCategory } from "@/types";
+import type { BranchOption } from "@/lib/branches";
 
 export interface RegulationFormInput {
   code: string;
@@ -23,12 +24,13 @@ export interface RegulationFormInput {
 interface Props {
   initial: Regulation | null;
   defaultCode?: string;
+  branches?: BranchOption[];
   onClose: () => void;
   onSave: (input: RegulationFormInput) => void;
   saving?: boolean;
 }
 
-export default function RegulationFormModal({ initial, defaultCode = "", onClose, onSave, saving }: Props) {
+export default function RegulationFormModal({ initial, defaultCode = "", branches = [], onClose, onSave, saving }: Props) {
   const [formCode, setFormCode] = useState(initial?.code ?? defaultCode);
   const [formTitle, setFormTitle] = useState(initial?.title ?? "");
   const [formCategory, setFormCategory] = useState<RegulationCategory>(initial?.category ?? "Nội quy lao động");
@@ -36,7 +38,7 @@ export default function RegulationFormModal({ initial, defaultCode = "", onClose
   const [formContent, setFormContent] = useState(initial?.content ?? "");
   const [formStatus, setFormStatus] = useState<RegulationStatus>(initial?.status ?? "hiệu lực");
   const [formScope, setFormScope] = useState(initial?.scope ?? "Toàn công ty");
-  const [formEffectiveDate, setFormEffectiveDate] = useState(initial?.effectiveDate ?? "01/09/2026");
+  const [formEffectiveDate, setFormEffectiveDate] = useState(initial?.effectiveDate ?? new Date().toLocaleDateString("vi-VN"));
   const [formAuthor, setFormAuthor] = useState(initial?.author ?? "Ban Giám Đốc");
   const [formVersion, setFormVersion] = useState(initial?.version ?? "1.0");
   const [formPinned, setFormPinned] = useState(!!initial?.pinned);
@@ -129,8 +131,9 @@ export default function RegulationFormModal({ initial, defaultCode = "", onClose
               onChange={(e) => setFormScope(e.target.value)}
             >
               <option value="Toàn công ty">Toàn công ty</option>
-              <option value="HN-1">Chi nhánh Hoàn Kiếm (HN-1)</option>
-              <option value="HN-2">Chi nhánh Ba Đình (HN-2)</option>
+              {branches.map((b) => (
+                <option key={b.slug} value={b.slug}>{b.name || b.slug}</option>
+              ))}
             </Select>
           </Field>
 

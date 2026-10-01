@@ -24,17 +24,18 @@ services:
     container_name: hrm-identity
     build: ./backend/identity-service
     restart: unless-stopped
-    env_file:
-      - ./backend/identity-service/.env
     environment:
       PORT: 4001
       SERVICE_NAME: identity-service
       CORS_ORIGIN: http://localhost:3000
+      DATABASE_URL: ${IDENTITY_DATABASE_URL:-postgresql://postgres:postgres@db:5432/hrm_identity}
+      JWT_SECRET: ${JWT_SECRET:-dev_only_secret_thay_khi_deploy}
     ports:
       - "4001:4001"
     depends_on:
       db:
         condition: service_healthy
+    command: sh -c "npm install --no-audit --no-fund --include=dev >/dev/null 2>&1; npx prisma db push --accept-data-loss; node prisma/seed.js; node server.js"
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4001/health"]
       interval: 15s

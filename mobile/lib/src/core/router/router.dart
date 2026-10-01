@@ -28,13 +28,11 @@ class AppRouter {
         path: '/main',
         name: 'main',
         builder: (context, state) {
-          final user = state.extra as UserModel? ??
-              const UserModel(
-                name: 'Trần Minh Tuấn',
-                email: 'admin@company.com',
-                role: 'admin',
-                roleTitle: 'Quản trị viên',
-              );
+          final user = state.extra as UserModel?;
+          // Không dựng user giả. Thiếu phiên thật thì về login.
+          if (user == null) {
+            return const LoginScreen();
+          }
           return MainNavigationScreen(currentUser: user);
         },
       ),

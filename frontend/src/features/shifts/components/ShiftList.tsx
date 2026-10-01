@@ -6,10 +6,9 @@ import { faClock, faUser, faBuilding, faCalendarDay, faTrashCan } from "@fortawe
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import Badge, { StatusBadge } from "@/components/ui/Badge";
 import Table, { Column } from "@/components/ui/Table";
-import { Input, Select } from "@/components/ui/Form";
+import type { WorkShift } from "@/features/shifts/types";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
-import type { WorkShift } from "@/features/shifts/types";
 
 interface Props {
   workShifts: WorkShift[];
@@ -52,14 +51,7 @@ export default function WorkShiftSection({ workShifts, onDelete }: Props) {
       <Card>
         <CardHeader>
           <CardTitle>Lịch phân công nhân viên (Xếp ca)</CardTitle>
-          <div className="flex gap-2">
-            <Select className="w-auto py-1.5 text-sm" defaultValue="hn-1">
-              <option value="hn-1">HN-1</option>
-              <option value="hn-2">HN-2</option>
-              <option value="dn-1">ĐN-1</option>
-            </Select>
-            <Input type="date" className="w-auto py-1.5 text-sm" defaultValue="2026-08-17" />
-          </div>
+          <span className="text-xs text-gray-500">{workShifts.length} phân công (lọc theo chi nhánh/ngày ở bộ lọc tổng phía trên)</span>
         </CardHeader>
         <CardBody className="pt-2">
           <Table columns={columns} data={workShifts} rowKey={(s) => s.id} emptyMessage="Chưa có nhân viên nào được phân công" />

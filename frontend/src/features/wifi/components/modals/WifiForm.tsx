@@ -5,6 +5,7 @@ import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import { Field, Input, Select } from "@/components/ui/Form";
 import type { WifiConfig } from "@/types";
+import type { BranchOption } from "@/lib/branches";
 
 export interface WifiFormPayload {
   ssid: string;
@@ -17,25 +18,26 @@ interface Props {
   open: boolean;
   onClose: () => void;
   initial?: WifiConfig | null;
+  branches?: BranchOption[];
   saving: boolean;
   onSubmit: (payload: WifiFormPayload) => void;
 }
 
-export default function WifiFormModal({ open, onClose, initial, saving, onSubmit }: Props) {
+export default function WifiFormModal({ open, onClose, initial, branches = [], saving, onSubmit }: Props) {
   const isEdit = Boolean(initial);
   const [ssid, setSsid] = useState("");
   const [bssid, setBssid] = useState("");
-  const [branch, setBranch] = useState("HN-1");
+  const [branch, setBranch] = useState("");
   const [status, setStatus] = useState("hoạt động");
 
   useEffect(() => {
     if (open) {
       setSsid(initial?.ssid || "");
       setBssid(initial?.bssid || "");
-      setBranch(initial?.branch || "HN-1");
+      setBranch(initial?.branch || branches[0]?.slug || "");
       setStatus(initial?.status || "hoạt động");
     }
-  }, [open, initial]);
+  }, [open, initial, branches]);
 
   const handleSubmit = () => {
     if (!ssid.trim() || !bssid.trim() || !branch.trim()) return;
@@ -79,9 +81,10 @@ export default function WifiFormModal({ open, onClose, initial, saving, onSubmit
         <div className="grid grid-cols-2 gap-3">
           <Field label="Chi nhánh" required>
             <Select value={branch} onChange={(e) => setBranch(e.target.value)} disabled={saving}>
-              <option value="HN-1">Hoàn Kiếm (HN-1)</option>
-              <option value="HN-2">Ba Đình (HN-2)</option>
-              <option value="ĐN-1">Đà Nẵng (ĐN-1)</option>
+              <option value="">— Chọn chi nhánh —</option>
+              {branches.map((b) => (
+                <option key={b.slug} value={b.slug}>{b.name || b.slug}</option>
+              ))}
             </Select>
           </Field>
           <Field label="Trạng thái">

@@ -5,9 +5,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCalendar, faChevronLeft, faChevronRight, faCloudSun, faMoon, faSun, faUsers } from "@fortawesome/free-solid-svg-icons";
 import Badge from "@/components/ui/Badge";
 import type { WeeklyRegistration } from "../types";
+import type { BranchOption } from "@/lib/branches";
 
 interface Props {
   registrations: WeeklyRegistration[];
+  branches?: BranchOption[];
   defaultBranch?: string;
   isManager?: boolean;
   managerBranch?: string;
@@ -21,16 +23,17 @@ interface RegistrationShiftGroup {
   staffList: { id: string; name: string; role: string; branch: string; note?: string }[];
 }
 
-export default function RegistrationTimetableSection({ registrations, defaultBranch = "all", isManager = false, managerBranch }: Props) {
+export default function RegistrationTimetableSection({ registrations, branches = [], defaultBranch = "all", isManager = false, managerBranch }: Props) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
   const effectiveDefaultBranch = isManager && managerBranch ? managerBranch : defaultBranch;
   const [selectedBranch, setSelectedBranch] = useState(effectiveDefaultBranch);
 
   const weekDays = useMemo(() => {
-    const baseMonday = new Date(2026, 7, 17);
-    const monday = new Date(baseMonday);
-    monday.setDate(baseMonday.getDate() + weekOffset * 7);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - ((today.getDay() + 6) % 7) + weekOffset * 7);
     const dayKeys = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
     const dayNames = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"];
     return dayKeys.map((key, idx) => {
@@ -41,7 +44,8 @@ export default function RegistrationTimetableSection({ registrations, defaultBra
       const yearNum = d.getFullYear();
       const dateStr = `${dayNum}/${monthNum}`;
       const fullDate = `${dayNum}/${monthNum}/${yearNum}`;
-      const isToday = weekOffset === 0 && idx === 0;
+      const todayStr = `${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
+      const isToday = fullDate === todayStr;
       return { key, name: dayNames[idx], date: dateStr, fullDate, isToday };
     });
   }, [weekOffset]);
@@ -58,7 +62,8 @@ export default function RegistrationTimetableSection({ registrations, defaultBra
 
   const getWeekRange = () => {
     if (weekDays.length < 7) return "";
-    return `${weekDays[0].date} - ${weekDays[6].date}/2026`;
+    const year = new Date().getFullYear();
+    return `${weekDays[0].date} - ${weekDays[6].date}/${year}`;
   };
 
   const filteredRegs = useMemo(() => {
@@ -130,18 +135,18 @@ export default function RegistrationTimetableSection({ registrations, defaultBra
               <span>{managerBranch}</span>
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary-50 text-primary border border-primary-200">Cố định</span>
             </div>
-          ) : (
+          ) : branches.length > 0 ? (
             <select
               value={selectedBranch}
               onChange={(e) => setSelectedBranch(e.target.value)}
               className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs bg-gray-50 font-bold text-gray-800 focus:outline-none cursor-pointer"
             >
               <option value="all">Tất cả chi nhánh</option>
-              <option value="HN-1">HN-1</option>
-              <option value="HN-2">HN-2</option>
-              <option value="ĐN-1">ĐN-1</option>
+              {branches.map((b) => (
+                <option key={b.slug} value={b.slug}>{b.name || b.slug}</option>
+              ))}
             </select>
-          )}
+          ) : null}
         </div>
         <p className="text-xs text-gray-500">Lịch sử đăng ký nguyện vọng của nhân viên theo từng ngày, nhóm theo ca — đồng bộ như Lịch làm việc chung</p>
       </div>

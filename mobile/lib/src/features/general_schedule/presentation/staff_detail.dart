@@ -9,6 +9,12 @@ class StaffGeneralShiftDetailScreen extends StatelessWidget {
   final GeneralShiftModel shift;
   final GeneralDayModel day;
 
+  /// Chuẩn hóa dd/mm -> dd/mm/yyyy hiện tại; đã đủ năm thì giữ nguyên.
+  static String _fullDate(String d) {
+    if ('/'.allMatches(d).length >= 2) return d;
+    return '$d/${DateTime.now().year}';
+  }
+
   const StaffGeneralShiftDetailScreen({
     super.key,
     required this.staff,
@@ -197,7 +203,7 @@ class StaffGeneralShiftDetailScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 4),
               decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
               child: Column(children: [
-                _buildInfoRow(FontAwesomeIcons.calendarDay, 'Ngày tính công', '${day.date}/2026 (${day.dayOfWeek})'),
+                _buildInfoRow(FontAwesomeIcons.calendarDay, 'Ngày tính công', '${_fullDate(day.date)} (${day.dayOfWeek})'),
                 _divider(),
                 _buildInfoRow(FontAwesomeIcons.user, 'Nhân viên', staff.name),
                 _divider(),

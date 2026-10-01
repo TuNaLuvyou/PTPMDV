@@ -13,7 +13,7 @@ import {
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
 import { apiGet, apiPost, GatewayError, GATEWAY_URL } from "@/lib/api";
-import { employees as initialEmployees } from "@/mock-data/portal";
+import { fetchBranchOptions, type BranchOption } from "@/lib/branches";
 import type { Employee } from "@/types";
 import type { ShiftTemplate, WorkShift, WeeklyRegistration } from "@/features/shifts/types";
 import ShiftTemplateSection from "@/features/shifts/components/ShiftTemplates";
@@ -80,78 +80,15 @@ async function apiDelete<T>(path: string): Promise<T> {
   }
 }
 
-const initialTemplates: ShiftTemplate[] = [
+const DEFAULT_TEMPLATES: ShiftTemplate[] = [
   { id: "t1", name: "Ca Sáng", startTime: "07:00", endTime: "14:00" },
   { id: "t2", name: "Ca Chiều", startTime: "14:00", endTime: "22:00" },
   { id: "t3", name: "Ca Tối (Part-time)", startTime: "18:00", endTime: "23:00" },
 ];
 
-const initialWorkShifts: WorkShift[] = [
-  { id: "ws1", employee: "Nguyễn Thu Hà", branch: "HN-1", date: "17/08/2026", templateName: "Ca Sáng", scheduled: "07:00-14:00", checkIn: "06:58", checkOut: "14:02", status: "Đúng giờ", isRecurring: true },
-  { id: "ws2", employee: "Phạm Quỳnh Trang", branch: "HN-1", date: "17/08/2026", templateName: "Ca Sáng", scheduled: "07:00-14:00", checkIn: "07:06", checkOut: "14:00", status: "Trễ", isRecurring: true },
-  { id: "ws3", employee: "Hoàng Minh Đức", branch: "HN-1", date: "17/08/2026", templateName: "Ca Chiều", scheduled: "14:00-22:00", checkIn: "13:55", checkOut: "—", status: "Đúng giờ", isRecurring: true },
-  { id: "ws4", employee: "Vũ Thành Công", branch: "HN-1", date: "17/08/2026", templateName: "Ca Chiều", scheduled: "14:00-22:00", checkIn: "14:01", checkOut: "—", status: "Đúng giờ", isRecurring: true },
-];
-
-const initialWeeklyRegistrations: WeeklyRegistration[] = [
-  {
-    id: "reg-1",
-    employeeName: "Nguyễn Thu Hà",
-    role: "Nhân viên phục vụ",
-    branch: "HN-1",
-    requestedCount: 5,
-    registeredAt: "15/08 08:30",
-    order: 1,
-    note: "Thứ Ba bận học ca tối, xin ưu tiên xếp ca sáng; T7 sẵn sàng làm thêm ca",
-    days: {
-      "T2": "Ca Sáng",
-      "T3": "Ca Sáng",
-      "T4": "Ca Chiều",
-      "T5": "Nghỉ",
-      "T6": "Ca Sáng",
-      "T7": "Ca Chiều",
-      "CN": "Nghỉ",
-    },
-  },
-  {
-    id: "reg-2",
-    employeeName: "Phạm Quỳnh Trang",
-    role: "Thu ngân",
-    branch: "HN-1",
-    requestedCount: 6,
-    registeredAt: "15/08 09:15",
-    order: 2,
-    note: "Xin ưu tiên xếp ca sáng để tiện đưa đón con nhỏ",
-    days: {
-      "T2": "Ca Chiều",
-      "T3": "Ca Chiều",
-      "T4": "Ca Sáng",
-      "T5": "Ca Sáng",
-      "T6": "Nghỉ",
-      "T7": "Ca Chiều",
-      "CN": "Ca Sáng",
-    },
-  },
-  {
-    id: "reg-3",
-    employeeName: "Hoàng Minh Đức",
-    role: "Nhân viên pha chế",
-    branch: "HN-1",
-    requestedCount: 5,
-    registeredAt: "15/08 11:45",
-    order: 3,
-    note: "Sẵn sàng đổi ca hỗ trợ chi nhánh khi thiếu người trực",
-    days: {
-      "T2": "Ca Sáng",
-      "T3": "Ca Sáng",
-      "T4": "Nghỉ",
-      "T5": "Ca Tối",
-      "T6": "Ca Chiều",
-      "T7": "Nghỉ",
-      "CN": "Ca Chiều",
-    },
-  },
-];
+function todayStr() {
+  return new Date().toLocaleDateString("vi-VN");
+}
 
 function mapBackendShiftToWorkShift(s: any, empMap?: Map<string, string>): WorkShift {
   const empName =
@@ -180,7 +117,7 @@ function mapBackendShiftToWorkShift(s: any, empMap?: Map<string, string>): WorkS
     id: s.id,
     employee: empName,
     branch: s.branchSlug || s.branch || "HN-1",
-    date: s.date || "17/08/2026",
+    date: s.date || todayStr(),
     templateName: s.template || s.templateName || "Ca Sáng",
     scheduled,
     checkIn: s.checkIn || "—",
@@ -198,25 +135,39 @@ function mapBackendRegistration(r: any, empMap?: Map<string, string>): WeeklyReg
     r.employeeId ||
     "Nhân sự";
 
-  const defaultDays: Record<string, string> = {
-    "T2": "Ca Sáng",
-    "T3": "Ca Sáng",
-    "T4": "Ca Chiều",
+  let parsedDays: Record<string, string> = {
+    "T2": "Nghỉ",
+    "T3": "Nghỉ",
+    "T4": "Nghỉ",
     "T5": "Nghỉ",
-    "T6": "Ca Sáng",
-    "T7": "Ca Chiều",
+    "T6": "Nghỉ",
+    "T7": "Nghỉ",
     "CN": "Nghỉ",
   };
+  if (r.days && typeof r.days === "object") {
+    parsedDays = { ...parsedDays, ...r.days };
+  } else if (typeof r.days === "string") {
+    try {
+      const parsed = JSON.parse(r.days);
+      if (typeof parsed === "object" && parsed !== null) {
+        parsedDays = { ...parsedDays, ...parsed };
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  const requestedCount = r.requestedCount || Object.values(parsedDays).filter((v) => v && v !== "Nghỉ").length;
 
   return {
     id: r.id || `reg-${Date.now()}`,
     employeeName: empName,
     role: r.role || "Nhân viên",
     branch: r.branchSlug || r.branch || "HN-1",
-    requestedCount: r.requestedCount || (r.days ? Object.values(r.days).filter((v) => v !== "Nghỉ").length : 5),
-    registeredAt: r.registeredAt || (r.createdAt ? new Date(r.createdAt).toLocaleDateString("vi-VN") : "15/08 08:30"),
+    requestedCount,
+    registeredAt: r.registeredAt || (r.createdAt ? new Date(r.createdAt).toLocaleDateString("vi-VN") : todayStr()),
     order: r.order || 1,
-    days: r.days || defaultDays,
+    days: parsedDays,
     note: r.note || r.wish || "",
   };
 }
@@ -227,19 +178,20 @@ export default function ShiftsPage() {
   const managerBranch = branchSlug.toUpperCase();
   const [activeTab, setActiveTab] = useState<"scheduling" | "general_schedule" | "templates">("scheduling");
 
-  const [templates, setTemplates] = useState<ShiftTemplate[]>(initialTemplates);
-  const [workShiftList, setWorkShiftList] = useState<WorkShift[]>(initialWorkShifts);
-  const [weeklyRegistrations, setWeeklyRegistrations] = useState<WeeklyRegistration[]>(initialWeeklyRegistrations);
-  const [empList, setEmpList] = useState<Employee[]>(initialEmployees);
+  const [templates, setTemplates] = useState<ShiftTemplate[]>(DEFAULT_TEMPLATES);
+  const [workShiftList, setWorkShiftList] = useState<WorkShift[]>([]);
+  const [weeklyRegistrations, setWeeklyRegistrations] = useState<WeeklyRegistration[]>([]);
+  const [empList, setEmpList] = useState<Employee[]>([]);
+  const [branchOptions, setBranchOptions] = useState<BranchOption[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [actionInProgress, setActionInProgress] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ text: string; tone: "success" | "danger" } | null>(null);
 
-  // Bộ chọn ngày & chi nhánh cho khối Xếp ca
-  const [schedulerDate, setSchedulerDate] = useState("17/08/2026");
-  const [schedulerBranch, setSchedulerBranch] = useState(isManager ? managerBranch : "HN-1");
+  // Bộ chọn ngày & chi nhánh cho khối Xếp ca — mặc định hôm nay / chi nhánh đầu tiên từ API
+  const [schedulerDate, setSchedulerDate] = useState(todayStr());
+  const [schedulerBranch, setSchedulerBranch] = useState(isManager ? managerBranch : "all");
 
   const showToast = (text: string, tone: "success" | "danger" = "success") => {
     setToast({ text, tone });
@@ -267,11 +219,14 @@ export default function ShiftsPage() {
 
       const queryString = queryParams.toString() ? `?${queryParams.toString()}` : "";
 
-      const [shiftsRes, regRes, employeesRes] = await Promise.allSettled([
+      const [shiftsRes, regRes, employeesRes, branchesRes] = await Promise.allSettled([
         apiGet<any[]>(`/api/shifts${queryString}`),
         apiGet<any[]>(`/api/shifts/registrations${queryString}`),
         apiGet<Employee[]>("/api/employees"),
+        fetchBranchOptions(),
       ]);
+
+      if (branchesRes.status === "fulfilled") setBranchOptions(branchesRes.value);
 
       let employeesData: Employee[] = [];
       if (employeesRes.status === "fulfilled" && Array.isArray(employeesRes.value)) {
@@ -284,12 +239,20 @@ export default function ShiftsPage() {
         currentEmpMap.set(e.id, e.name);
       }
 
-      if (shiftsRes.status === "fulfilled" && Array.isArray(shiftsRes.value) && shiftsRes.value.length > 0) {
+      if (shiftsRes.status === "fulfilled" && Array.isArray(shiftsRes.value)) {
         setWorkShiftList(shiftsRes.value.map((s) => mapBackendShiftToWorkShift(s, currentEmpMap)));
+      } else {
+        setWorkShiftList([]);
       }
 
-      if (regRes.status === "fulfilled" && Array.isArray(regRes.value) && regRes.value.length > 0) {
+      if (regRes.status === "fulfilled" && Array.isArray(regRes.value)) {
         setWeeklyRegistrations(regRes.value.map((r) => mapBackendRegistration(r, currentEmpMap)));
+      } else {
+        setWeeklyRegistrations([]);
+      }
+      if (shiftsRes.status === "rejected" || regRes.status === "rejected") {
+        const r = shiftsRes.status === "rejected" ? shiftsRes.reason : (regRes as PromiseRejectedResult).reason;
+        setError(r instanceof GatewayError ? r.message : "Không thể tải dữ liệu ca làm việc từ máy chủ");
       }
     } catch (e: any) {
       const msg = e instanceof GatewayError ? e.message : e?.message || "Không thể tải dữ liệu ca làm việc từ gateway";
@@ -320,9 +283,9 @@ export default function ShiftsPage() {
   const [newTemplateStart, setNewTemplateStart] = useState("07:00");
   const [newTemplateEnd, setNewTemplateEnd] = useState("14:00");
 
-  const [assignEmployee, setAssignEmployee] = useState(empList[0]?.name ?? "Nguyễn Thu Hà");
-  const [assignBranch, setAssignBranch] = useState("HN-1");
-  const [assignDate, setAssignDate] = useState("17/08/2026");
+  const [assignEmployee, setAssignEmployee] = useState("");
+  const [assignBranch, setAssignBranch] = useState(isManager ? managerBranch : "HN-1");
+  const [assignDate, setAssignDate] = useState(todayStr());
   const [assignTemplateId, setAssignTemplateId] = useState(templates[0]?.id ?? "");
   const [assignNote, setAssignNote] = useState("");
   const [assignIsRecurring, setAssignIsRecurring] = useState(true);
@@ -374,10 +337,8 @@ export default function ShiftsPage() {
       setWorkShiftList((prev) => prev.filter((s) => s.id !== workShiftId));
       showToast("Đã xóa phân công ca làm việc", "success");
     } catch (e: any) {
-      // Fallback local update
-      setWorkShiftList((prev) => prev.filter((s) => s.id !== workShiftId));
-      const msg = e instanceof GatewayError ? e.message : e?.message || "Đã xóa khỏi danh sách ca làm việc";
-      showToast(msg, "success");
+      const msg = e instanceof GatewayError ? e.message : e?.message || "Không thể xóa phân công ca";
+      showToast(msg, "danger");
     } finally {
       setActionInProgress(false);
     }
@@ -455,26 +416,8 @@ export default function ShiftsPage() {
       setAssignNote("");
       setAssignIsRecurring(true);
     } catch (e: any) {
-      // Fallback local creation
-      const created: WorkShift = {
-        id: `ws-${Date.now()}`,
-        employee: assignEmployee,
-        branch: assignBranch,
-        date: assignDate,
-        templateName: template.name,
-        scheduled: `${template.startTime}-${template.endTime}`,
-        checkIn: "—",
-        checkOut: "—",
-        status: "Chưa làm",
-        note: assignNote,
-        isRecurring: assignIsRecurring,
-      };
-      setWorkShiftList((prev) => [created, ...prev]);
-      setAssignShiftOpen(false);
-      setAssignNote("");
-      setAssignIsRecurring(true);
-      const msg = e instanceof GatewayError ? e.message : e?.message || "Đã lưu phân công ca làm việc";
-      showToast(msg, "success");
+      const msg = e instanceof GatewayError ? e.message : e?.message || "Không thể lưu phân công ca";
+      showToast(msg, "danger");
     } finally {
       setActionInProgress(false);
     }
@@ -590,6 +533,8 @@ export default function ShiftsPage() {
             <GeneralScheduleSection
               workShifts={displayedWorkShifts}
               templates={templates}
+              employees={empList.map((e) => ({ id: e.id, name: e.name, role: e.role, branch: e.branch, phone: e.phone }))}
+              branches={branchOptions}
               defaultBranch={schedulerBranch}
               isManager={isManager}
               managerBranch={managerBranch}
@@ -609,6 +554,7 @@ export default function ShiftsPage() {
             <div className="flex flex-col gap-6">
               <RegistrationTimetableSection
                 registrations={displayedRegistrations}
+                branches={branchOptions}
                 defaultBranch={schedulerBranch}
                 isManager={isManager}
                 managerBranch={managerBranch}
@@ -685,6 +631,7 @@ export default function ShiftsPage() {
         managerBranch={managerBranch}
         lockedBranch={schedulerBranch}
         employees={empList}
+        branches={branchOptions}
         onEmployeeChange={setAssignEmployee}
         onBranchChange={setAssignBranch}
         onDateChange={setAssignDate}

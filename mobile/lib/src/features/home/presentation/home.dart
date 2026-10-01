@@ -9,6 +9,8 @@ import '../../salary/presentation/salary.dart';
 import '../../leave_request/presentation/leave.dart';
 import '../../schedule_registration/presentation/registration.dart';
 import '../../tasks/data/service.dart';
+import '../../tasks/data/task_repository.dart';
+import '../../schedule/data/shift_repository.dart';
 import '../../tasks/presentation/tasks.dart';
 import '../../attendance/data/attendance_repository.dart';
 
@@ -18,12 +20,7 @@ class HomeScreen extends StatefulWidget {
 
   const HomeScreen({
     super.key,
-    this.currentUser = const UserModel(
-      name: 'Nguyễn Thu Hà',
-      email: 'nhanvien@company.com',
-      role: 'staff',
-      roleTitle: 'Nhân viên',
-    ),
+    required this.currentUser,
     this.onNavigateToTab,
   });
 
@@ -313,7 +310,7 @@ class _HomeScreenState extends State<HomeScreen> {
             if (isCheckedIn) {
               _showCheckOutSheet(context);
             } else {
-              _showCheckInSheet(context);
+              _showCheckInSheet();
             }
           },
           borderRadius: BorderRadius.circular(20),
@@ -384,16 +381,35 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _getShiftStatusLabel(String status) => ScheduleService.getStatusLabel(status);
 
-  void _showCheckInSheet(BuildContext context) {
+  void _showCheckInSheet() async {
     final branch = BranchScope.selectedBranch(context);
+    // ignore: unused_local_variable
     final String wifiSsid = '${CompanyConfig.brandCode}_${branch?.code ?? '01'}';
 
-    // Lấy danh sách ca làm việc được phân công cho nhân viên trong hôm nay
-    final assignedShifts = ScheduleService.getTodayAssignedShifts(
-      user: currentUser,
-      branchName: branch?.name,
-      activeCheckedInShift: _checkedInShift,
-    );
+    // Lấy ca hôm nay từ API thật (GET /api/shifts). Không dùng mock cứng.
+    List<ShiftDetail> assignedShifts = [];
+    try {
+      final api = await ShiftRepository().getShifts();
+      final now = DateTime.now();
+      final todayStr = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}';
+      final isoStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      assignedShifts = api.where((s) => s.date.contains(todayStr) || s.date.contains(isoStr)).map((s) {
+        return ShiftDetail(
+          id: s.id,
+          shiftName: s.template,
+          startTime: s.scheduledStart,
+          endTime: s.scheduledEnd,
+          hours: 4.0,
+          branch: s.branchSlug ?? branch?.name ?? '',
+          role: '',
+          status: ScheduleService.calculateShiftStatus(date: now, startTime: s.scheduledStart, endTime: s.scheduledEnd),
+        );
+      }).toList();
+    } catch (_) {
+      assignedShifts = [];
+    }
+
+    if (!mounted) return;
 
     ShiftDetail? selectedShift = assignedShifts.isNotEmpty ? assignedShifts.first : null;
 
@@ -557,26 +573,37 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: hasAssignedShifts && selectedShift != null
-                      ? () {
+                      ? () async {
                           final targetShift = selectedShift!;
                           final now = DateTime.now();
-                          AttendanceRepository().checkIn(
-                            employeeId: currentUser.email,
-                            shiftId: targetShift.shiftName,
-                            wifiSsid: wifiSsid,
-                            checkinTime: '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
-                          ).then((_) {}).catchError((_) {});
-                          Navigator.pop(context);
-                          setState(() {
-                            _checkedInShift = targetShift;
-                            _checkedInTime = now;
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              backgroundColor: AppColors.success,
-                              content: Text('✅ Chấm công vào ${targetShift.shiftName} (${targetShift.timeRange}) thành công!'),
-                            ),
-                          );
+                          try {
+                            await AttendanceRepository().checkIn(
+                              employeeId: currentUser.id.isNotEmpty ? currentUser.id : currentUser.email,
+                              shiftId: targetShift.shiftName,
+                              wifiSsid: wifiSsid,
+                              checkinTime: '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+                            );
+                            if (!context.mounted) return;
+                            Navigator.pop(context);
+                            setState(() {
+                              _checkedInShift = targetShift;
+                              _checkedInTime = now;
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: AppColors.success,
+                                content: Text('✅ Chấm công vào ${targetShift.shiftName} (${targetShift.timeRange}) thành công!'),
+                              ),
+                            );
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: AppColors.error,
+                                content: Text('❌ Chấm công thất bại: $e'),
+                              ),
+                            );
+                          }
                         }
                       : null,
                   style: ElevatedButton.styleFrom(
@@ -810,27 +837,38 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   final shiftOut = _checkedInShift;
                   final now = DateTime.now();
-                  AttendanceRepository().checkOut(
-                    employeeId: currentUser.email,
-                    shiftId: shiftOut?.shiftName,
-                    checkoutTime: '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
-                  ).then((_) {}).catchError((_) {});
-                  Navigator.pop(context);
-                  setState(() {
-                    _checkedInShift = null;
-                    _checkedInTime = null;
-                  });
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      backgroundColor: AppColors.success,
-                      content: Text(isHourly
-                          ? '✅ Chấm công ra ca ${shiftOut?.shiftName ?? ''} thành công! Đã cộng công: +${_formatCurrency(earnedMoney)} ₫ (${hoursWorked}h)'
-                          : '✅ Chấm công ra ca ${shiftOut?.shiftName ?? ''} thành công! (Lương tháng cố định)'),
-                    ),
-                  );
+try {
+                      await AttendanceRepository().checkOut(
+                        employeeId: currentUser.id.isNotEmpty ? currentUser.id : currentUser.email,
+                        shiftId: shiftOut?.shiftName,
+                        checkoutTime: '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+                      );
+                      if (!context.mounted) return;
+                      Navigator.pop(context);
+                      setState(() {
+                        _checkedInShift = null;
+                        _checkedInTime = null;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: AppColors.success,
+                          content: Text(isHourly
+                              ? '✅ Chấm công ra ca ${shiftOut?.shiftName ?? ''} thành công! Đã cộng công: +${_formatCurrency(earnedMoney)} ₫ (${hoursWorked}h)'
+                              : '✅ Chấm công ra ca ${shiftOut?.shiftName ?? ''} thành công! (Lương tháng cố định)'),
+                        ),
+                      );
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: AppColors.error,
+                          content: Text('❌ Chấm công ra thất bại: $e'),
+                        ),
+                      );
+                    }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFD97706),
@@ -851,9 +889,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildTodoSection(BuildContext context) {
-    final tasks = TaskService.getTasksForUser(userEmail: currentUser.email);
-    final activeTasks = tasks.where((t) => t.computedStatus != TaskStatus.completed).toList();
-    final displayTasks = activeTasks.take(3).toList();
+    return FutureBuilder<List<TaskModel>>(
+      future: TaskRepository().getTasks().catchError((_) => <TaskModel>[]),
+      builder: (ctx, snap) {
+        final tasks = snap.data ?? [];
+        final activeTasks = tasks.where((t) => t.computedStatus != TaskStatus.completed).toList();
+        final displayTasks = activeTasks.take(3).toList();
 
     return Container(
       decoration: BoxDecoration(
@@ -969,8 +1010,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               );
                               setState(() {});
                             } else {
-                              TaskService.updateTaskStatus(task.id, TaskStatus.completed);
+                              try {
+                                await TaskRepository().updateTaskStatus(task.id, 'completed');
+                              } catch (_) {}
                               setState(() {});
+                              if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text('✓ Đã hoàn thành: ${task.title}'),
@@ -1051,6 +1095,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
         ],
       ),
+    );
+      },
     );
   }
 }

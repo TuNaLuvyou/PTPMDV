@@ -17,6 +17,7 @@ import '../../regulations/presentation/regulations.dart';
 import '../../help/presentation/help.dart';
 import '../../shift_assignment/presentation/assignment.dart';
 import '../../tasks/presentation/tasks.dart';
+import '../../salary/presentation/bank_disbursement_screen.dart';
 
 class OperationsScreen extends StatelessWidget {
   final UserModel currentUser;
@@ -24,12 +25,7 @@ class OperationsScreen extends StatelessWidget {
 
   const OperationsScreen({
     super.key,
-    this.currentUser = const UserModel(
-      name: 'Nguyễn Thu Hà',
-      email: 'nhanvien@company.com',
-      role: 'staff',
-      roleTitle: 'Nhân viên',
-    ),
+    required this.currentUser,
     this.onReturnHome,
   });
 
@@ -134,6 +130,20 @@ class OperationsScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const WifiConfigScreen()),
+                );
+              },
+            ),
+            _buildFeatureCard(
+              title: 'Chi lương Ngân hàng (SOAP & REST)',
+              subtitle: 'Thử nghiệm kết nối SOAP XML ngân hàng và lệnh chi chống trùng',
+              icon: FontAwesomeIcons.buildingColumns,
+              iconColor: const Color(0xFF0D9488),
+              badgeText: 'SOAP & REST',
+              badgeColor: const Color(0xFF0D9488),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const BankDisbursementScreen()),
                 );
               },
             ),

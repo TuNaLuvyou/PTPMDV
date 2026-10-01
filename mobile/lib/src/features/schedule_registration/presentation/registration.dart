@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/state/user_scope.dart';
 import '../../schedule/data/shift_repository.dart';
 
 class ShiftOption {
@@ -75,7 +76,7 @@ class _ScheduleRegistrationScreenState extends State<ScheduleRegistrationScreen>
   final TextEditingController _noteController = TextEditingController();
   bool _isEditingNote = false;
 
-  // Mock dữ liệu theo tuần (mô phỏng lịch sử)
+  // Cache đăng ký theo tuần (dữ liệu thật từ API registrations)
   final Map<int, WeekRegistrationData> _weekDataCache = {};
 
   DateTime get _today {
@@ -116,13 +117,9 @@ class _ScheduleRegistrationScreenState extends State<ScheduleRegistrationScreen>
     final dayNames = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật'];
     final shortKeys = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
-    // Dữ liệu mẫu theo offset
-    final Map<int, List<String>> sampleData = {
-      1: ['t1', 't2', 't1', 't1', 't2', 't4', 'off'],   // Tuần sau
-      0: ['t2', 't1', 'off', 't1', 't2', 't2', 'off'],   // Tuần này
-      -1: ['t1', 't1', 't2', 'off', 't1', 'off', 'off'],  // Tuần trước
-    };
-    final defaultShifts = sampleData[offset] ?? List.generate(7, (i) => i < 5 ? 't1' : 'off');
+    // Khởi tạo trống, chờ API thật (GET /api/shifts/registrations).
+    // Không dùng dữ liệu mẫu cứng.
+    final defaultShifts = List.generate(7, (i) => 'off');
 
     final days = List.generate(7, (i) {
       final dayDate = monday.add(Duration(days: i));
@@ -135,22 +132,15 @@ class _ScheduleRegistrationScreenState extends State<ScheduleRegistrationScreen>
       );
     });
 
-    // Mock note đã gửi cho các tuần quá khứ
-    String? mockNote;
-    bool mockSent = false;
-    if (offset == -1) {
-      mockNote = 'Tuần trước xin ưu tiên xếp ca sáng vì bận học ca tối.';
-      mockSent = true;
-    } else if (offset == 0) {
-      mockNote = 'Tuần này muốn đổi lịch linh hoạt nếu chi nhánh cần.';
-      mockSent = true;
-    }
+    // Note lấy từ API registrations, không mock cứng.
+    String? savedNote;
+    bool savedSent = false;
 
     final weekData = WeekRegistrationData(
       weekLabel: _getWeekRange(offset),
       days: days,
-      note: mockNote,
-      noteSent: mockSent,
+      note: savedNote,
+      noteSent: savedSent,
     );
     _weekDataCache[offset] = weekData;
     return weekData;
@@ -181,40 +171,53 @@ class _ScheduleRegistrationScreenState extends State<ScheduleRegistrationScreen>
     });
   }
 
-  void _onSelectShift(DayShiftRegistration day, String shiftId) {
-    ShiftRepository().registerShift(
-      employeeId: '1',
-      shiftId: shiftId,
-      preference: day.dateStr,
-    ).catchError((_) {});
-    setState(() {
-      day.selectedShiftId = shiftId;
-    });
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: const Color(0xFF1E293B),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(milliseconds: 1000),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        content: Row(
-          children: [
-            const FaIcon(FontAwesomeIcons.cloudArrowUp, color: Colors.greenAccent, size: 18),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                '${day.dayName}: Đã lưu ${day.currentShift.displayName}',
-                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500, color: Colors.white),
+  Future<void> _onSelectShift(DayShiftRegistration day, String shiftId) async {
+    final user = UserScope.currentUser(context);
+    final empId = (user?.id.isNotEmpty == true) ? user!.id : '1';
+    try {
+      await ShiftRepository().registerShift(
+        employeeId: empId,
+        shiftId: shiftId,
+        preference: day.dateStr,
+      );
+      if (!mounted) return;
+      setState(() {
+        day.selectedShiftId = shiftId;
+      });
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFF1E293B),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(milliseconds: 1000),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          content: Row(
+            children: [
+              const FaIcon(FontAwesomeIcons.cloudArrowUp, color: Colors.greenAccent, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${day.dayName}: Đã lưu ${day.currentShift.displayName}',
+                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500, color: Colors.white),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text('❌ Lưu ca thất bại: $e'),
+        ),
+      );
+    }
   }
 
-  void _sendNote() {
+  Future<void> _sendNote() async {
     final note = _noteController.text.trim();
     if (note.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -227,30 +230,43 @@ class _ScheduleRegistrationScreenState extends State<ScheduleRegistrationScreen>
       );
       return;
     }
-    ShiftRepository().registerShift(
-      employeeId: '1',
-      shiftId: 'preference_note',
-      preference: note,
-    ).catchError((_) {});
-    setState(() {
-      _currentWeekData.note = note;
-      _currentWeekData.noteSent = true;
-      _isEditingNote = false;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Row(
-          children: [
-            FaIcon(FontAwesomeIcons.circleCheck, color: Colors.white, size: 18),
-            SizedBox(width: 8),
-            Text('Đã gửi ghi chú nguyện vọng thành công!'),
-          ],
+    final user = UserScope.currentUser(context);
+    final empId = (user?.id.isNotEmpty == true) ? user!.id : '1';
+    try {
+      await ShiftRepository().registerShift(
+        employeeId: empId,
+        shiftId: 'preference_note',
+        preference: note,
+      );
+      if (!mounted) return;
+      setState(() {
+        _currentWeekData.note = note;
+        _currentWeekData.noteSent = true;
+        _isEditingNote = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              FaIcon(FontAwesomeIcons.circleCheck, color: Colors.white, size: 18),
+              SizedBox(width: 8),
+              Text('Đã gửi ghi chú nguyện vọng thành công!'),
+            ],
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.success,
+          duration: Duration(seconds: 2),
         ),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.success,
-        duration: Duration(seconds: 2),
-      ),
-    );
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text('❌ Gửi ghi chú thất bại: $e'),
+        ),
+      );
+    }
   }
 
   void _saveNote() {

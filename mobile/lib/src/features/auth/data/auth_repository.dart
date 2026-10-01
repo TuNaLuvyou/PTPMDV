@@ -22,9 +22,24 @@ class AuthRepository {
       id: j['id']?.toString() ?? '',
       name: j['name']?.toString() ?? '',
       email: j['email']?.toString() ?? '',
+      phone: j['phone']?.toString() ?? '',
       role: j['role']?.toString() ?? 'staff',
       roleTitle: j['roleTitle']?.toString() ?? '',
       assignedBranchId: branch.id,
+      gender: j['gender']?.toString() ?? '',
+      birthDate: j['birthDate']?.toString() ?? '',
+      province: j['province']?.toString() ?? '',
+      ward: j['ward']?.toString() ?? '',
+      street: j['street']?.toString() ?? '',
+      cccd: j['cccd']?.toString() ?? '',
+      issueDate: j['issueDate']?.toString() ?? '',
+      issuePlace: j['issuePlace']?.toString() ?? '',
+      salaryType: j['salaryType']?.toString() ?? 'monthly',
+      hourlySalary: (j['hourlySalary'] is num) ? (j['hourlySalary'] as num).toDouble() : 0.0,
+      baseSalary: (j['baseSalary'] is num) ? (j['baseSalary'] as num).toDouble() : 0.0,
+      bankName: j['bankName']?.toString() ?? '',
+      bankAccountNumber: j['bankAccountNumber']?.toString() ?? '',
+      bankAccountName: j['bankAccountName']?.toString() ?? '',
     );
   }
 
@@ -53,6 +68,8 @@ class AuthRepository {
       await api.postJson('/api/auth/logout', {});
     } on ApiException {
       // Mất mạng vẫn cho đăng xuất cục bộ để không kẹt phiên.
+    } finally {
+      ApiClient.clearSession();
     }
   }
 

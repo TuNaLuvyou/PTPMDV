@@ -43,10 +43,14 @@ const List<Branch> kBranches = [
 /// Lấy danh sách chi nhánh công ty
 List<Branch> get branches => kBranches;
 
-/// Lấy branch theo id hoặc slug (mặc định là chi nhánh Hoàn Kiếm).
+/// Lấy branch theo id, slug hoặc code (không phân biệt chữ hoa thường).
 Branch branchById(String id) {
+  final norm = id.trim().toLowerCase();
   return kBranches.firstWhere(
-    (b) => b.id == id || b.slug == id,
+    (b) =>
+        b.id.toLowerCase() == norm ||
+        b.slug.toLowerCase() == norm ||
+        b.code.toLowerCase() == norm,
     orElse: () => kBranches.first,
   );
 }

@@ -11,10 +11,9 @@ import {
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
 import { apiGet, apiPost, GatewayError, GATEWAY_URL } from "@/lib/api";
-import { employees as initialEmployees } from "@/mock-data/portal";
+import { fetchBranchOptions, type BranchOption } from "@/lib/branches";
 import type { Employee } from "@/types";
 import type { TaskItem, TaskSourceType, TaskStatus } from "@/features/tasks/types";
-import { initialTasks } from "@/features/tasks/mock";
 import TaskFilterBar from "@/features/tasks/components/TaskFilter";
 import TaskTable from "@/features/tasks/components/TaskTable";
 import CreateTaskModal from "@/features/tasks/components/modals/TaskForm";
@@ -124,11 +123,12 @@ function mapBackendTaskToTaskItem(raw: any, empMap?: Map<string, Employee>): Tas
 }
 
 export default function TasksPage() {
-  const { role, branchSlug } = useCurrentUser();
+  const { role, branchSlug, user } = useCurrentUser();
   const isAdmin = role === "admin";
 
-  const [tasks, setTasks] = useState<TaskItem[]>(initialTasks);
-  const [empList, setEmpList] = useState<Employee[]>(initialEmployees);
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [empList, setEmpList] = useState<Employee[]>([]);
+  const [branchOptions, setBranchOptions] = useState<BranchOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionInProgress, setActionInProgress] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -174,10 +174,13 @@ export default function TasksPage() {
 
       const queryString = queryParams.toString() ? `?${queryParams.toString()}` : "";
 
-      const [tasksRes, empRes] = await Promise.allSettled([
+      const [tasksRes, empRes, branchRes] = await Promise.allSettled([
         apiGet<any[]>(`/api/tasks${queryString}`),
         apiGet<Employee[]>("/api/employees"),
+        fetchBranchOptions(),
       ]);
+
+      if (branchRes.status === "fulfilled") setBranchOptions(branchRes.value);
 
       let employeesData: Employee[] = [];
       if (empRes.status === "fulfilled" && Array.isArray(empRes.value)) {
@@ -192,8 +195,15 @@ export default function TasksPage() {
         currentEmpMap.set(e.email, e);
       }
 
-      if (tasksRes.status === "fulfilled" && Array.isArray(tasksRes.value) && tasksRes.value.length > 0) {
+      if (tasksRes.status === "fulfilled" && Array.isArray(tasksRes.value)) {
         setTasks(tasksRes.value.map((t) => mapBackendTaskToTaskItem(t, currentEmpMap)));
+      } else if (tasksRes.status === "rejected") {
+        const r = tasksRes.reason;
+        setError(r instanceof GatewayError ? r.message : "Không thể tải danh sách nhiệm vụ từ máy chủ");
+        setTasks([]);
+      }
+      if (empRes.status === "rejected") {
+        setEmpList([]);
       }
     } catch (e: any) {
       const msg = e instanceof GatewayError ? e.message : e?.message || "Không thể tải danh sách nhiệm vụ từ gateway";
@@ -288,22 +298,8 @@ export default function TasksPage() {
       );
       showToast("Đã duyệt hoàn thành nhiệm vụ thành công", "success");
     } catch (e: any) {
-      // Fallback local state update
-      setTasks((prev) =>
-        prev.map((t) => {
-          if (t.id === taskId) {
-            return {
-              ...t,
-              status: "completed",
-              proofPhotoUrl: photoUrl || t.proofPhotoUrl,
-              completedAt,
-            };
-          }
-          return t;
-        })
-      );
-      const msg = e instanceof GatewayError ? e.message : e?.message || "Đã cập nhật trạng thái hoàn thành";
-      showToast(msg, "success");
+      const msg = e instanceof GatewayError ? e.message : e?.message || "Không thể cập nhật trạng thái nhiệm vụ";
+      showToast(msg, "danger");
     } finally {
       setActionInProgress(false);
     }
@@ -317,9 +313,8 @@ export default function TasksPage() {
       setTasks((prev) => prev.filter((t) => t.id !== taskId));
       showToast("Đã xóa nhiệm vụ thành công", "success");
     } catch (e: any) {
-      setTasks((prev) => prev.filter((t) => t.id !== taskId));
-      const msg = e instanceof GatewayError ? e.message : e?.message || "Đã xóa nhiệm vụ khỏi danh sách";
-      showToast(msg, "success");
+      const msg = e instanceof GatewayError ? e.message : e?.message || "Không thể xóa nhiệm vụ";
+      showToast(msg, "danger");
     } finally {
       setActionInProgress(false);
     }
@@ -352,15 +347,14 @@ export default function TasksPage() {
       setTasks((prev) => [mapped, ...prev]);
       showToast(`Đã giao nhiệm vụ "${newTask.title}" thành công`, "success");
     } catch (e: any) {
-      setTasks((prev) => [newTask, ...prev]);
-      const msg = e instanceof GatewayError ? e.message : e?.message || "Đã lưu nhiệm vụ mới";
-      showToast(msg, "success");
+      const msg = e instanceof GatewayError ? e.message : e?.message || "Không thể tạo nhiệm vụ mới";
+      showToast(msg, "danger");
     } finally {
       setActionInProgress(false);
     }
   };
 
-  const currentUserName = isAdmin ? "Trần Minh Tuấn (Admin)" : "Vũ Thành Công (Quản lý)";
+  const currentUserName = user?.name ? `${user.name} (${user.roleTitle || role})` : isAdmin ? "Quản trị viên" : "Quản lý";
 
   return (
     <div className="space-y-6">
@@ -426,6 +420,7 @@ export default function TasksPage() {
         onSourceFilterChange={setSourceFilter}
         branchFilter={branchFilter}
         onBranchFilterChange={setBranchFilter}
+        branches={branchOptions}
         isManager={!isAdmin}
         managerBranch={branchSlug.toUpperCase()}
         statusCounts={statusCounts}

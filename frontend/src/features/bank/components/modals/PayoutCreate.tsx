@@ -48,9 +48,10 @@ export default function CreatePayrollDisbursementModal({
     partners.find((p) => p.isPrimary)?.id || partners[0]?.id || ""
   );
   const [idempotencyKey, setIdempotencyKey] = useState("");
-  const [content, setContent] = useState("Chi lương tháng 10/2026");
-  const [totalAmountStr, setTotalAmountStr] = useState("50000000");
-  const [beneficiaryCountStr, setBeneficiaryCountStr] = useState("10");
+  const currentMonthYear = `${String(new Date().getMonth() + 1).padStart(2, "0")}/${new Date().getFullYear()}`;
+  const [content, setContent] = useState(`Chi lương tháng ${currentMonthYear}`);
+  const [totalAmountStr, setTotalAmountStr] = useState("");
+  const [beneficiaryCountStr, setBeneficiaryCountStr] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);

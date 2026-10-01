@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/widgets/branch_selector.dart';
+import '../../../core/network/api_client.dart';
+import '../../../core/models/leave_request.dart';
 import '../data/approval_repository.dart';
 
 // ─── Models ──────────────────────────────────────────────────────────────────
@@ -56,72 +58,27 @@ class _ShiftRequestScreenState extends State<ShiftRequestScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this, initialIndex: 0);
-    _requests = [
-      ShiftRequest(
-        id: '1',
-        staffName: 'Nguyễn Thu Hà',
-        staffRole: 'Nhân viên kinh doanh',
-        staffAvatar: 'H',
-        type: ShiftRequestType.swap,
-        currentShift: 'Ca Chiều T5, 21/08 (14:00 - 22:00)',
-        targetShift: 'Ca Tối T5, 21/08 (18:00 - 22:30)',
-        swapWithName: 'Phạm Quỳnh Trang',
-        reason: 'Đổi ca chiều sang ca tối do có việc cá nhân buổi chiều',
-        submittedAt: 'Hôm nay, 08:30',
-        status: ShiftRequestStatus.pending,
-      ),
-      ShiftRequest(
-        id: '2',
-        staffName: 'Phạm Quỳnh Trang',
-        staffRole: 'Kế toán nội bộ',
-        staffAvatar: 'T',
-        type: ShiftRequestType.leave,
-        currentShift: 'Cả ngày T6, 22/08',
-        reason: 'Xin nghỉ phép năm đi khám sức khỏe định kỳ',
-        submittedAt: 'Hôm qua, 15:45',
-        status: ShiftRequestStatus.pending,
-      ),
-      ShiftRequest(
-        id: '3',
-        staffName: 'Hoàng Minh Đức',
-        staffRole: 'Nhân sự',
-        staffAvatar: 'Đ',
-        type: ShiftRequestType.adjustment,
-        currentShift: 'Ca Sáng T3, 19/08 (08:00 - 17:00)',
-        reason: 'Quên check-in do Wi-Fi tầng 2 mất kết nối lúc vào ca',
-        submittedAt: '19/08, 17:30',
-        status: ShiftRequestStatus.pending,
-      ),
-      ShiftRequest(
-        id: '4',
-        staffName: 'Nguyễn Thu Hà',
-        staffRole: 'Nhân viên kinh doanh',
-        staffAvatar: 'H',
-        type: ShiftRequestType.advance,
-        currentShift: 'Hạn mức: 3.400.000 đ',
-        reason: 'Xin tạm ứng 2.000.000 đ chi phí phát sinh',
-        submittedAt: '16/08, 09:15',
-        status: ShiftRequestStatus.approved,
-      ),
-      ShiftRequest(
-        id: '5',
-        staffName: 'Lê Văn An',
-        staffRole: 'Quản lý Chi nhánh HN-2',
-        staffAvatar: 'A',
-        type: ShiftRequestType.leave,
-        currentShift: '2 ngày: 22/08 - 23/08',
-        reason: 'Việc gia đình tại quê có hiếu hỷ',
-        submittedAt: '14/08, 10:00',
-        status: ShiftRequestStatus.approved,
-      ),
-    ];
+    _requests = [];
     _fetchPendingRequests();
   }
 
   Future<void> _fetchPendingRequests() async {
     try {
-      final list = await _approvalRepo.getPending();
-      if (list.isNotEmpty && mounted) {
+      final results = await Future.wait([
+        _approvalRepo.getPending(),
+        ApiClient().getJson('/api/employees').catchError((_) => <dynamic>[]),
+      ]);
+      final list = results[0] as List<LeaveRequestModel>;
+      final rawEmps = results[1] is List ? results[1] as List : [];
+      final empMap = <String, Map<String, dynamic>>{};
+      for (final e in rawEmps.whereType<Map<String, dynamic>>()) {
+        final id = e['id']?.toString() ?? '';
+        final email = e['email']?.toString() ?? '';
+        if (id.isNotEmpty) empMap[id] = e;
+        if (email.isNotEmpty) empMap[email] = e;
+      }
+
+      if (mounted) {
         final apiRequests = list.map((m) {
           ShiftRequestType t = ShiftRequestType.leave;
           if (m.type == 'advance') {
@@ -129,11 +86,15 @@ class _ShiftRequestScreenState extends State<ShiftRequestScreen>
           } else if (m.type == 'overtime') {
             t = ShiftRequestType.coverMe;
           }
+          final emp = empMap[m.employeeId];
+          final staffName = emp?['name']?.toString() ??
+              (m.employeeId.isNotEmpty ? 'Nhân sự #${m.employeeId}' : 'Nhân sự');
+          final staffRole = emp?['role']?.toString() ?? (m.branchSlug ?? 'Nhân viên');
           return ShiftRequest(
             id: m.id,
-            staffName: 'Nhân sự #${m.employeeId}',
-            staffRole: m.branchSlug ?? 'Nhân viên',
-            staffAvatar: m.employeeId.isNotEmpty ? m.employeeId[0].toUpperCase() : 'N',
+            staffName: staffName,
+            staffRole: staffRole,
+            staffAvatar: staffName.isNotEmpty ? staffName[0].toUpperCase() : 'N',
             type: t,
             currentShift: m.title,
             reason: m.content,
@@ -142,12 +103,11 @@ class _ShiftRequestScreenState extends State<ShiftRequestScreen>
           );
         }).toList();
         setState(() {
-          final nonPending = _requests.where((r) => r.status != ShiftRequestStatus.pending).toList();
-          _requests = [...apiRequests, ...nonPending];
+          _requests = apiRequests;
         });
       }
     } catch (_) {
-      // Giữ mock khi offline
+      // Không giữ mock — để rỗng khi offline
     }
   }
 
@@ -164,29 +124,51 @@ class _ShiftRequestScreenState extends State<ShiftRequestScreen>
   List<ShiftRequest> get _rejectedRequests =>
       _requests.where((r) => r.status == ShiftRequestStatus.rejected).toList();
 
-  void _approve(ShiftRequest request) {
-    _approvalRepo.approve(request.id).catchError((_) {});
-    setState(() => request.status = ShiftRequestStatus.approved);
-    final text = request.type == ShiftRequestType.swap
-        ? '✅ Quản lý đã duyệt đồng ý hộ đổi ca cho ${request.staffName}'
-        : '✅ Đã duyệt yêu cầu của ${request.staffName}';
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: Colors.green,
-        content: Text(text),
-      ),
-    );
+  Future<void> _approve(ShiftRequest request) async {
+    try {
+      await _approvalRepo.approve(request.id);
+      if (!mounted) return;
+      setState(() => request.status = ShiftRequestStatus.approved);
+      final text = request.type == ShiftRequestType.swap
+          ? '✅ Quản lý đã duyệt đồng ý hộ đổi ca cho ${request.staffName}'
+          : '✅ Đã duyệt yêu cầu của ${request.staffName}';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.green,
+          content: Text(text),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text('❌ Duyệt thất bại: $e'),
+        ),
+      );
+    }
   }
 
-  void _reject(ShiftRequest request) {
-    _approvalRepo.reject(request.id).catchError((_) {});
-    setState(() => request.status = ShiftRequestStatus.rejected);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: AppColors.error,
-        content: Text('❌ Đã từ chối yêu cầu của ${request.staffName}'),
-      ),
-    );
+  Future<void> _reject(ShiftRequest request) async {
+    try {
+      await _approvalRepo.reject(request.id);
+      if (!mounted) return;
+      setState(() => request.status = ShiftRequestStatus.rejected);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text('❌ Đã từ chối yêu cầu của ${request.staffName}'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text('❌ Từ chối thất bại: $e'),
+        ),
+      );
+    }
   }
 
   @override

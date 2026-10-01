@@ -22,17 +22,8 @@ interface Props {
   onClose: () => void;
 }
 
-// Hàm hỗ trợ đọc tiền tiếng Việt cơ bản cho bảng lương
 function convertNumberToVietnameseWords(amount: number): string {
-  if (amount === 154200000) {
-    return "Một trăm năm mươi tư triệu hai trăm nghìn đồng chẵn.";
-  }
-  if (amount === 148500000) {
-    return "Một trăm bốn mươi tám triệu năm trăm nghìn đồng chẵn.";
-  }
-  if (amount === 9500000) {
-    return "Chín triệu năm trăm nghìn đồng chẵn.";
-  }
+  if (!amount || Number.isNaN(amount)) return "0 đồng.";
   return `${amount.toLocaleString("vi-VN")} đồng Việt Nam.`;
 }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/state/user_scope.dart';
 import '../data/leave_repository.dart';
 
 class LeaveRequestItem {
@@ -40,7 +41,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   Future<void> _fetchRequests() async {
     try {
       final list = await _leaveRepo.getRequests();
-      if (list.isNotEmpty && mounted) {
+      if (mounted) {
         final apiItems = list.where((m) => m.type == 'leave').map((m) {
           final title = m.title.replaceFirst('Đơn xin nghỉ: ', '');
           String d = 'Hôm nay (Cả ngày)';
@@ -59,43 +60,16 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
             createdAt: m.createdAt ?? 'Vừa xong',
           );
         }).toList();
-        if (apiItems.isNotEmpty) {
-          setState(() {
-            _requests = apiItems;
-          });
-        }
+        setState(() {
+          _requests = apiItems;
+        });
       }
     } catch (_) {
-      // Giữ mock khi offline
+      // Không giữ mock — để rỗng khi offline
     }
   }
 
-  List<LeaveRequestItem> _requests = [
-    const LeaveRequestItem(
-      id: 'lr-1',
-      leaveType: 'Nghỉ phép năm',
-      dates: '19/08/2026 (Cả ngày)',
-      reason: 'Khám sức khỏe tổng quát định kỳ',
-      status: 'pending',
-      createdAt: 'Hôm nay 09:15',
-    ),
-    const LeaveRequestItem(
-      id: 'lr-2',
-      leaveType: 'Nghỉ ốm',
-      dates: '02/08/2026 (Ca Sáng)',
-      reason: 'Sốt xuất huyết theo chỉ định bác sĩ',
-      status: 'approved',
-      createdAt: '01/08/2026',
-    ),
-    const LeaveRequestItem(
-      id: 'lr-3',
-      leaveType: 'Việc riêng không lương',
-      dates: '15/07/2026 (Cả ngày)',
-      reason: 'Việc gia đình tại quê',
-      status: 'approved',
-      createdAt: '10/07/2026',
-    ),
-  ];
+  List<LeaveRequestItem> _requests = [];
 
   void _showCreateModal() {
     String selectedType = 'Nghỉ phép năm';
@@ -179,7 +153,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
               ),
               const SizedBox(height: 18),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   final reason = reasonController.text.trim();
                   if (reason.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -201,20 +175,33 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                       ),
                     );
                   });
-                  _leaveRepo.createRequest({
-                    'type': 'leave',
-                    'title': 'Đơn xin nghỉ: $selectedType',
-                    'content': '$dateStr ($selectedDuration) - Lý do: $reason',
-                    'employeeId': '1',
-                  }).then((_) => _fetchRequests()).catchError((_) {});
-
-                  Navigator.pop(modalCtx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      backgroundColor: AppColors.success,
-                      content: Text('✅ Đã gửi đơn xin nghỉ phép thành công!'),
-                    ),
-                  );
+try {
+                    final user = UserScope.currentUser(context);
+                    final empId = (user?.id.isNotEmpty == true) ? user!.id : (user?.email ?? '1');
+                    await _leaveRepo.createRequest({
+                      'type': 'leave',
+                      'title': 'Đơn xin nghỉ: $selectedType',
+                      'content': '$dateStr ($selectedDuration) - Lý do: $reason',
+                      'employeeId': empId,
+                    });
+                    await _fetchRequests();
+                    if (!mounted) return;
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        backgroundColor: AppColors.success,
+                        content: Text('✅ Đã gửi đơn xin nghỉ phép thành công!'),
+                      ),
+                    );
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        backgroundColor: AppColors.error,
+                        content: Text('❌ Gửi đơn xin nghỉ thất bại: $e'),
+                      ),
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,

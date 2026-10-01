@@ -3,6 +3,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/state/branch_scope.dart';
 import '../../../core/widgets/branch_selector.dart';
+import '../../../core/network/api_client.dart';
+import '../../../core/models/attendance.dart';
 import '../../attendance/data/attendance_repository.dart';
 
 // ─── Model ───────────────────────────────────────────────────────────────────
@@ -44,62 +46,7 @@ class _StaffMonitorScreenState extends State<StaffMonitorScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  final List<StaffMemberStatus> _allStaff = const [
-    StaffMemberStatus(
-      id: '1',
-      name: 'Nguyễn Minh Tuấn',
-      role: 'Trưởng ca',
-      shift: 'Ca Sáng (07:00 - 12:00)',
-      checkInTime: '06:58',
-      status: StaffAttendanceStatus.present,
-      avatar: 'T',
-    ),
-    StaffMemberStatus(
-      id: '2',
-      name: 'Trần Thị Lan',
-      role: 'Barista',
-      shift: 'Ca Sáng (07:00 - 12:00)',
-      checkInTime: '07:12',
-      status: StaffAttendanceStatus.late,
-      avatar: 'L',
-    ),
-    StaffMemberStatus(
-      id: '3',
-      name: 'Lê Văn Hùng',
-      role: 'Thu ngân',
-      shift: 'Ca Sáng (07:00 - 12:00)',
-      checkInTime: '07:01',
-      status: StaffAttendanceStatus.present,
-      avatar: 'H',
-    ),
-    StaffMemberStatus(
-      id: '4',
-      name: 'Phạm Thị Ngọc',
-      role: 'Phục vụ',
-      shift: 'Ca Chiều (12:00 - 17:30)',
-      checkInTime: '--:--',
-      status: StaffAttendanceStatus.offShift,
-      avatar: 'N',
-    ),
-    StaffMemberStatus(
-      id: '5',
-      name: 'Hoàng Văn Bình',
-      role: 'Barista',
-      shift: 'Ca Chiều (12:00 - 17:30)',
-      checkInTime: '--:--',
-      status: StaffAttendanceStatus.offShift,
-      avatar: 'B',
-    ),
-    StaffMemberStatus(
-      id: '6',
-      name: 'Nguyễn Thị Mai',
-      role: 'Phục vụ',
-      shift: 'Ca Sáng (07:00 - 12:00)',
-      checkInTime: '09:45',
-      status: StaffAttendanceStatus.absent,
-      avatar: 'M',
-    ),
-  ];
+  
 
   final AttendanceRepository _attendanceRepo = AttendanceRepository();
   late List<StaffMemberStatus> _staffList;
@@ -108,27 +55,45 @@ class _StaffMonitorScreenState extends State<StaffMonitorScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this, initialIndex: 0);
-    _staffList = List.from(_allStaff);
+    _staffList = [];
     _fetchStaffAttendance();
   }
 
   Future<void> _fetchStaffAttendance() async {
     try {
-      final list = await _attendanceRepo.getAttendance();
-      if (list.isNotEmpty && mounted) {
+      final results = await Future.wait([
+        _attendanceRepo.getAttendance(),
+        ApiClient().getJson('/api/employees').catchError((_) => <dynamic>[]),
+      ]);
+      final list = results[0] as List<AttendanceModel>;
+      final rawEmps = results[1] is List ? results[1] as List : [];
+      final empMap = <String, Map<String, dynamic>>{};
+      for (final e in rawEmps.whereType<Map<String, dynamic>>()) {
+        final id = e['id']?.toString() ?? '';
+        final email = e['email']?.toString() ?? '';
+        if (id.isNotEmpty) empMap[id] = e;
+        if (email.isNotEmpty) empMap[email] = e;
+      }
+
+      if (mounted) {
         final apiList = list.map((m) {
           StaffAttendanceStatus st = StaffAttendanceStatus.present;
           if (m.status == 'absent') st = StaffAttendanceStatus.absent;
           if (m.status == 'late') st = StaffAttendanceStatus.late;
+          final emp = empMap[m.employeeId];
+          final name = emp?['name']?.toString() ??
+              (m.employeeId.isNotEmpty ? 'Nhân sự #${m.employeeId}' : 'Nhân sự');
+          final role = emp?['role']?.toString() ?? 'Nhân viên';
+          final shift = m.shiftId.isNotEmpty ? m.shiftId : 'Ca làm việc';
           return StaffMemberStatus(
             id: m.id,
-            name: 'Nhân sự #${m.employeeId}',
-            role: 'Nhân viên',
-            shift: 'Ca #${m.shiftId}',
+            name: name,
+            role: role,
+            shift: shift.startsWith('Ca') ? shift : 'Ca #$shift',
             checkInTime: m.checkIn ?? '--:--',
             checkOutTime: m.checkOut,
             status: st,
-            avatar: m.employeeId.isNotEmpty ? m.employeeId[0].toUpperCase() : 'N',
+            avatar: name.isNotEmpty ? name[0].toUpperCase() : 'N',
           );
         }).toList();
         setState(() {
@@ -136,7 +101,7 @@ class _StaffMonitorScreenState extends State<StaffMonitorScreen>
         });
       }
     } catch (_) {
-      // Giữ mock khi offline
+      // Không giữ mock — để rỗng khi offline
     }
   }
 

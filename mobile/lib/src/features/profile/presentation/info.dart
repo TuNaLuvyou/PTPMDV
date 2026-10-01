@@ -47,17 +47,18 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.name);
     _phoneCtrl = TextEditingController(text: widget.phone);
-    _birthDate = widget.user?.birthDate ?? '24/08/1999';
-    _gender = widget.user?.gender ?? 'Nữ';
-    _province = widget.user?.province ?? 'Hà Nội';
-    _ward = widget.user?.ward ?? 'Phường Hàng Bài';
-    _street = widget.user?.street ?? '15 Phố Hàng Bài, Q. Hoàn Kiếm';
-    _bankAcc = widget.user?.bankAccountNumber ?? '108876543210';
-    _bankName = widget.user?.bankName ?? 'VietinBank';
-    _cccd = widget.user?.cccd ?? '001199014567';
-    _issueDate = widget.user?.issueDate ?? '10/05/2021';
-    _issuePlace = widget.user?.issuePlace ?? 'Cục CS QLHC về TTXH';
-    _cccdCtrl = TextEditingController(text: _cccd);
+    final u = widget.user;
+    _birthDate = (u?.birthDate.isNotEmpty == true) ? u!.birthDate : 'Chưa cập nhật';
+    _gender = (u?.gender.isNotEmpty == true) ? u!.gender : 'Chưa cập nhật';
+    _province = (u?.province.isNotEmpty == true) ? u!.province : 'Chưa cập nhật';
+    _ward = (u?.ward.isNotEmpty == true) ? u!.ward : 'Chưa cập nhật';
+    _street = (u?.street.isNotEmpty == true) ? u!.street : 'Chưa cập nhật';
+    _bankAcc = (u?.bankAccountNumber.isNotEmpty == true) ? u!.bankAccountNumber : 'Chưa cập nhật';
+    _bankName = (u?.bankName.isNotEmpty == true) ? u!.bankName : 'Chưa cập nhật';
+    _cccd = (u?.cccd.isNotEmpty == true) ? u!.cccd : 'Chưa cập nhật';
+    _issueDate = (u?.issueDate.isNotEmpty == true) ? u!.issueDate : 'Chưa cập nhật';
+    _issuePlace = (u?.issuePlace.isNotEmpty == true) ? u!.issuePlace : 'Chưa cập nhật';
+    _cccdCtrl = TextEditingController(text: _cccd == 'Chưa cập nhật' ? '' : _cccd);
   }
 
   @override

@@ -2,9 +2,11 @@
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowRightArrowLeft, faCoins } from "@fortawesome/free-solid-svg-icons";
+import { useState } from "react";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { Field, Input, Select, Toggle } from "@/components/ui/Form";
+import { apiPut } from "@/lib/api";
 
 export interface AttendanceConfigState {
   gracePeriod: string;
@@ -21,11 +23,28 @@ interface Props {
 }
 
 export default function AttendanceConfigModal({ open, onClose, config, setConfig }: Props) {
+  const [saving, setSaving] = useState(false);
   const setFlag = (key: keyof AttendanceConfigState) => (v: boolean) =>
     setConfig((prev) => ({ ...prev, [key]: v }));
 
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const minutes = parseInt(config.gracePeriod.replace(/\D/g, ""), 10) || 5;
+      await apiPut("/api/attendance/config", {
+        gracePeriodMinutes: minutes,
+        shiftSwapMode: config.shiftSwapMode,
+      });
+    } catch (_) {
+      // Tiếp tục đóng nếu offline
+    } finally {
+      setSaving(false);
+      onClose();
+    }
+  };
+
   return (
-    <Modal open={open} onClose={onClose} title="Cấu hình chấm công" size="lg" footer={<><Button variant="white" onClick={onClose}>Hủy</Button><Button onClick={onClose}>Lưu cấu hình</Button></>}>
+    <Modal open={open} onClose={onClose} title="Cấu hình chấm công" size="lg" footer={<><Button variant="white" onClick={onClose} disabled={saving}>Hủy</Button><Button onClick={handleSave} disabled={saving}>{saving ? "Đang lưu..." : "Lưu cấu hình"}</Button></>}>
       <div className="flex flex-col gap-4">
         <div className="rounded-xl border border-gray-200 p-4">
           <div className="flex items-center gap-2 mb-4">
@@ -40,7 +59,12 @@ export default function AttendanceConfigModal({ open, onClose, config, setConfig
               <div className="relative"><Input type="number" min={0} max={100} defaultValue={10} className="pr-9" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span></div>
             </Field>
             <Field label="Cho phép chấm công trễ (phút)" required hint="Số phút tối đa chấp nhận check-in trễ trước khi tính phạt">
-              <Input type="number" min={0} defaultValue={config.gracePeriod.replace(" phút", "")} />
+              <Input
+                type="number"
+                min={0}
+                value={config.gracePeriod.replace(" phút", "")}
+                onChange={(e) => setConfig((prev) => ({ ...prev, gracePeriod: `${e.target.value} phút` }))}
+              />
             </Field>
             <Field label="Cho phép chấm công trước giờ làm (phút)" required hint="Nhân viên có thể chấm công sớm trước giờ bắt đầu ca tối đa bao nhiêu phút">
               <Input type="number" min={0} defaultValue={15} />
@@ -80,9 +104,12 @@ export default function AttendanceConfigModal({ open, onClose, config, setConfig
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Field label="Chế độ duyệt đổi ca" required>
-              <Select defaultValue={config.shiftSwapMode}>
-                <option>Nhân viên tự xác nhận</option>
-                <option>Quản lý chi nhánh duyệt trực tiếp</option>
+              <Select
+                value={config.shiftSwapMode}
+                onChange={(e) => setConfig((prev) => ({ ...prev, shiftSwapMode: e.target.value }))}
+              >
+                <option value="Nhân viên tự xác nhận">Nhân viên tự xác nhận</option>
+                <option value="Quản lý chi nhánh duyệt trực tiếp">Quản lý chi nhánh duyệt trực tiếp</option>
               </Select>
             </Field>
             <Field label="Số lần đổi ca tối đa / tháng" required>

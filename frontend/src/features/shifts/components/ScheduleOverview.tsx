@@ -6,6 +6,7 @@ import { faCalendar, faCheck, faChevronDown, faChevronLeft, faChevronRight, faCh
 import Badge from "@/components/ui/Badge";
 import StaffShiftDetailModal from "./modals/ShiftDetail";
 import type { ShiftTemplate, WorkShift } from "../types";
+import type { BranchOption } from "@/lib/branches";
 
 export interface StaffInShift {
   id: string;
@@ -32,60 +33,19 @@ export interface GeneralShiftItem {
 interface Props {
   workShifts: WorkShift[];
   templates: ShiftTemplate[];
+  employees?: { id: string; name: string; role: string; branch: string; phone: string }[];
+  branches?: BranchOption[];
   defaultBranch?: string;
   isManager?: boolean;
   managerBranch?: string;
   onOpenAssignModal?: (templateId: string, date: string, branch: string) => void;
 }
 
-// Danh sách nhân sự mẫu phong phú đồng bộ với mobile & portal
-const mockStaffPool: Record<string, StaffInShift[]> = {
-  "T2": [
-    { id: "s1", name: "Trần Minh Tuấn", role: "Quản lý / Admin", branch: "HN-1", avatarLetter: "T", phone: "0901 111 222", checkInStatus: "checked_in", checkInTime: "06:50", checkOutTime: "14:05" },
-    { id: "s2", name: "Nguyễn Thu Hà", role: "Phục vụ bàn", branch: "HN-1", avatarLetter: "H", phone: "0902 333 444", checkInStatus: "checked_in", checkInTime: "06:55", checkOutTime: "14:02" },
-    { id: "s3", name: "Phạm Quỳnh Trang", role: "Thu ngân", branch: "HN-1", avatarLetter: "T", phone: "0903 555 666", checkInStatus: "checked_in", checkInTime: "07:05", checkOutTime: "14:00" },
-    { id: "s4", name: "Hoàng Minh Đức", role: "Pha chế", branch: "HN-1", avatarLetter: "Đ", phone: "0904 777 888", checkInStatus: "in_progress", checkInTime: "13:50" },
-    { id: "s5", name: "Vũ Thành Công", role: "Phục vụ bàn", branch: "HN-1", avatarLetter: "C", phone: "0905 123 456", checkInStatus: "in_progress", checkInTime: "13:58" },
-    { id: "s6", name: "Lê Văn An", role: "Quản lý Chi nhánh", branch: "HN-2", avatarLetter: "A", phone: "0987 654 321", checkInStatus: "not_yet" },
-    { id: "s7", name: "Trần Bích Ngọc", role: "Lễ tân", branch: "ĐN-1", avatarLetter: "N", phone: "0977 889 900", checkInStatus: "not_yet" },
-  ],
-  "T3": [
-    { id: "s8", name: "Nguyễn Thu Hà", role: "Phục vụ bàn", branch: "HN-1", avatarLetter: "H", phone: "0902 333 444", checkInStatus: "checked_in", checkInTime: "06:52", checkOutTime: "14:03" },
-    { id: "s9", name: "Hoàng Minh Đức", role: "Barista", branch: "HN-1", avatarLetter: "Đ", phone: "0904 777 888", checkInStatus: "checked_in", checkInTime: "06:58", checkOutTime: "14:00" },
-    { id: "s10", name: "Vũ Thị Mai", role: "Thu ngân", branch: "HN-1", avatarLetter: "M", phone: "0909 567 890", checkInStatus: "in_progress", checkInTime: "13:55" },
-    { id: "s11", name: "Đặng Văn E", role: "Phục vụ bàn", branch: "HN-1", avatarLetter: "E", phone: "0906 234 567", checkInStatus: "not_yet" },
-  ],
-  "T4": [
-    { id: "s12", name: "Phạm Quỳnh Trang", role: "Thu ngân", branch: "HN-1", avatarLetter: "T", phone: "0903 555 666", checkInStatus: "not_yet" },
-    { id: "s13", name: "Vũ Thành Công", role: "Phục vụ bàn", branch: "HN-1", avatarLetter: "C", phone: "0905 123 456", checkInStatus: "not_yet" },
-    { id: "s14", name: "Bùi Văn G", role: "Pha chế", branch: "HN-2", avatarLetter: "G", phone: "0908 456 789", checkInStatus: "not_yet" },
-  ],
-  "T5": [
-    { id: "s15", name: "Trần Minh Tuấn", role: "Quản lý / Admin", branch: "HN-1", avatarLetter: "T", phone: "0901 111 222", checkInStatus: "not_yet" },
-    { id: "s16", name: "Nguyễn Thu Hà", role: "Phục vụ bàn", branch: "HN-1", avatarLetter: "H", phone: "0902 333 444", checkInStatus: "not_yet" },
-    { id: "s17", name: "Đặng Văn E", role: "Barista", branch: "HN-1", avatarLetter: "E", phone: "0906 234 567", checkInStatus: "not_yet" },
-  ],
-  "T6": [
-    { id: "s18", name: "Hoàng Minh Đức", role: "Pha chế", branch: "HN-1", avatarLetter: "Đ", phone: "0904 777 888", checkInStatus: "not_yet" },
-    { id: "s19", name: "Phạm Quỳnh Trang", role: "Thu ngân", branch: "HN-1", avatarLetter: "T", phone: "0903 555 666", checkInStatus: "not_yet" },
-    { id: "s20", name: "Trần Bích Ngọc", role: "Lễ tân", branch: "ĐN-1", avatarLetter: "N", phone: "0977 889 900", checkInStatus: "not_yet" },
-  ],
-  "T7": [
-    { id: "s21", name: "Nguyễn Thu Hà", role: "Phục vụ bàn", branch: "HN-1", avatarLetter: "H", phone: "0902 333 444", checkInStatus: "not_yet" },
-    { id: "s22", name: "Vũ Thành Công", role: "Phục vụ bàn", branch: "HN-1", avatarLetter: "C", phone: "0905 123 456", checkInStatus: "not_yet" },
-    { id: "s23", name: "Bùi Văn G", role: "Pha chế", branch: "HN-1", avatarLetter: "G", phone: "0908 456 789", checkInStatus: "not_yet" },
-    { id: "s24", name: "Lê Văn An", role: "Quản lý Chi nhánh", branch: "HN-2", avatarLetter: "A", phone: "0987 654 321", checkInStatus: "not_yet" },
-  ],
-  "CN": [
-    { id: "s25", name: "Trần Minh Tuấn", role: "Quản lý / Admin", branch: "HN-1", avatarLetter: "T", phone: "0901 111 222", checkInStatus: "not_yet" },
-    { id: "s26", name: "Phạm Quỳnh Trang", role: "Thu ngân", branch: "HN-1", avatarLetter: "T", phone: "0903 555 666", checkInStatus: "not_yet" },
-    { id: "s27", name: "Đặng Văn E", role: "Barista", branch: "HN-1", avatarLetter: "E", phone: "0906 234 567", checkInStatus: "not_yet" },
-  ],
-};
-
 export default function GeneralScheduleSection({
   workShifts,
   templates,
+  employees = [],
+  branches = [],
   defaultBranch = "all",
   isManager = false,
   managerBranch,
@@ -109,11 +69,12 @@ export default function GeneralScheduleSection({
   const [staffOverrides, setStaffOverrides] = useState<Record<string, { checkInStatus: StaffInShift["checkInStatus"]; checkInTime?: string; checkOutTime?: string }>>({});
   const [canceledIds, setCanceledIds] = useState<Set<string>>(new Set());
 
-  // Tính toán các ngày trong tuần được chọn
+  // Tính toán các ngày trong tuần được chọn — lấy Thứ Hai của tuần hiện tại thật
   const weekDays = useMemo(() => {
-    const baseMonday = new Date(2026, 7, 17); // Mặc định Thứ Hai 17/08/2026
-    const monday = new Date(baseMonday);
-    monday.setDate(baseMonday.getDate() + weekOffset * 7);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - ((today.getDay() + 6) % 7) + weekOffset * 7);
 
     const dayKeys = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
     const dayNames = [
@@ -134,7 +95,8 @@ export default function GeneralScheduleSection({
       const yearNum = d.getFullYear();
       const dateStr = `${dayNum}/${monthNum}`;
       const fullDate = `${dayNum}/${monthNum}/${yearNum}`;
-      const isToday = weekOffset === 0 && idx === 0; // Giả lập Thứ Hai là hôm nay
+      const todayStr = `${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
+      const isToday = fullDate === todayStr;
 
       return {
         key,
@@ -148,38 +110,27 @@ export default function GeneralScheduleSection({
 
   const currentDay = weekDays[selectedDayIndex] || weekDays[0];
 
-  // Xây dựng danh sách ca làm việc của ngày được chọn
+  // Xây dựng danh sách ca làm việc của ngày được chọn từ API thật (workShifts).
   const dayShifts: GeneralShiftItem[] = useMemo(() => {
-    const dayKey = currentDay.key;
-    const baseStaff = mockStaffPool[dayKey] || [];
-
-    // Tích hợp thêm các phân công thực tế từ workShifts nếu khớp ngày
-    const dynamicStaffFromWorkShifts: StaffInShift[] = workShifts
+    const empPhoneByName = new Map(employees.map((e) => [e.name, e.phone] as const));
+    const empRoleByName = new Map(employees.map((e) => [e.name, e.role] as const));
+    // Chỉ dùng phân công thật từ API theo ngày đang chọn
+    const staffOfDay: StaffInShift[] = workShifts
       .filter((ws) => ws.date === currentDay.fullDate)
       .map((ws, idx) => ({
-        id: `dynamic-${ws.id}-${idx}`,
+        id: `${ws.id}-${idx}`,
         name: ws.employee,
-        role: "Nhân viên trực ca",
+        role: empRoleByName.get(ws.employee) || "Nhân viên trực ca",
         branch: ws.branch,
-        avatarLetter: ws.employee.charAt(0).toUpperCase(),
-        phone: "0912 345 678",
+        avatarLetter: (ws.employee.charAt(0) || "?").toUpperCase(),
+        phone: empPhoneByName.get(ws.employee) || "",
         checkInStatus: ws.checkIn && ws.checkIn !== "—" ? "checked_in" : "not_yet",
         checkInTime: ws.checkIn !== "—" ? ws.checkIn : undefined,
         checkOutTime: ws.checkOut !== "—" ? ws.checkOut : undefined,
       }));
 
-    // Gộp danh sách nhân sự không trùng lặp tên, bổ sung checkOutTime nếu có
-    const allStaff = [...baseStaff];
-    dynamicStaffFromWorkShifts.forEach((ds) => {
-      const idx = allStaff.findIndex((s) => s.name === ds.name);
-      if (idx === -1) {
-        allStaff.push(ds);
-      } else {
-        if (!allStaff[idx].checkOutTime && ds.checkOutTime) {
-          allStaff[idx] = { ...allStaff[idx], checkOutTime: ds.checkOutTime };
-        }
-      }
-    });
+    // Áp dụng override chấm công và loại bỏ ca đã hủy
+    const allStaff = staffOfDay;
 
     // Áp dụng override chấm công và loại bỏ ca đã hủy
     const withOverrides = allStaff
@@ -205,37 +156,31 @@ export default function GeneralScheduleSection({
             (s) => s.branch.toLowerCase() === selectedBranch.toLowerCase()
           );
 
-    // Chia nhân sự vào 3 ca mẫu tiêu biểu (Sáng, Chiều, Tối)
-    return [
-      {
-        id: "shift_0",
-        templateId: "t1",
-        shiftName: "Ca Sáng (Mở cửa)",
-        timeRange: "07:00 - 14:00",
-        iconType: "morning",
-        status: currentDay.isToday ? "completed" : weekOffset < 0 ? "completed" : "upcoming",
-        staffList: filteredByBranch.slice(0, 3),
-      },
-      {
-        id: "shift_1",
-        templateId: "t2",
-        shiftName: "Ca Chiều",
-        timeRange: "14:00 - 22:00",
-        iconType: "afternoon",
-        status: currentDay.isToday ? "active" : weekOffset < 0 ? "completed" : "upcoming",
-        staffList: filteredByBranch.slice(3, 5),
-      },
-      {
-        id: "shift_2",
-        templateId: "t3",
-        shiftName: "Ca Tối (Part-time & Đóng cửa)",
-        timeRange: "18:00 - 23:00",
-        iconType: "evening",
-        status: weekOffset < 0 ? "completed" : "upcoming",
-        staffList: filteredByBranch.slice(5),
-      },
-    ];
-  }, [currentDay, workShifts, selectedBranch, weekOffset, staffOverrides, canceledIds]);
+    // Chia nhân sự theo đúng ca mẫu từ props (khớp templateName)
+    const shiftsOfDay = workShifts.filter((ws) => ws.date === currentDay.fullDate);
+    return templates.map((tpl) => {
+      const inTemplate = filteredByBranch.filter(
+        (s) =>
+          shiftsOfDay.find(
+            (ws) => ws.employee === s.name && ws.templateName.toLowerCase() === tpl.name.toLowerCase()
+          ) !== undefined
+      );
+      const iconType = tpl.name.toLowerCase().includes("sáng")
+        ? ("morning" as const)
+        : tpl.name.toLowerCase().includes("chiều")
+          ? ("afternoon" as const)
+          : ("evening" as const);
+      return {
+        id: `shift_${tpl.id}`,
+        templateId: tpl.id,
+        shiftName: tpl.name,
+        timeRange: `${tpl.startTime} - ${tpl.endTime}`,
+        iconType,
+        status: (weekOffset < 0 ? "completed" : currentDay.isToday ? "active" : "upcoming") as GeneralShiftItem["status"],
+        staffList: inTemplate,
+      };
+    });
+  }, [currentDay, workShifts, templates, employees, selectedBranch, weekOffset, staffOverrides, canceledIds]);
 
   const toggleExpand = (shiftId: string) => {
     setExpandedShifts((prev) => ({
@@ -254,7 +199,7 @@ export default function GeneralScheduleSection({
 
   const getWeekRange = () => {
     if (weekDays.length < 7) return "";
-    return `${weekDays[0].date} - ${weekDays[6].date}/2026`;
+    return `${weekDays[0].date} - ${weekDays[6].date}/${new Date().getFullYear()}`;
   };
 
   // Tổng số lượt nhân sự trực trong ngày
@@ -318,7 +263,7 @@ export default function GeneralScheduleSection({
                 <span>Chi nhánh: <strong className="text-gray-900">{managerBranch}</strong></span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary-50 text-primary border border-primary-200 ml-1">Cố định</span>
               </div>
-            ) : (
+            ) : branches.length > 0 ? (
               <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-700">
                 <FontAwesomeIcon icon={faStore} fontSize={15} className="text-primary" />
                 <span>Chi nhánh:</span>
@@ -328,12 +273,12 @@ export default function GeneralScheduleSection({
                   className="bg-transparent border-none text-xs font-bold text-gray-900 focus:outline-hidden cursor-pointer"
                 >
                   <option value="all">Tất cả chi nhánh</option>
-                  <option value="HN-1">Chi nhánh HN-1 (Hoàn Kiếm)</option>
-                  <option value="HN-2">Chi nhánh HN-2 (Cầu Giấy)</option>
-                  <option value="ĐN-1">Chi nhánh ĐN-1 (Đà Nẵng)</option>
+                  {branches.map((b) => (
+                    <option key={b.slug} value={b.slug}>{b.name || b.slug}</option>
+                  ))}
                 </select>
               </div>
-            )}
+            ) : null}
 
             <div className="relative">
               <FontAwesomeIcon icon={faMagnifyingGlass} fontSize={15}

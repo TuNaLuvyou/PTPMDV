@@ -13,11 +13,12 @@ import Badge, { StatusBadge } from "@/components/ui/Badge";
 import Table, { Column } from "@/components/ui/Table";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Form";
-import type { Employee } from "@/types";
-import { departments } from "@/mock-data/portal";
+import type { Branch, Department, Employee } from "@/types";
 
 interface Props {
   employees: Employee[];
+  branches?: Branch[];
+  departments?: Department[];
   onOpenDetail?: (e: Employee) => void;
   onSelect?: (e: Employee) => void;
   onLock?: (e: Employee) => void;
@@ -28,6 +29,8 @@ interface Props {
 
 export default function EmployeeSection({
   employees,
+  branches: branchesProp,
+  departments: departmentsProp,
   onOpenDetail,
   onSelect,
   onLock,
@@ -35,6 +38,10 @@ export default function EmployeeSection({
   isManager = false,
   managerBranch,
 }: Props) {
+  const departments = departmentsProp ?? [];
+  const branches = branchesProp ?? [];
+  // Chỉ lọc theo chi nhánh có thật từ API. API rỗng thì ẩn bộ lọc (không đoán HN-1/HN-2/ĐN-1).
+  const branchOptions = branches.map((b) => b.slug.toUpperCase());
   const [searchQuery, setSearchQuery] = useState("");
   const [branchFilter, setBranchFilter] = useState<string>(
     isManager && managerBranch ? managerBranch : "all"
@@ -134,7 +141,7 @@ export default function EmployeeSection({
             : `(${employees.length})`}
         </CardTitle>
         <div className="flex flex-wrap items-center gap-2">
-          {/* Lọc Chi nhánh */}
+          {/* Lọc Chi nhánh (chỉ hiện khi API trả về danh mục thật) */}
           {isManager ? (
             <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs font-medium text-gray-700">
               <FontAwesomeIcon icon={faStore} fontSize={14} className="text-primary" />
@@ -145,7 +152,7 @@ export default function EmployeeSection({
                 Cố định
               </span>
             </div>
-          ) : (
+          ) : branchOptions.length > 0 ? (
             <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs">
               <FontAwesomeIcon icon={faStore} fontSize={14} className="text-gray-500" />
               <select
@@ -154,12 +161,12 @@ export default function EmployeeSection({
                 className="bg-transparent border-none text-xs font-bold text-gray-800 focus:outline-hidden cursor-pointer"
               >
                 <option value="all">Tất cả chi nhánh</option>
-                <option value="HN-1">HN-1</option>
-                <option value="HN-2">HN-2</option>
-                <option value="ĐN-1">ĐN-1</option>
+                {branchOptions.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
               </select>
             </div>
-          )}
+          ) : null}
 
           {/* Lọc Phòng ban (Toàn công ty) */}
           <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs">

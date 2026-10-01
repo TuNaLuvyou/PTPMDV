@@ -3,7 +3,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/models/branch.dart';
 import '../../../core/state/branch_scope.dart';
-import '../../../core/config/company.dart';
 import '../../../core/widgets/branch_selector.dart';
 import '../data/wifi_config_repository.dart';
 
@@ -64,15 +63,8 @@ class _WifiConfigScreenState extends State<WifiConfigScreen> {
   Future<void> _loadBranch(Branch branch) async {
     _loadedBranchId = branch.id;
     _disposeEntries();
-    const String brandCode = CompanyConfig.brandCode;
     final String key = branch.id;
-    final configs = _wifiConfigs[key] ??
-        [
-          WifiConfig(
-            ssid: '${brandCode.toUpperCase()}_${branch.code}',
-            password: '${brandCode.toLowerCase()}@${branch.code.toLowerCase()}',
-          ),
-        ];
+    final configs = _wifiConfigs[key] ?? [];
     for (final config in configs) {
       _entries.add(_WifiEntry(
         ssidController: TextEditingController(text: config.ssid),
@@ -85,7 +77,7 @@ class _WifiConfigScreenState extends State<WifiConfigScreen> {
     // Gọi API thật từ gateway/integration-service (4005)
     try {
       final remoteList = await _repo.getWifiConfigs(branch: branch.code);
-      if (remoteList.isNotEmpty && mounted && _loadedBranchId == branch.id) {
+      if (mounted && _loadedBranchId == branch.id) {
         _disposeEntries();
         for (final item in remoteList) {
           _entries.add(_WifiEntry(
@@ -98,7 +90,7 @@ class _WifiConfigScreenState extends State<WifiConfigScreen> {
         setState(() {});
       }
     } catch (_) {
-      // Giữ mock entries khi offline
+      // Không giữ mock — để rỗng khi offline
     }
   }
 
@@ -120,10 +112,20 @@ class _WifiConfigScreenState extends State<WifiConfigScreen> {
     });
   }
 
-  void _removeNetwork(int index) {
+  Future<void> _removeNetwork(int index) async {
     final entry = _entries[index];
     if (entry.apiId != null) {
-      _repo.deleteWifiConfig(entry.apiId!).catchError((_) {});
+      try {
+        await _repo.deleteWifiConfig(entry.apiId!);
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.error,
+            content: Text('❌ Xóa Wi-Fi thất bại: $e'),
+          ),
+        );
+      }
     }
     entry.ssidController.dispose();
     entry.passwordController.dispose();
@@ -167,7 +169,7 @@ class _WifiConfigScreenState extends State<WifiConfigScreen> {
         }
       }
     } catch (_) {
-      // Fallback lưu local
+      // Lưu local khi offline (không phải mock server)
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

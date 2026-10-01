@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/state/user_scope.dart';
+import '../../schedule/data/shift_repository.dart';
 import '../../../core/widgets/week_strip.dart';
 import 'staff_detail.dart';
 
@@ -66,9 +67,40 @@ class GeneralScheduleScreen extends StatefulWidget {
 }
 
 class _GeneralScheduleScreenState extends State<GeneralScheduleScreen> {
+
+  /// Chuẩn hóa dd/mm -> dd/mm/yyyy hiện tại; đã đủ năm thì giữ nguyên.
+  String _fullDate(String d) {
+    if ('/'.allMatches(d).length >= 2) return d;
+    return '$d/${DateTime.now().year}';
+  }
   // Offset tuần so với tuần hiện tại (0: Tuần này, -1: Tuần trước, 1: Tuần sau, -2, 2, ...)
   int _weekOffset = 0;
   int _selectedDayIndex = 0;
+  List<ApiShiftModel> _apiShifts = [];
+  @override
+  void initState() {
+    super.initState();
+    _selectedDayIndex = (_today.weekday - 1).clamp(0, 6);
+    _fetchShifts();
+  }
+  Future<void> _fetchShifts() async {
+    try {
+      final list = await ShiftRepository().getShifts();
+      if (mounted) setState(() => _apiShifts = list);
+    } catch (_) {
+      if (mounted) setState(() => _apiShifts = []);
+    }
+  }
+  List<StaffInShift> _staffForShift(String dateStr, String template) {
+    // Map ca thật từ API (so khớp lỏng dd/mm). Trống khi chưa có phân công.
+    return _apiShifts.where((s) => s.date.contains(dateStr) && s.template == template).map((s) => StaffInShift(
+      name: s.employeeId ?? 'Nhân sự',
+      role: s.branchSlug ?? '',
+      checkInStatus: 'not_yet',
+      checkInTime: '--:--',
+      phone: '',
+    )).toList();
+  }
 
   DateTime get _today {
     final now = DateTime.now();
@@ -79,12 +111,6 @@ class _GeneralScheduleScreenState extends State<GeneralScheduleScreen> {
 
   // Set các ID ca đang được mở rộng xổ xuống
   final Set<String> _expandedShiftIds = {'shift_1', 'shift_2'};
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedDayIndex = (_today.weekday - 1).clamp(0, 6);
-  }
 
   DateTime _getMonday(DateTime date) {
     return DateTime(date.year, date.month, date.day).subtract(Duration(days: date.weekday - 1));
@@ -127,29 +153,7 @@ class _GeneralScheduleScreenState extends State<GeneralScheduleScreen> {
             startTime: '07:00',
             endTime: '12:00',
             status: isPast ? 'completed' : (isToday ? 'in_progress' : 'upcoming'),
-            staffList: [
-              StaffInShift(
-                name: 'Trần Minh Tuấn',
-                role: 'Admin',
-                checkInStatus: isPast || isToday ? 'checked_in' : 'not_yet',
-                checkInTime: '06:50',
-                phone: '0901 111 222',
-              ),
-              StaffInShift(
-                name: 'Nguyễn Văn A',
-                role: 'Phục vụ bàn',
-                checkInStatus: isPast || isToday ? 'checked_in' : 'not_yet',
-                checkInTime: '06:55',
-                phone: '0902 333 444',
-              ),
-              StaffInShift(
-                name: 'Lê Thị B',
-                role: 'Barista',
-                checkInStatus: isPast || isToday ? 'checked_in' : 'not_yet',
-                checkInTime: '06:52',
-                phone: '0903 555 666',
-              ),
-            ],
+            staffList: _staffForShift(dateStr, 'Ca Sáng'),
           ),
           GeneralShiftModel(
             id: 'shift_w${offset}_d${i}_2',
@@ -157,29 +161,7 @@ class _GeneralScheduleScreenState extends State<GeneralScheduleScreen> {
             startTime: '12:00',
             endTime: '17:30',
             status: isPast ? 'completed' : (isToday ? 'in_progress' : 'upcoming'),
-            staffList: [
-              StaffInShift(
-                name: 'Nguyễn Thu Hà',
-                role: 'Phục vụ bàn',
-                checkInStatus: isPast ? 'checked_in' : (isToday ? 'in_progress' : 'not_yet'),
-                checkInTime: '11:55',
-                phone: '0905 123 456',
-              ),
-              StaffInShift(
-                name: 'Đặng Văn E',
-                role: 'Barista',
-                checkInStatus: isPast ? 'checked_in' : (isToday ? 'in_progress' : 'not_yet'),
-                checkInTime: '11:50',
-                phone: '0906 234 567',
-              ),
-              StaffInShift(
-                name: 'Hoàng Văn C',
-                role: 'Thu ngân',
-                checkInStatus: isPast ? 'checked_in' : (isToday ? 'in_progress' : 'not_yet'),
-                checkInTime: '11:52',
-                phone: '0904 777 888',
-              ),
-            ],
+            staffList: _staffForShift(dateStr, 'Ca Chiều'),
           ),
           GeneralShiftModel(
             id: 'shift_w${offset}_d${i}_3',
@@ -187,29 +169,7 @@ class _GeneralScheduleScreenState extends State<GeneralScheduleScreen> {
             startTime: '17:30',
             endTime: '23:00',
             status: isPast ? 'completed' : 'upcoming',
-            staffList: [
-              StaffInShift(
-                name: 'Trần Minh Tuấn',
-                role: 'Admin',
-                checkInStatus: isPast ? 'checked_in' : 'not_yet',
-                checkInTime: '17:20',
-                phone: '0901 111 222',
-              ),
-              StaffInShift(
-                name: 'Bùi Văn G',
-                role: 'Pha chế',
-                checkInStatus: isPast ? 'checked_in' : 'not_yet',
-                checkInTime: '17:25',
-                phone: '0908 456 789',
-              ),
-              StaffInShift(
-                name: 'Vũ Thị Mai',
-                role: 'Phục vụ bàn',
-                checkInStatus: isPast ? 'checked_in' : 'not_yet',
-                checkInTime: '17:28',
-                phone: '0909 567 890',
-              ),
-            ],
+            staffList: _staffForShift(dateStr, 'Ca Tối'),
           ),
         ],
       );
@@ -309,7 +269,7 @@ class _GeneralScheduleScreenState extends State<GeneralScheduleScreen> {
                     Row(
                       children: [
                         Text(
-                          '${selectedDay.dayOfWeek}, Ngày ${selectedDay.date}/2026',
+                          '${selectedDay.dayOfWeek}, Ngày ${_fullDate(selectedDay.date)}',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

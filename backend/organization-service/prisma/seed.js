@@ -41,4 +41,13 @@ async function ensureSeeded() {
   return { mode: "postgres" };
 }
 
+if (require.main === module) {
+  database.connect().then(() => ensureSeeded()).then(() => database.disconnect()).then(() => {
+    console.log("Seed organization thành công");
+  }).catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}
+
 module.exports = { ensureSeeded };

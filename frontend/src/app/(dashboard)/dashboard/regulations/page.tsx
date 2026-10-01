@@ -10,6 +10,7 @@ import RegulationSection from "@/features/regulations/components/RegulationList"
 import RegulationDetailModal from "@/features/regulations/components/modals/RegulationDetail";
 import RegulationFormModal, { type RegulationFormInput } from "@/features/regulations/components/modals/RegulationForm";
 import { apiGet, apiPost, GATEWAY_URL, GatewayError } from "@/lib/api";
+import { fetchBranchOptions, type BranchOption } from "@/lib/branches";
 
 // api.ts dùng chung chưa có apiPut/apiDelete (quy tắc phân công: chỉ đọc, không sửa)
 // nên đặt helper cục bộ trong trang, giống tiền lệ các trang employees/payslips/news.
@@ -69,6 +70,7 @@ function todayStr(): string {
 
 export default function RegulationsManagementPage() {
   const [items, setItems] = useState<Regulation[]>([]);
+  const [branchOptions, setBranchOptions] = useState<BranchOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,6 +88,7 @@ export default function RegulationsManagementPage() {
       setError(null);
       const data = await apiGet<Regulation[]>("/api/regulations");
       setItems(data || []);
+      setBranchOptions(await fetchBranchOptions());
     } catch (e) {
       setError(e instanceof GatewayError ? e.message : "Lỗi tải nội quy");
     } finally {
@@ -226,6 +229,7 @@ export default function RegulationsManagementPage() {
       ) : (
         <RegulationSection
           items={items}
+          branches={branchOptions}
           onView={setViewingItem}
           onEdit={handleOpenEditModal}
           onDelete={handleDeleteItem}
@@ -240,7 +244,8 @@ export default function RegulationsManagementPage() {
       {isEditModalOpen && (
         <RegulationFormModal
           initial={editingItem}
-          defaultCode={`NQ-2026-${String(Date.now()).slice(-6)}`}
+          defaultCode={editingItem?.code || ""}
+          branches={branchOptions}
           onClose={() => {
             setIsEditModalOpen(false);
             setEditingItem(null);

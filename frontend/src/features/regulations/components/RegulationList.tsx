@@ -8,16 +8,18 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import type { Regulation } from "@/types";
 import { getStatusTone, getCategoryColor } from "../helpers";
+import type { BranchOption } from "@/lib/branches";
 
 interface Props {
   items: Regulation[];
+  branches?: BranchOption[];
   onView: (item: Regulation) => void;
   onEdit: (item: Regulation) => void;
   onDelete: (id: string, title: string) => void;
   onTogglePin: (id: string) => void;
 }
 
-export default function RegulationSection({ items, onView, onEdit, onDelete, onTogglePin }: Props) {
+export default function RegulationSection({ items, branches = [], onView, onEdit, onDelete, onTogglePin }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -102,8 +104,9 @@ export default function RegulationSection({ items, onView, onEdit, onDelete, onT
               >
                 <option value="all">Tất cả phạm vi áp dụng</option>
                 <option value="Toàn công ty">Toàn công ty</option>
-                <option value="HN-1">Chi nhánh Hoàn Kiếm (HN-1)</option>
-                <option value="HN-2">Chi nhánh Ba Đình (HN-2)</option>
+                {branches.map((b) => (
+                  <option key={b.slug} value={b.slug}>{b.name || b.slug}</option>
+                ))}
               </select>
             </div>
           </div>

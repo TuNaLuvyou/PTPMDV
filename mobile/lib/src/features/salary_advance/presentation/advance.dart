@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/state/user_scope.dart';
 import '../../leave_request/data/leave_repository.dart';
 
 class AdvanceRecord {
@@ -38,44 +39,27 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
   Future<void> _fetchAdvances() async {
     try {
       final list = await _leaveRepo.getRequests();
-      if (list.isNotEmpty && mounted) {
+      if (mounted) {
         final apiRecords = list.where((m) => m.type == 'advance').map((m) {
           final amt = m.title.replaceFirst('Tạm ứng lương: ', '');
           return AdvanceRecord(
             id: m.id,
-            amount: amt.isNotEmpty ? amt : '1.000.000 đ',
+            amount: amt.isNotEmpty ? amt : '0 đ',
             date: m.createdAt ?? 'Vừa xong',
             reason: m.content,
             status: m.status,
           );
         }).toList();
-        if (apiRecords.isNotEmpty) {
-          setState(() {
-            _records = apiRecords;
-          });
-        }
+        setState(() {
+          _records = apiRecords;
+        });
       }
     } catch (_) {
-      // Giữ mock khi offline
+      // Không giữ mock — để rỗng khi offline
     }
   }
 
-  List<AdvanceRecord> _records = [
-    const AdvanceRecord(
-      id: 'adv-1',
-      amount: '2.000.000 đ',
-      date: '16/08/2026',
-      reason: 'Chi trả tiền thuê nhà đầu tháng',
-      status: 'pending',
-    ),
-    const AdvanceRecord(
-      id: 'adv-2',
-      amount: '1.500.000 đ',
-      date: '15/07/2026',
-      reason: 'Chi phí y tế phát sinh',
-      status: 'approved',
-    ),
-  ];
+  List<AdvanceRecord> _records = [];
 
   void _showAdvanceModal() {
     final amountController = TextEditingController();
@@ -110,7 +94,7 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
               controller: amountController,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                hintText: 'Tối đa 3.400.000 đ',
+                hintText: 'Tối đa 0 đ',
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 suffixText: 'VNĐ',
@@ -130,7 +114,7 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
             ),
             const SizedBox(height: 18),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 final amount = amountController.text.trim();
                 final reason = reasonController.text.trim();
                 if (amount.isEmpty || reason.isEmpty) {
@@ -151,20 +135,33 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
                     ),
                   );
                 });
-                _leaveRepo.createRequest({
-                  'type': 'advance',
-                  'title': 'Tạm ứng lương: $amount đ',
-                  'content': reason,
-                  'employeeId': '1',
-                }).then((_) => _fetchAdvances()).catchError((_) {});
-
-                Navigator.pop(modalCtx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    backgroundColor: AppColors.success,
-                    content: Text('✅ Đã gửi yêu cầu tạm ứng lương thành công!'),
-                  ),
-                );
+                try {
+                  final user = UserScope.currentUser(context);
+                  final empId = (user?.id.isNotEmpty == true) ? user!.id : (user?.email ?? '1');
+                  await _leaveRepo.createRequest({
+                    'type': 'advance',
+                    'title': 'Tạm ứng lương: $amount đ',
+                    'content': reason,
+                    'employeeId': empId,
+                  });
+                  await _fetchAdvances();
+                  if (!mounted) return;
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      backgroundColor: AppColors.success,
+                      content: Text('✅ Đã gửi yêu cầu tạm ứng lương thành công!'),
+                    ),
+                  );
+                } catch (e) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: AppColors.error,
+                      content: Text('❌ Gửi yêu cầu thất bại: $e'),
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
@@ -230,13 +227,13 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
                   ],
                 ),
                 SizedBox(height: 4),
-                Text('6.800.000 đ', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                Text('0 đ', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
                 Divider(color: Colors.white24, height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Hạn mức được ứng tối đa (50%):', style: TextStyle(color: Colors.white, fontSize: 12.5)),
-                    Text('3.400.000 đ', style: TextStyle(color: Colors.amberAccent, fontSize: 14, fontWeight: FontWeight.bold)),
+                    Text('0 đ', style: TextStyle(color: Colors.amberAccent, fontSize: 14, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ],

@@ -29,13 +29,14 @@ import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import { Field, Input, Select } from "@/components/ui/Form";
 import Badge, { StatusBadge } from "@/components/ui/Badge";
-import { branches, departments } from "@/mock-data/portal";
-import type { Employee, UserRole } from "@/types";
+import type { Branch, Department, Employee, UserRole } from "@/types";
 
 interface Props {
   open: boolean;
   onClose: () => void;
   employee: Employee | null;
+  branches?: Branch[];
+  departments?: Department[];
   onSave?: (updated: Employee) => void;
   isManager?: boolean;
   managerBranch?: string;
@@ -62,10 +63,14 @@ export default function EmployeeDetailModal({
   open,
   onClose,
   employee,
+  branches: branchesProp,
+  departments: departmentsProp,
   onSave,
   isManager = false,
   managerBranch = "HN-1",
 }: Props) {
+  const branches = branchesProp ?? [];
+  const departments = departmentsProp ?? [];
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<DetailTab>("profile");
 
@@ -74,12 +79,12 @@ export default function EmployeeDetailModal({
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [gender, setGender] = useState("Nam");
-  const [birthDate, setBirthDate] = useState("15/03/1998");
+  const [birthDate, setBirthDate] = useState("");
 
   // 2. Địa chỉ hiện tại
-  const [province, setProvince] = useState("Hà Nội");
-  const [ward, setWard] = useState("Phường Tràng Tiền");
-  const [street, setStreet] = useState("12 Tràng Thi");
+  const [province, setProvince] = useState("");
+  const [ward, setWard] = useState("");
+  const [street, setStreet] = useState("");
 
   // 3. Công tác & Phân quyền
   const [branch, setBranch] = useState("HN-1");
@@ -87,51 +92,51 @@ export default function EmployeeDetailModal({
   const [role, setRole] = useState("");
   const [systemRole, setSystemRole] = useState<UserRole>("staff");
   const [status, setStatus] = useState<"đang làm" | "vô hiệu hóa">("đang làm");
-  const [joinDate, setJoinDate] = useState("01/01/2024");
+  const [joinDate, setJoinDate] = useState("");
 
   // 4. Tiền lương & Ngân hàng
   const [salaryType, setSalaryType] = useState<"hourly" | "monthly">("monthly");
-  const [hourlySalary, setHourlySalary] = useState<number>(35_000);
-  const [baseSalary, setBaseSalary] = useState<number>(8_500_000);
-  const [bankName, setBankName] = useState("Vietcombank");
+  const [hourlySalary, setHourlySalary] = useState<number>(0);
+  const [baseSalary, setBaseSalary] = useState<number>(0);
+  const [bankName, setBankName] = useState("");
   const [bankAccountNumber, setBankAccountNumber] = useState("");
   const [bankAccountName, setBankAccountName] = useState("");
 
   // 5. Thông tin CCCD
-  const [cccd, setCccd] = useState("079098012345");
-  const [issueDate, setIssueDate] = useState("20/05/2021");
-  const [issuePlace, setIssuePlace] = useState("Cục CS QLHC về TTXH");
+  const [cccd, setCccd] = useState("");
+  const [issueDate, setIssueDate] = useState("");
+  const [issuePlace, setIssuePlace] = useState("");
 
   // Đồng bộ dữ liệu khi mở modal hoặc thay đổi employee
   useEffect(() => {
     if (employee) {
-      setName(employee.name);
-      setPhone(employee.phone);
-      setEmail(employee.email);
+      setName(employee.name || "");
+      setPhone(employee.phone || "");
+      setEmail(employee.email || "");
       setGender(employee.gender || "Nam");
-      setBirthDate(employee.birthDate || "15/03/1998");
+      setBirthDate(employee.birthDate || "");
 
-      setProvince(employee.province || "Hà Nội");
-      setWard(employee.ward || "Phường Tràng Tiền");
-      setStreet(employee.street || "12 Tràng Thi");
+      setProvince(employee.province || "");
+      setWard(employee.ward || "");
+      setStreet(employee.street || "");
 
       setBranch(employee.branch);
-      setDepartment(employee.department || departments[0]?.name || "Phòng Vận Hành");
-      setRole(employee.role);
+      setDepartment(employee.department || "");
+      setRole(employee.role || "Nhân viên");
       setSystemRole(employee.systemRole || "staff");
-      setStatus(employee.status);
-      setJoinDate(employee.joinDate || "01/01/2024");
+      setStatus(employee.status || "đang làm");
+      setJoinDate(employee.joinDate || "");
 
       setSalaryType(employee.salaryType || "monthly");
-      setHourlySalary(employee.hourlySalary ?? 35_000);
-      setBaseSalary(employee.baseSalary ?? 8_500_000);
-      setBankName(employee.bankName || "Vietcombank");
-      setBankAccountNumber(employee.bankAccountNumber || "108876543210");
-      setBankAccountName(employee.bankAccountName || employee.name.toUpperCase());
+      setHourlySalary(employee.hourlySalary ?? 0);
+      setBaseSalary(employee.baseSalary ?? 0);
+      setBankName(employee.bankName || "");
+      setBankAccountNumber(employee.bankAccountNumber || "");
+      setBankAccountName(employee.bankAccountName || (employee.name ? employee.name.toUpperCase() : ""));
 
-      setCccd(employee.cccd || "079098012345");
-      setIssueDate(employee.issueDate || "20/05/2021");
-      setIssuePlace(employee.issuePlace || "Cục CS QLHC về TTXH");
+      setCccd(employee.cccd || "");
+      setIssueDate(employee.issueDate || "");
+      setIssuePlace(employee.issuePlace || "");
 
       setIsEditing(false);
       setActiveTab("profile");
@@ -141,34 +146,33 @@ export default function EmployeeDetailModal({
   if (!employee) return null;
 
   const handleCancelEdit = () => {
-    // Hoàn tác về thông tin ban đầu
-    setName(employee.name);
-    setPhone(employee.phone);
-    setEmail(employee.email);
+    setName(employee.name || "");
+    setPhone(employee.phone || "");
+    setEmail(employee.email || "");
     setGender(employee.gender || "Nam");
-    setBirthDate(employee.birthDate || "15/03/1998");
+    setBirthDate(employee.birthDate || "");
 
-    setProvince(employee.province || "Hà Nội");
-    setWard(employee.ward || "Phường Tràng Tiền");
-    setStreet(employee.street || "12 Tràng Thi");
+    setProvince(employee.province || "");
+    setWard(employee.ward || "");
+    setStreet(employee.street || "");
 
     setBranch(employee.branch);
-    setDepartment(employee.department || departments[0]?.name || "Phòng Vận Hành");
-    setRole(employee.role);
+    setDepartment(employee.department || "");
+    setRole(employee.role || "Nhân viên");
     setSystemRole(employee.systemRole || "staff");
-    setStatus(employee.status);
-    setJoinDate(employee.joinDate || "01/01/2024");
+    setStatus(employee.status || "đang làm");
+    setJoinDate(employee.joinDate || "");
 
     setSalaryType(employee.salaryType || "monthly");
-    setHourlySalary(employee.hourlySalary ?? 35_000);
-    setBaseSalary(employee.baseSalary ?? 8_500_000);
-    setBankName(employee.bankName || "Vietcombank");
-    setBankAccountNumber(employee.bankAccountNumber || "108876543210");
-    setBankAccountName(employee.bankAccountName || employee.name.toUpperCase());
+    setHourlySalary(employee.hourlySalary ?? 0);
+    setBaseSalary(employee.baseSalary ?? 0);
+    setBankName(employee.bankName || "");
+    setBankAccountNumber(employee.bankAccountNumber || "");
+    setBankAccountName(employee.bankAccountName || (employee.name ? employee.name.toUpperCase() : ""));
 
-    setCccd(employee.cccd || "079098012345");
-    setIssueDate(employee.issueDate || "20/05/2021");
-    setIssuePlace(employee.issuePlace || "Cục CS QLHC về TTXH");
+    setCccd(employee.cccd || "");
+    setIssueDate(employee.issueDate || "");
+    setIssuePlace(employee.issuePlace || "");
 
     setIsEditing(false);
   };
@@ -418,13 +422,13 @@ export default function EmployeeDetailModal({
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Ngày sinh:</span>
                       <span className="font-semibold text-gray-800 text-xs">
-                        {employee.birthDate || "15/03/1998"}
+                        {employee.birthDate || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Số điện thoại:</span>
                       <span className="font-mono font-semibold text-gray-900 text-xs">
-                        {employee.phone}
+                        {employee.phone || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5">
@@ -450,19 +454,19 @@ export default function EmployeeDetailModal({
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Tỉnh / Thành phố:</span>
                       <span className="font-semibold text-gray-800 text-xs">
-                        {employee.province || "Hà Nội"}
+                        {employee.province || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Xã / Phường / Quận:</span>
                       <span className="font-semibold text-gray-800 text-xs">
-                        {employee.ward || "Phường Tràng Tiền"}
+                        {employee.ward || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Số nhà / Tên đường:</span>
                       <span className="font-semibold text-gray-800 text-xs">
-                        {employee.street || "12 Tràng Thi"}
+                        {employee.street || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="pt-2">
@@ -620,7 +624,7 @@ export default function EmployeeDetailModal({
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Ngày vào làm việc:</span>
                       <span className="font-semibold text-gray-800 text-xs">
-                        {employee.joinDate || "01/01/2024"}
+                        {employee.joinDate || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="p-3.5 rounded-xl bg-purple-50/60 border border-purple-100 text-xs text-purple-900 space-y-1.5">
@@ -784,19 +788,19 @@ export default function EmployeeDetailModal({
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Ngân hàng:</span>
                       <span className="font-bold text-gray-900 text-xs">
-                        {employee.bankName || "Vietcombank"}
+                        {employee.bankName || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Số tài khoản (STK):</span>
                       <span className="font-mono font-bold text-primary text-sm tracking-wider">
-                        {employee.bankAccountNumber || "108876543210"}
+                        {employee.bankAccountNumber || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Chủ tài khoản:</span>
                       <span className="font-bold text-gray-900 text-xs tracking-wide">
-                        {employee.bankAccountName || employee.name.toUpperCase()}
+                        {employee.bankAccountName || (employee.name ? employee.name.toUpperCase() : "Chưa cập nhật")}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5">
@@ -905,19 +909,19 @@ export default function EmployeeDetailModal({
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Số CCCD (12 chữ số):</span>
                       <span className="font-mono font-bold text-gray-900 text-sm tracking-wider">
-                        {employee.cccd || "079098012345"}
+                        {employee.cccd || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Ngày cấp:</span>
                       <span className="font-semibold text-gray-800 text-xs">
-                        {employee.issueDate || "20/05/2021"}
+                        {employee.issueDate || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Nơi cấp:</span>
                       <span className="font-semibold text-gray-800 text-xs">
-                        {employee.issuePlace || "Cục CS QLHC về TTXH"}
+                        {employee.issuePlace || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
@@ -928,9 +932,9 @@ export default function EmployeeDetailModal({
                     </div>
                     <div className="flex justify-between items-center py-1.5">
                       <span className="text-gray-500 text-xs">Trạng thái định danh:</span>
-                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold flex items-center gap-1">
+                      <span className={`px-2.5 py-0.5 rounded-full border text-[11px] font-semibold flex items-center gap-1 ${employee.cccd ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-gray-50 text-gray-500 border-gray-200"}`}>
                         <FontAwesomeIcon icon={faCheck} className="text-[10px]" />
-                        Đã xác thực định danh
+                        {employee.cccd ? "Đã xác thực định danh" : "Chưa xác thực"}
                       </span>
                     </div>
                   </div>
@@ -955,8 +959,8 @@ export default function EmployeeDetailModal({
                         <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">
                           Mặt trước CCCD
                         </span>
-                        <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                          ✓ Đã chụp
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${employee.cccd ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-500"}`}>
+                          {employee.cccd ? "✓ Đã chụp" : "Chưa có"}
                         </span>
                       </div>
                       <div className="flex items-center gap-3">
@@ -965,7 +969,7 @@ export default function EmployeeDetailModal({
                         </div>
                         <div className="min-w-0">
                           <p className="font-mono text-xs font-bold text-gray-900 truncate">
-                            {employee.cccd || "079098012345"}
+                            {employee.cccd || "Chưa có số CCCD"}
                           </p>
                           <p className="text-[10px] text-gray-500 truncate">{employee.name}</p>
                         </div>
@@ -979,8 +983,8 @@ export default function EmployeeDetailModal({
                         <span className="text-[10px] font-bold uppercase tracking-wider text-gray-700">
                           Mặt sau CCCD
                         </span>
-                        <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                          ✓ Đã chụp
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${employee.cccd ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-500"}`}>
+                          {employee.cccd ? "✓ Đã chụp" : "Chưa có"}
                         </span>
                       </div>
                       <div className="space-y-1">
@@ -988,11 +992,11 @@ export default function EmployeeDetailModal({
                           |||| ||||| |||| |||||||| ||||
                         </div>
                         <p className="text-[9px] text-gray-500">
-                          Cục CS QLHC về TTXH • {employee.issueDate || "20/05/2021"}
+                          {employee.issuePlace ? `${employee.issuePlace} • ${employee.issueDate || ""}` : "Chưa có thông tin cấp"}
                         </p>
                       </div>
                       <div className="text-[9px] font-mono text-gray-400 truncate">
-                        IDVNM079098012345&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;
+                        {employee.cccd ? `IDVNM${employee.cccd}<<<<<<<<<<<` : "Chưa cập nhật mã MRZ"}
                       </div>
                     </div>
                   </div>

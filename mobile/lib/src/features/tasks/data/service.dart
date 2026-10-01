@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/colors.dart';
+import 'task_repository.dart';
 
 enum TaskSourceType {
   manager, // Quản lý giao riêng
@@ -132,134 +133,55 @@ class TaskModel {
 }
 
 class TaskService {
-  static final List<TaskModel> _mockTasks = [
-    // 1. Quá giờ - Cố định theo ca sáng (BẮT BUỘC CHỤP ẢNH)
-    TaskModel(
-      id: 'task-1',
-      title: 'Kiểm tra nhiệt độ tủ lạnh & máy pha chế',
-      description: 'Ghi chép nhiệt độ tủ bảo quản sữa và cài đặt áp suất máy pha trước giờ mở cửa đón khách.',
-      sourceType: TaskSourceType.shift,
-      assignedByName: 'Quy trình chuẩn Ca Sáng',
-      shiftName: 'Ca Sáng (07:00 - 14:00)',
-      branch: 'HN-1',
-      dueDate: DateTime.now().subtract(const Duration(minutes: 45)), // Đã quá 45 phút
-      status: TaskStatus.pending,
-      priority: TaskPriority.high,
-      assignedToEmail: 'shift_all',
-      assignedToName: 'Tất cả nhân sự trực Ca Sáng',
-      requirePhoto: true,
-    ),
+  static final TaskRepository _repo = TaskRepository();
 
-    // 2. Quản lý giao riêng (KHÔNG BẮT BUỘC ẢNH)
-    TaskModel(
-      id: 'task-2',
-      title: 'Bàn giao sổ chấm công và hướng dẫn nhân sự mới',
-      description: 'Hỗ trợ bạn thực tập sinh mới làm quen với vị trí và xác thực Wi-Fi chấm công chi nhánh.',
-      sourceType: TaskSourceType.manager,
-      assignedByName: 'Vũ Thành Công (Quản lý)',
-      shiftName: 'Ca Sáng (07:00 - 14:00)',
-      branch: 'HN-1',
-      dueDate: DateTime.now().add(const Duration(hours: 2)),
-      status: TaskStatus.pending,
-      priority: TaskPriority.urgent,
-      assignedToEmail: 'nhanvien@company.com',
-      assignedToName: 'Nguyễn Thu Hà',
-      requirePhoto: false,
-    ),
-
-    // 3. Cần thực hiện - Cố định theo ca (BẮT BUỘC CHỤP ẢNH)
-    TaskModel(
-      id: 'task-3',
-      title: 'Vệ sinh quầy bar & kiểm kê dụng cụ cuối ca',
-      description: 'Lau dọn máy pha, máy xay, bổ sung nguyên vật liệu và bàn giao cho ca chiều.',
-      sourceType: TaskSourceType.shift,
-      assignedByName: 'Quy trình bàn giao ca',
-      shiftName: 'Ca Sáng (07:00 - 14:00)',
-      branch: 'HN-1',
-      dueDate: DateTime.now().add(const Duration(hours: 4)),
-      status: TaskStatus.pending,
-      priority: TaskPriority.normal,
-      assignedToEmail: 'shift_all',
-      assignedToName: 'Tất cả nhân sự trực Ca Sáng',
-      requirePhoto: true,
-    ),
-
-    // 4. Cần thực hiện - Quản lý giao riêng (BẮT BUỘC CHỤP ẢNH)
-    TaskModel(
-      id: 'task-4',
-      title: 'Kiểm tra tem nhãn nguyên liệu mới nhập kho',
-      description: 'Đối chiếu ngày sản xuất, hạn sử dụng và dán tem lưu kho theo quy chuẩn an toàn.',
-      sourceType: TaskSourceType.manager,
-      assignedByName: 'Vũ Thành Công (Quản lý)',
-      branch: 'HN-1',
-      dueDate: DateTime.now().add(const Duration(hours: 6)),
-      status: TaskStatus.pending,
-      priority: TaskPriority.high,
-      assignedToEmail: 'nhanvien@company.com',
-      assignedToName: 'Nguyễn Thu Hà',
-      requirePhoto: true,
-    ),
-
-    // 5. Đã xong (Đã có ảnh minh chứng)
-    TaskModel(
-      id: 'task-5',
-      title: 'Điểm danh đầu ca và kiểm tra đồng phục',
-      description: 'Đảm bảo 100% nhân sự ca sáng đeo bảng tên và mặc đồng phục đúng quy định.',
-      sourceType: TaskSourceType.shift,
-      assignedByName: 'Quy trình đầu ca',
-      shiftName: 'Ca Sáng (07:00 - 14:00)',
-      branch: 'HN-1',
-      dueDate: DateTime.now().subtract(const Duration(hours: 2)),
-      status: TaskStatus.completed,
-      priority: TaskPriority.normal,
-      assignedToEmail: 'shift_all',
-      assignedToName: 'Tất cả nhân sự trực Ca Sáng',
-      completedAt: DateTime.now().subtract(const Duration(hours: 1, minutes: 30)),
-      requirePhoto: true,
-      proofPhotoUrl: 'https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=500',
-    ),
-  ];
-
-  /// Lấy danh sách việc của nhân viên
-  static List<TaskModel> getTasksForUser({String? userEmail}) {
-    return List.from(_mockTasks);
-  }
-
-  /// Cập nhật trạng thái công việc
-  static void updateTaskStatus(String taskId, TaskStatus newStatus, {String? proofPhotoUrl}) {
-    final index = _mockTasks.indexWhere((t) => t.id == taskId);
-    if (index != -1) {
-      _mockTasks[index].status = newStatus;
-      if (newStatus == TaskStatus.completed) {
-        _mockTasks[index].completedAt = DateTime.now();
-        if (proofPhotoUrl != null) {
-          _mockTasks[index].proofPhotoUrl = proofPhotoUrl;
-        }
-      } else {
-        _mockTasks[index].completedAt = null;
-      }
+  /// Lấy danh sách việc của nhân viên từ API thật (GET /api/tasks qua gateway).
+  /// Không còn mock cứng. Trả về rỗng khi offline để UI hiện trạng thái trống.
+  static Future<List<TaskModel>> getTasksForUserAsync({String? userEmail, String? branchSlug}) async {
+    try {
+      return await _repo.getTasks(branchSlug: branchSlug);
+    } catch (_) {
+      return [];
     }
   }
 
-  /// Hoàn thành công việc kèm ảnh minh chứng (nếu có)
-  static void completeTask(String taskId, {String? proofPhotoUrl}) {
-    updateTaskStatus(taskId, TaskStatus.completed, proofPhotoUrl: proofPhotoUrl);
+  /// Giữ hàm đồng bộ cho tương thích UI cũ — trả về rỗng, UI tự gọi async rồi setState.
+  static List<TaskModel> getTasksForUser({String? userEmail}) {
+    return [];
   }
 
-  /// Thêm công việc mới (dành cho Quản lý / Admin)
-  static void addTask(TaskModel newTask) {
-    _mockTasks.insert(0, newTask);
+  /// Cập nhật trạng thái công việc qua API thật (PUT /api/tasks/:id)
+  static Future<void> updateTaskStatus(String taskId, TaskStatus newStatus, {String? proofPhotoUrl}) async {
+    final apiStatus = newStatus == TaskStatus.completed ? 'completed' : 'pending';
+    await _repo.updateTaskStatus(taskId, apiStatus);
   }
 
-  /// Thống kê số lượng việc
-  static Map<String, int> getTaskStats() {
-    int total = _mockTasks.length;
+  /// Hoàn thành công việc kèm ảnh minh chứng qua API thật
+  static Future<void> completeTask(String taskId, {String? proofPhotoUrl}) async {
+    await updateTaskStatus(taskId, TaskStatus.completed, proofPhotoUrl: proofPhotoUrl);
+  }
+
+  /// Thêm công việc mới qua API thật (POST /api/tasks)
+  static Future<void> addTask(TaskModel newTask) async {
+    await _repo.createTask(
+      title: newTask.title,
+      description: newTask.description,
+      branchSlug: newTask.branch,
+      status: 'pending',
+      priority: newTask.priority.name,
+    );
+  }
+
+  /// Thống kê số lượng việc từ danh sách đã tải (không đọc mock nữa)
+  static Map<String, int> getTaskStats([List<TaskModel>? tasks]) {
+    final list = tasks ?? const <TaskModel>[];
+    int total = list.length;
     int pending = 0;
     int inProgress = 0;
     int overdue = 0;
     int completed = 0;
 
-    for (final t in _mockTasks) {
+    for (final t in list) {
       switch (t.computedStatus) {
         case TaskStatus.pending:
           pending++;

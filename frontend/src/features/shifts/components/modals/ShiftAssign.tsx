@@ -3,9 +3,9 @@
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { Field, Input, Select, Checkbox } from "@/components/ui/Form";
-import { employees as mockEmployees } from "@/mock-data/portal";
 import type { ShiftTemplate } from "@/features/shifts/types";
 import type { Employee } from "@/types";
+import type { BranchOption } from "@/lib/branches";
 
 interface Props {
   open: boolean;
@@ -13,6 +13,7 @@ interface Props {
   templates: ShiftTemplate[];
   employee: string;
   branch: string;
+  branches?: BranchOption[];
   date: string;
   templateId: string;
   note: string;
@@ -44,6 +45,7 @@ export default function AssignShiftModal({
   managerBranch,
   lockedBranch,
   employees: employeesProp,
+  branches: branchesProp = [],
   onEmployeeChange,
   onBranchChange,
   onDateChange,
@@ -52,7 +54,7 @@ export default function AssignShiftModal({
   onRecurringChange,
   onSave,
 }: Props) {
-  const empList = (employeesProp && employeesProp.length > 0) ? employeesProp : mockEmployees;
+  const empList = employeesProp ?? [];
   const isBranchLocked = isManager || (lockedBranch !== undefined && lockedBranch !== "all" && lockedBranch !== "");
   const branchDisplay = isManager ? (managerBranch ?? branch) : (lockedBranch && lockedBranch !== "all" ? lockedBranch : branch);
   return (
@@ -71,12 +73,16 @@ export default function AssignShiftModal({
               <span>Chi nhánh {branchDisplay}</span>
               <span className="text-[10px] px-2 py-0.5 rounded bg-primary-50 text-primary border border-primary-200">{isManager ? "Cố định" : "Đã chọn"}</span>
             </div>
-          ) : (
+          ) : branchesProp.length > 0 ? (
             <Select value={branch} onChange={(e) => onBranchChange(e.target.value)}>
-              <option value="HN-1">Chi nhánh HN-1</option>
-              <option value="HN-2">Chi nhánh HN-2</option>
-              <option value="ĐN-1">Chi nhánh ĐN-1</option>
+              {branchesProp.map((b) => (
+                <option key={b.slug} value={b.slug}>{b.name || b.slug}</option>
+              ))}
             </Select>
+          ) : (
+            <div className="px-3 py-2 rounded-lg border border-amber-200 bg-amber-50 text-xs text-amber-800">
+              Chưa tải được danh mục chi nhánh từ máy chủ.
+            </div>
           )}
           {isManager && <p className="text-[11px] text-gray-400 mt-1">Manager chỉ phân ca cho chi nhánh phụ trách</p>}
           {!isManager && isBranchLocked && <p className="text-[11px] text-gray-400 mt-1">Đã khóa theo chi nhánh đã chọn ở bộ lọc tổng</p>}

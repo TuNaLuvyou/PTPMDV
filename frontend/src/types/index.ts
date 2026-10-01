@@ -39,6 +39,7 @@ export interface Employee {
   bankName?: string;
   bankAccountNumber?: string;
   bankAccountName?: string;
+  password?: string;
 }
 
 export interface ShiftRequest {

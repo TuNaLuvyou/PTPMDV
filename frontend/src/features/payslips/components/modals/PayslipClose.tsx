@@ -9,12 +9,13 @@ interface Props {
   open: boolean;
   onClose: () => void;
   defaultMonth: string;
+  monthOptions?: string[];
   pendingCount: number;
   saving: boolean;
   onConfirm: (month: string) => void;
 }
 
-export default function BulkClosePayslipModal({ open, onClose, defaultMonth, pendingCount, saving, onConfirm }: Props) {
+export default function BulkClosePayslipModal({ open, onClose, defaultMonth, monthOptions, pendingCount, saving, onConfirm }: Props) {
   const [month, setMonth] = useState(defaultMonth);
 
   useEffect(() => {
@@ -37,14 +38,11 @@ export default function BulkClosePayslipModal({ open, onClose, defaultMonth, pen
       }
     >
       <Field label="Kỳ lương (theo tháng)" required>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2">
           <Select value={month} onChange={(e) => setMonth(e.target.value)} disabled={saving}>
-            <option value="08/2026">Tháng 08/2026</option>
-            <option value="07/2026">Tháng 07/2026</option>
-            <option value="10/2026">Tháng 10/2026</option>
-          </Select>
-          <Select defaultValue="2026" disabled>
-            <option value="2026">2026</option>
+            {(monthOptions && monthOptions.length > 0 ? monthOptions : [defaultMonth].filter(Boolean)).map((m) => (
+              <option key={m} value={m}>Tháng {m}</option>
+            ))}
           </Select>
         </div>
       </Field>

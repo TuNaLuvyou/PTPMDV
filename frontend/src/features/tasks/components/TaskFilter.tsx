@@ -3,6 +3,7 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFilter, faMagnifyingGlass, faStore } from "@fortawesome/free-solid-svg-icons";
 import type { TaskSourceType, TaskStatus } from "../types";
+import type { BranchOption } from "@/lib/branches";
 
 interface TaskFilterBarProps {
   searchQuery: string;
@@ -13,6 +14,7 @@ interface TaskFilterBarProps {
   onSourceFilterChange: (source: TaskSourceType | "all") => void;
   branchFilter: string;
   onBranchFilterChange: (branch: string) => void;
+  branches?: BranchOption[];
   isManager?: boolean;
   managerBranch?: string;
   statusCounts: {
@@ -33,6 +35,7 @@ export default function TaskFilterBar({
   onSourceFilterChange,
   branchFilter,
   onBranchFilterChange,
+  branches = [],
   isManager = false,
   managerBranch,
   statusCounts,
@@ -100,7 +103,7 @@ export default function TaskFilterBar({
         </div>
 
         <div className="flex items-center gap-2 w-full lg:w-auto flex-wrap">
-          {!isManager && (
+          {!isManager && branches.length > 0 && (
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium whitespace-nowrap">
                 <FontAwesomeIcon icon={faStore} fontSize={15} />
@@ -112,9 +115,9 @@ export default function TaskFilterBar({
                 className="px-3 py-2 border border-gray-300 rounded-lg text-xs md:text-sm bg-white focus:outline-hidden focus:ring-2 focus:ring-primary"
               >
                 <option value="all">Tất cả chi nhánh</option>
-                <option value="HN-1">HN-1 (Hoàn Kiếm)</option>
-                <option value="HN-2">HN-2 (Cầu Giấy)</option>
-                <option value="ĐN-1">ĐN-1 (Đà Nẵng)</option>
+                {branches.map((b) => (
+                  <option key={b.slug} value={b.slug}>{b.name || b.slug}</option>
+                ))}
               </select>
             </div>
           )}

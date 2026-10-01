@@ -23,18 +23,24 @@ interface Props {
   config: SoapGatewayConfig;
 }
 
-const SAMPLE_XML = `<?xml version="1.0" encoding="UTF-8"?>
+function buildSampleXml() {
+  const mm = String(new Date().getMonth() + 1).padStart(2, "0");
+  const yyyy = new Date().getFullYear();
+  return `<?xml version="1.0" encoding="UTF-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Body>
     <PayoutRequest>
-      <idempotencyKey>KEY-TEST-001</idempotencyKey>
-      <debitAccount>9704366666666666</debitAccount>
-      <content>Chi lương tháng 10/2026</content>
-      <totalAmount>50000000</totalAmount>
-      <beneficiaryCount>10</beneficiaryCount>
+      <idempotencyKey>KEY-${Date.now()}</idempotencyKey>
+      <debitAccount></debitAccount>
+      <content>Chi lương tháng ${mm}/${yyyy}</content>
+      <totalAmount></totalAmount>
+      <beneficiaryCount></beneficiaryCount>
     </PayoutRequest>
   </soap:Body>
 </soap:Envelope>`;
+}
+
+const SAMPLE_XML = buildSampleXml();
 
 function extractTag(xml: string, tag: string): string | null {
   const m = xml.match(new RegExp(`<${tag}>([^<]*)</${tag}>`));

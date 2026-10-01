@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/state/user_scope.dart';
 import '../../leave_request/data/leave_repository.dart';
 
 class AdjustmentItem {
@@ -34,28 +35,8 @@ class AttendanceAdjustmentScreen extends StatefulWidget {
 
 class _AttendanceAdjustmentScreenState extends State<AttendanceAdjustmentScreen> {
   bool _isLoading = false;
-  final List<AdjustmentItem> _items = [
-    const AdjustmentItem(
-      id: 'adj-1',
-      date: '15/08/2026',
-      shiftName: 'Ca Sáng (08:00 - 12:00)',
-      checkIn: '08:02',
-      checkOut: '12:05',
-      reason: 'Wi-Fi tầng 2 mất kết nối lúc vào ca, đã báo với trưởng ca',
-      status: 'approved',
-      createdAt: '15/08 12:30',
-    ),
-    const AdjustmentItem(
-      id: 'adj-2',
-      date: '12/08/2026',
-      shiftName: 'Ca Chiều (12:00 - 18:00)',
-      checkIn: '11:58',
-      checkOut: '18:10',
-      reason: 'Quên bấm ra ca khi bàn giao tài sản cho ca tối',
-      status: 'approved',
-      createdAt: '12/08 19:00',
-    ),
-  ];
+  // Danh sách thật từ API (GET /api/requests?type=work_supplement). Không mock cứng.
+  final List<AdjustmentItem> _items = [];
 
   @override
   void initState() {
@@ -68,26 +49,27 @@ class _AttendanceAdjustmentScreenState extends State<AttendanceAdjustmentScreen>
     try {
       final requests = await LeaveRepository().getRequests();
       final supps = requests.where((r) => r.type == 'work_supplement').toList();
-      if (supps.isNotEmpty && mounted) {
-        setState(() {
-          _items.clear();
-          for (final r in supps) {
-            _items.add(AdjustmentItem(
-              id: r.id,
-              date: r.createdAt != null && r.createdAt!.length >= 10
-                  ? r.createdAt!.substring(0, 10)
-                  : 'Hôm nay',
-              shiftName: r.title,
-              checkIn: '--:--',
-              checkOut: '--:--',
-              reason: r.content,
-              status: r.status,
-              createdAt: r.createdAt ?? '',
-            ));
-          }
-        });
-      }
-    } catch (_) {}
+      if (!mounted) return;
+      setState(() {
+        _items.clear();
+        for (final r in supps) {
+          _items.add(AdjustmentItem(
+            id: r.id,
+            date: r.createdAt != null && r.createdAt!.length >= 10
+                ? r.createdAt!.substring(0, 10)
+                : 'Hôm nay',
+            shiftName: r.title,
+            checkIn: '--:--',
+            checkOut: '--:--',
+            reason: r.content,
+            status: r.status,
+            createdAt: r.createdAt ?? '',
+          ));
+        }
+      });
+    } catch (_) {
+      if (mounted) setState(() => _items.clear());
+    }
     if (mounted) setState(() => _isLoading = false);
   }
 
@@ -195,7 +177,7 @@ class _AttendanceAdjustmentScreenState extends State<AttendanceAdjustmentScreen>
             ),
             const SizedBox(height: 18),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 final reason = reasonController.text.trim();
                 if (reason.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -203,27 +185,20 @@ class _AttendanceAdjustmentScreenState extends State<AttendanceAdjustmentScreen>
                   );
                   return;
                 }
-                setState(() {
-                  _items.insert(
-                    0,
-                    AdjustmentItem(
-                      id: 'adj-${DateTime.now().millisecondsSinceEpoch}',
-                      date: 'Hôm nay',
-                      shiftName: selectedShift,
-                      checkIn: inController.text.trim(),
-                      checkOut: outController.text.trim(),
-                      reason: reason,
-                      status: 'pending',
-                      createdAt: 'Vừa xong',
-                    ),
-                  );
-                });
-                LeaveRepository().createRequest({
-                  'type': 'work_supplement',
-                  'title': 'Bổ sung chấm công: $selectedShift',
-                  'content': 'Vào: ${inController.text.trim()}, Ra: ${outController.text.trim()}. Lý do: $reason',
-                }).then((_) {}).catchError((_) {});
-                Navigator.pop(modalCtx);
+                try {
+                  final user = UserScope.currentUser(context);
+                  final empId = (user?.id.isNotEmpty == true) ? user!.id : (user?.email ?? '1');
+                  await LeaveRepository().createRequest({
+                    'type': 'work_supplement',
+                    'title': 'Bổ sung chấm công: $selectedShift',
+                    'content': 'Vào: ${inController.text.trim()}, Ra: ${outController.text.trim()}. Lý do: $reason',
+                    'employeeId': empId,
+                  });
+                } catch (_) {}
+                if (!mounted) return;
+                Navigator.pop(context);
+                await _loadData();
+                if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     backgroundColor: AppColors.success,

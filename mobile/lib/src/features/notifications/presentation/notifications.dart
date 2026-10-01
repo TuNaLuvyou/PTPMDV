@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/state/user_scope.dart';
 import '../data/notification_repository.dart';
 import 'request_detail.dart';
 
 // ─── State Quản lý số lượng thông báo chưa đọc ────────────────────────────────
 class NotificationState {
-  static final ValueNotifier<int> unreadCount = ValueNotifier<int>(4);
+  static final ValueNotifier<int> unreadCount = ValueNotifier<int>(0);
 
   static void updateCount(int count) {
     unreadCount.value = count;
@@ -92,110 +93,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void initState() {
     super.initState();
-    _notifications = [
-      NotificationItem(
-        id: 'req1',
-        title: 'Trần Văn B nhờ bạn làm thay ca Sáng',
-        content: 'Trần Văn B nhờ bạn nhận làm thay Ca Sáng (07:00 - 12:00) Thứ Bảy ngày 22/08 tại chi nhánh của bạn.',
-        time: '5 phút trước',
-        icon: FontAwesomeIcons.userPlus,
-        iconColor: Colors.orange,
-        isRead: false,
-        requestType: 'cover',
-        senderName: 'Trần Văn B',
-        senderRole: 'Barista',
-        senderPhone: '0987.654.321',
-        shiftName: 'Ca Sáng (07:00 - 12:00)',
-        shiftTime: '07:00 - 12:00',
-        shiftHours: '5.0 giờ',
-        shiftDate: 'Thứ Bảy, 22/08/2026',
-        branch: 'Chi nhánh 01',
-        shiftRole: 'Barista',
-        reason: 'Mình có lịch thi học kỳ đột xuất vào sáng Thứ 7 này, bạn cover giúp mình nhé! Cảm ơn bạn rất nhiều.',
-        requestStatus: ShiftRequestStatus.pending,
-      ),
-      NotificationItem(
-        id: 'req2',
-        title: 'Lê Thị C gửi yêu cầu đổi ca',
-        content: 'Lê Thị C muốn đổi Ca Chiều (12:00 - 17:00) ngày 23/08 lấy Ca Tối của bạn.',
-        time: '25 phút trước',
-        icon: FontAwesomeIcons.arrowsLeftRight,
-        iconColor: AppColors.primary,
-        isRead: false,
-        requestType: 'swap',
-        senderName: 'Lê Thị C',
-        senderRole: 'Thu ngân',
-        senderPhone: '0912.345.678',
-        shiftName: 'Ca Chiều (12:00 - 17:00)',
-        shiftTime: '12:00 - 17:00',
-        shiftHours: '5.0 giờ',
-        shiftDate: 'Chủ Nhật, 23/08/2026',
-        branch: 'Chi nhánh 01',
-        shiftRole: 'Thu ngân',
-        swapShiftName: 'Ca Tối (17:00 - 22:00)',
-        swapShiftTime: '17:00 - 22:00',
-        swapShiftHours: '5.0 giờ',
-        swapShiftDate: 'Thứ Sáu, 21/08/2026',
-        swapShiftBranch: 'Chi nhánh 01',
-        swapShiftRole: 'Phục vụ',
-        reason: 'Chủ nhật nhà mình có việc gia đình bận, mình đổi sang ca tối thứ 6 để làm bù cho bạn nhé.',
-        requestStatus: ShiftRequestStatus.pending,
-      ),
-      NotificationItem(
-        id: 'n1',
-        title: 'Phân công ca làm việc mới',
-        content: 'Bạn được phân công Ca Sáng (07:00 - 12:00) ngày mai 21/08 tại chi nhánh của bạn.',
-        time: '1 giờ trước',
-        icon: FontAwesomeIcons.calendarDays,
-        iconColor: Colors.blue,
-        isRead: false,
-      ),
-      NotificationItem(
-        id: 'n2',
-        title: 'Yêu cầu đổi ca đã được duyệt',
-        content: 'Quản lý Trần Minh Tuấn đã phê duyệt yêu cầu đổi ca Thứ 5 với bạn Phạm Quỳnh Trang.',
-        time: '3 giờ trước',
-        icon: FontAwesomeIcons.circleCheck,
-        iconColor: Colors.green,
-        isRead: false,
-      ),
-      NotificationItem(
-        id: 'n3',
-        title: 'Phiếu lương kỳ này đã cập nhật',
-        content: 'Bảng tính công và tạm tính thu nhập kỳ 08/2026 đã sẵn sàng. Vui lòng vào mục Kỳ lương để đối soát.',
-        time: 'Hôm qua, 18:30',
-        icon: FontAwesomeIcons.moneyBill,
-        iconColor: Colors.orange,
-        isRead: true,
-      ),
-      NotificationItem(
-        id: 'n4',
-        title: 'Nhắc nhở ca làm sắp bắt đầu',
-        content: 'Ca làm việc Chiều của bạn sẽ bắt đầu sau 15 phút. Vui lòng kết nối Wi-Fi chi nhánh để check-in đúng giờ.',
-        time: '19/08, 11:45',
-        icon: FontAwesomeIcons.clock,
-        iconColor: AppColors.primary,
-        isRead: true,
-      ),
-      NotificationItem(
-        id: 'n5',
-        title: 'Cập nhật tình trạng món menu',
-        content: 'Món "Cà phê Muối Huế" đã được cập nhật trạng thái mở bán trở lại.',
-        time: '18/08, 08:10',
-        icon: FontAwesomeIcons.utensils,
-        iconColor: Colors.teal,
-        isRead: true,
-      ),
-    ];
+    _notifications = [];
     _syncUnreadCount();
     _fetchNotifications();
   }
 
   Future<void> _fetchNotifications() async {
     try {
-      final list = await _repo.getNotifications();
-      if (list.isNotEmpty && mounted) {
-        final remoteItems = list.map((m) {
+      final user = UserScope.currentUser(context);
+      final canManage = user?.canManage ?? false;
+      final list = await _repo.getNotifications(
+        employeeId: canManage ? null : (user?.id.isNotEmpty == true ? user!.id : null),
+      );
+      if (!mounted) return;
+      final remoteItems = list.map((m) {
           final isReq = m.title.toLowerCase().contains('ca') ||
               m.title.toLowerCase().contains('đổi') ||
               m.title.toLowerCase().contains('nhờ');
@@ -213,9 +124,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           _notifications = remoteItems;
         });
         _syncUnreadCount();
-      }
     } catch (_) {
-      // Giữ mock khi offline/service lỗi
+      if (mounted) {
+        setState(() {
+          _notifications = [];
+        });
+      }
     }
   }
 
@@ -226,23 +140,34 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   // ── Actions ─────────────────────────────────────────────────────────────────
 
-  void _markAllAsRead() {
-    setState(() {
+  Future<void> _markAllAsRead() async {
+    try {
       for (var item in _notifications) {
-        item.isRead = true;
+        await _repo.markRead(item.id);
       }
-    });
-    _syncUnreadCount();
-    for (var item in _notifications) {
-      _repo.markRead(item.id).catchError((_) {});
+      if (!mounted) return;
+      setState(() {
+        for (var item in _notifications) {
+          item.isRead = true;
+        }
+      });
+      _syncUnreadCount();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.green,
+          content: Text('✅ Đã đánh dấu tất cả thông báo là đã đọc'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text('❌ Đánh dấu đọc thất bại: $e'),
+        ),
+      );
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        backgroundColor: Colors.green,
-        content: Text('✅ Đã đánh dấu tất cả thông báo là đã đọc'),
-        duration: Duration(seconds: 2),
-      ),
-    );
   }
 
   void _toggleSelectionMode() {
@@ -262,28 +187,39 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     });
   }
 
-  void _markSelectedAsRead() {
+  Future<void> _markSelectedAsRead() async {
     if (_selectedIds.isEmpty) return;
-    for (final id in _selectedIds) {
-      _repo.markRead(id).catchError((_) {});
-    }
-    setState(() {
-      for (var item in _notifications) {
-        if (_selectedIds.contains(item.id)) {
-          item.isRead = true;
-        }
+    try {
+      for (final id in _selectedIds) {
+        await _repo.markRead(id);
       }
-      _isSelecting = false;
-      _selectedIds.clear();
-    });
-    _syncUnreadCount();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        backgroundColor: Colors.green,
-        content: Text('✅ Đã đánh dấu đã đọc các thông báo đã chọn'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+      if (!mounted) return;
+      setState(() {
+        for (var item in _notifications) {
+          if (_selectedIds.contains(item.id)) {
+            item.isRead = true;
+          }
+        }
+        _isSelecting = false;
+        _selectedIds.clear();
+      });
+      _syncUnreadCount();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.green,
+          content: Text('✅ Đã đánh dấu đã đọc các thông báo đã chọn'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text('❌ Đánh dấu đọc thất bại: $e'),
+        ),
+      );
+    }
   }
 
   void _deleteSelected() {
@@ -370,17 +306,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         builder: (context) => ShiftRequestDetailScreen(
           requestId: item.id,
           title: item.title,
-          senderName: item.senderName ?? 'Đồng nghiệp',
-          senderRole: item.senderRole ?? 'Nhân viên',
-          senderPhone: item.senderPhone ?? '0912.345.678',
+          senderName: item.senderName ?? '',
+          senderRole: item.senderRole ?? '',
+          senderPhone: item.senderPhone ?? '',
           requestType: item.requestType ?? 'cover',
           requestTime: item.time,
-          shiftName: item.shiftName ?? 'Ca làm việc',
-          shiftTime: item.shiftTime ?? '08:00 - 17:00',
-          shiftHours: item.shiftHours ?? '5.0 giờ',
-          shiftDate: item.shiftDate ?? 'Hôm nay',
-          branch: item.branch ?? 'Chi nhánh 01',
-          shiftRole: item.shiftRole ?? 'Nhân viên',
+          shiftName: item.shiftName ?? '',
+          shiftTime: item.shiftTime ?? '',
+          shiftHours: item.shiftHours ?? '',
+          shiftDate: item.shiftDate ?? '',
+          branch: item.branch ?? '',
+          shiftRole: item.shiftRole ?? '',
           swapShiftName: item.swapShiftName,
           swapShiftTime: item.swapShiftTime,
           swapShiftHours: item.swapShiftHours,

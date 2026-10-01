@@ -15,9 +15,8 @@ import SoapTestModal from "@/features/bank/components/modals/SoapTest";
 import SoapPayloadDetailModal from "@/features/bank/components/modals/PayloadDetail";
 import CreatePayrollDisbursementModal from "@/features/bank/components/modals/PayoutCreate";
 import BankConfigModal from "@/features/bank/components/modals/BankForm";
-import { initialSoapGatewayConfig } from "@/features/bank/mock";
-import type { BankPartner, SoapTransaction } from "@/features/bank/types";
-import { apiGet, GatewayError } from "@/lib/api";
+import type { BankPartner, SoapGatewayConfig, SoapTransaction } from "@/features/bank/types";
+import { apiGet, GatewayError, GATEWAY_URL, gatewayHealth } from "@/lib/api";
 
 interface BankAccountRow {
   id: string;
@@ -81,7 +80,17 @@ function payoutToTx(row: PayoutRow, bankNameByAccount: Map<string, string>): Soa
 export default function BankIntegrationPage() {
   const [partners, setPartners] = useState<BankPartner[]>([]);
   const [transactions, setTransactions] = useState<SoapTransaction[]>([]);
-  const [gatewayConfig] = useState(initialSoapGatewayConfig);
+  const [gatewayConfig, setGatewayConfig] = useState<SoapGatewayConfig>({
+    endpointUrl: `${GATEWAY_URL}/soap/payroll`,
+    wsdlUrl: `${GATEWAY_URL}/soap/payroll?wsdl`,
+    serviceName: "PayrollDisbursementService",
+    port: 4000,
+    securityMode: "HTTPS (qua API Gateway :4000)",
+    allowedIPs: [],
+    status: "healthy",
+    lastPingTime: new Date().toLocaleString("vi-VN"),
+    avgResponseTime: "—",
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -96,9 +105,11 @@ export default function BankIntegrationPage() {
     try {
       setLoading(true);
       setError(null);
-      const [accounts, payouts] = await Promise.all([
+      const t0 = Date.now();
+      const [accounts, payouts, health] = await Promise.all([
         apiGet<BankAccountRow[]>("/api/payroll/bank-accounts"),
         apiGet<PayoutRow[]>("/api/payroll/payouts"),
+        gatewayHealth().catch(() => null),
       ]);
       const mappedPartners = (accounts || []).map(accountToPartner);
       setPartners(mappedPartners);
@@ -106,6 +117,15 @@ export default function BankIntegrationPage() {
         mappedPartners.map((p) => [p.accountNumber, p.shortName] as const)
       );
       setTransactions((payouts || []).map((r) => payoutToTx(r, bankNameByAccount)));
+      const ms = Date.now() - t0;
+      setGatewayConfig((prev) => ({
+        ...prev,
+        endpointUrl: `${GATEWAY_URL}/soap/payroll`,
+        wsdlUrl: `${GATEWAY_URL}/soap/payroll?wsdl`,
+        status: health ? "healthy" : "degraded",
+        lastPingTime: new Date().toLocaleString("vi-VN"),
+        avgResponseTime: `${ms}ms`,
+      }));
     } catch (e) {
       setError(e instanceof GatewayError ? e.message : "Lỗi tải dữ liệu ngân hàng");
     } finally {

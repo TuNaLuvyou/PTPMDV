@@ -81,7 +81,7 @@ export default function WeeklyRegistrationSection({ registrations, onAssignFromR
             Nguyện vọng Đăng ký Ca Tuần tới (Tham khảo để Xếp ca)
           </CardTitle>
           <p className="text-xs text-gray-500 mt-1">
-            Dữ liệu tổng hợp từ App di động cho tuần 24/08 - 30/08/2026. Quản lý căn cứ vào nguyện vọng đăng ký của nhân viên để xếp ca chủ động, tránh trùng lặp hoặc xung đột ca làm việc.
+            Dữ liệu tổng hợp từ App di động theo thời gian thực (GET /api/shifts/registrations). Quản lý căn cứ vào nguyện vọng đăng ký của nhân viên để xếp ca chủ động, tránh trùng lặp hoặc xung đột ca làm việc.
           </p>
         </div>
       </CardHeader>

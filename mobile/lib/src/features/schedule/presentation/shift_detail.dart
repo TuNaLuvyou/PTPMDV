@@ -22,6 +22,12 @@ class ShiftDetailScreen extends StatefulWidget {
 }
 
 class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
+  /// Chuẩn hóa ngày hiển thị: dd/mm -> dd/mm/yyyy hiện tại; đã đủ năm thì giữ nguyên.
+  String _fullDate(String d) {
+    final slashes = '/'.allMatches(d).length;
+    if (slashes >= 2) return d;
+    return '$d/${DateTime.now().year}';
+  }
   void _navigateToForm(ShiftActionType type) {
     Navigator.push(
       context,
@@ -43,14 +49,15 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
     final Color statusColor = ScheduleService.getStatusColor(shift.status);
     final String statusText = ScheduleService.getStatusLabel(shift.status);
 
-    // Dữ liệu chấm công mock dựa theo trạng thái ca
+    // Giờ chấm công lấy từ API attendance khi có; chưa có thì hiện neutral.
+    // Không dùng giờ cứng 07:55/07:58/12:05.
     final String checkIn = shift.status == 'completed'
-        ? '07:55'
+        ? '--:--'
         : (shift.status == 'active'
-            ? '07:58'
+            ? 'Đang trong ca'
             : (shift.status == 'missed' ? 'Chưa chấm công' : '--:--'));
     final String checkOut = shift.status == 'completed'
-        ? '12:05'
+        ? '--:--'
         : (shift.status == 'active'
             ? 'Đang trong ca'
             : (shift.status == 'missed' ? 'Chưa chấm công' : '--:--'));
@@ -65,7 +72,7 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
 
     final user = UserScope.currentUser(context);
     final bool isHourly = user?.isHourlySalary ?? true;
-    final double hourlySalary = user?.hourlySalary ?? 35000.0;
+    final double hourlySalary = user?.hourlySalary ?? 0.0;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -123,7 +130,7 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${widget.dayOfWeek}, ${widget.date}/2026 • ${shift.timeRange}',
+                          '${widget.dayOfWeek}, ${_fullDate(widget.date)} • ${shift.timeRange}',
                           style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                         ),
                       ],
@@ -162,10 +169,10 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
               child: Column(
                 children: [
                   _buildInfoRow(FontAwesomeIcons.calendarDay, 'Ngày tính công',
-                      '${widget.date}/08/2026 (${widget.dayOfWeek})'),
+                      '${_fullDate(widget.date)} (${widget.dayOfWeek})'),
                   _divider(),
                   _buildInfoRow(FontAwesomeIcons.user, 'Nhân viên',
-                      UserScope.currentUser(context)?.name ?? 'Nguyễn Văn A'),
+                      UserScope.currentUser(context)?.name ?? ''),
                   _divider(),
                   _buildInfoRow(FontAwesomeIcons.briefcase, 'Ca làm việc', shift.shiftName),
                   _divider(),

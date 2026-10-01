@@ -1,0 +1,18 @@
+{
+  "name": "hrm-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HRM Enterprise Monorepo - SOA Microservices",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js",
+    "backend": "node backend/server.js",
+    "backend:watch": "node --watch backend/server.js",
+    "web": "npm --prefix frontend run dev",
+    "mobile": "cd mobile && flutter run",
+    "test:backend": "for s in api-gateway identity-service organization-service work-service payroll-service integration-service; do (echo \"=== $s ===\" && cd backend/$s && npm test); done"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

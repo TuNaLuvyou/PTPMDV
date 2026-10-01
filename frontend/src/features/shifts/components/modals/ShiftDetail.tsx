@@ -39,15 +39,7 @@ export default function StaffShiftDetailModal({ open, onClose, staff, shift, day
     return ch * 60 + cm - (sh * 60 + sm) > 5;
   })();
 
-  // Tự động tính toán giờ check-out thực tế nếu ca đã hoàn thành
-  const effectiveCheckOutTime = (() => {
-    if (staff.checkOutTime && staff.checkOutTime !== "—") return staff.checkOutTime;
-    if ((shift.status === "completed" || !day.isToday) && (isCheckedIn || staff.checkInTime)) {
-      const endStr = shift.timeRange.split("-")[1]?.trim();
-      return endStr ? `${endStr.split(":")[0]}:02` : "14:02";
-    }
-    return "—";
-  })();
+  const effectiveCheckOutTime = staff.checkOutTime && staff.checkOutTime !== "—" ? staff.checkOutTime : "—";
 
   const statusLabel = isCheckedIn ? (isLate ? "Trễ" : "Đúng giờ") : isInProgress ? "Đang trong ca" : isForgot ? "Quên chấm công" : "Chưa chấm công";
   const statusTone = isCheckedIn ? (isLate ? "warning" as const : "success" as const) : isInProgress ? "primary" as const : isForgot ? "danger" as const : "gray" as const;

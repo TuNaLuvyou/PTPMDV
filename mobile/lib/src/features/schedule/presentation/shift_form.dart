@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/state/user_scope.dart';
 import '../../leave_request/data/leave_repository.dart';
+import '../data/shift_repository.dart';
+import '../../../core/network/api_client.dart';
 import 'schedule.dart';
 
 enum ShiftActionType {
@@ -20,7 +23,7 @@ class ShiftStaffMember {
     required this.id,
     required this.name,
     required this.role,
-    this.phone = '0987.654.321',
+    this.phone = '',
   });
 
   String get displayName => '$name ($role)';
@@ -45,67 +48,71 @@ class ShiftActionFormScreen extends StatefulWidget {
 }
 
 class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
+
+  /// Chuẩn hóa dd/mm -> dd/mm/yyyy hiện tại; đã đủ năm thì giữ nguyên.
+  String _fullDate(String d) {
+    if ('/'.allMatches(d).length >= 2) return d;
+    return '$d/${DateTime.now().year}';
+  }
   final _formKey = GlobalKey<FormState>();
   final _reasonController = TextEditingController();
 
-  // Nhờ làm thay
-  String _selectedColleague = 'Trần Văn B (Barista)';
-  final List<String> _availableColleagues = [
-    'Trần Văn B (Barista)',
-    'Lê Thị C (Thu ngân)',
-    'Phạm Quỳnh Trang (Phục vụ)',
-    'Hoàng Minh Đức (Barista)',
-    'Vũ Thị Mai (Phục vụ)',
-  ];
+  // Nhờ làm thay — tải đồng nghiệp thật từ API (GET /api/employees qua gateway)
+  String? _selectedColleague;
+  List<String> _availableColleagues = [];
+  final ShiftRepository _shiftRepo = ShiftRepository();
+  @override
+  void initState() {
+    super.initState();
+    _fetchColleagues();
+  }
+  Future<void> _fetchColleagues() async {
+    try {
+      final api = ApiClient();
+      final data = await api.getJson('/api/employees');
+      final list = data is List ? data : [];
+      final names = <String>[];
+      for (final e in list.whereType<Map<String, dynamic>>()) {
+        final n = (e['name'] ?? '').toString();
+        final r = (e['role'] ?? '').toString();
+        if (n.isNotEmpty) names.add(r.isNotEmpty ? '$n ($r)' : n);
+      }
+      if (mounted) {
+        setState(() {
+          _availableColleagues = names;
+          if (_availableColleagues.isNotEmpty) _selectedColleague = _availableColleagues.first;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _availableColleagues = []);
+      }
+    }
+  }
 
   // Đổi ca (Chọn ngày -> Chọn ca -> Chọn nhân viên trong ca)
   DateTime? _swapDate;
   String? _selectedTargetShift;
   ShiftStaffMember? _selectedSwapStaff;
 
-  // Dữ liệu phân ca thực tế theo Ngày -> Ca -> Danh sách nhân viên trong ca
-  final Map<String, Map<String, List<ShiftStaffMember>>> _scheduleShiftStaffData = {
-    '2026-08-21': {
-      'Ca Chiều (12:00 - 17:00)': [
-        const ShiftStaffMember(id: 's1', name: 'Trần Văn B', role: 'Barista', phone: '0987.654.321'),
-        const ShiftStaffMember(id: 's2', name: 'Phạm Quỳnh Trang', role: 'Phục vụ', phone: '0933.221.100'),
-      ],
-      'Ca Tối (17:00 - 22:00)': [
-        const ShiftStaffMember(id: 's3', name: 'Hoàng Minh Đức', role: 'Barista', phone: '0901.122.334'),
-        const ShiftStaffMember(id: 's4', name: 'Vũ Thị Mai', role: 'Phục vụ', phone: '0911.223.344'),
-      ],
-    },
-    '2026-08-22': {
-      'Ca Sáng (07:00 - 12:00)': [
-        const ShiftStaffMember(id: 's1', name: 'Trần Văn B', role: 'Barista', phone: '0987.654.321'),
-        const ShiftStaffMember(id: 's5', name: 'Đỗ Văn Hùng', role: 'Bảo vệ', phone: '0977.889.900'),
-      ],
-      'Ca Chiều (12:00 - 17:00)': [
-        const ShiftStaffMember(id: 's6', name: 'Lê Thị C', role: 'Thu ngân', phone: '0912.345.678'),
-        const ShiftStaffMember(id: 's2', name: 'Phạm Quỳnh Trang', role: 'Phục vụ', phone: '0933.221.100'),
-      ],
-      'Ca Tối (17:00 - 22:00)': [
-        const ShiftStaffMember(id: 's3', name: 'Hoàng Minh Đức', role: 'Barista', phone: '0901.122.334'),
-      ],
-    },
-    '2026-08-23': {
-      'Ca Sáng (07:00 - 12:00)': [
-        const ShiftStaffMember(id: 's2', name: 'Phạm Quỳnh Trang', role: 'Phục vụ', phone: '0933.221.100'),
-      ],
-      'Ca Chiều (12:00 - 17:00)': [
-        const ShiftStaffMember(id: 's6', name: 'Lê Thị C', role: 'Thu ngân', phone: '0912.345.678'),
-      ],
-    },
-    '2026-08-24': {
-      'Ca Sáng (07:00 - 12:00)': [
-        const ShiftStaffMember(id: 's1', name: 'Trần Văn B', role: 'Barista', phone: '0987.654.321'),
-      ],
-      'Ca Tối (17:00 - 22:00)': [
-        const ShiftStaffMember(id: 's4', name: 'Vũ Thị Mai', role: 'Phục vụ', phone: '0911.223.344'),
-        const ShiftStaffMember(id: 's6', name: 'Lê Thị C', role: 'Thu ngân', phone: '0912.345.678'),
-      ],
-    },
-  };
+  // Phân ca theo ngày lấy từ API thật (GET /api/shifts?date=...). Không mock cứng.
+  final Map<String, Map<String, List<ShiftStaffMember>>> _scheduleShiftStaffData = {};
+  Future<void> _loadShiftsForDate(DateTime date) async {
+    final key = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    try {
+      final shifts = await _shiftRepo.getShifts(date: key);
+      final grouped = <String, List<ShiftStaffMember>>{};
+      for (final s in shifts) {
+        final label = '${s.template} (${s.scheduledStart} - ${s.scheduledEnd})';
+        grouped.putIfAbsent(label, () => []).add(
+          ShiftStaffMember(id: s.id, name: s.employeeId ?? 'Nhân sự', role: s.branchSlug ?? ''),
+        );
+      }
+      if (mounted) setState(() => _scheduleShiftStaffData[key] = grouped);
+    } catch (_) {
+      if (mounted) setState(() => _scheduleShiftStaffData[key] = {});
+    }
+  }
 
   // Xin nghỉ
   String _selectedLeaveReason = 'Bận việc gia đình đột xuất';
@@ -157,12 +164,12 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
   }
 
   Future<void> _pickSwapDate() async {
-    final now = DateTime(2026, 8, 21);
+    final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
       initialDate: _swapDate ?? now,
-      firstDate: DateTime(2026, 8, 1),
-      lastDate: DateTime(2026, 8, 31),
+      firstDate: now.subtract(const Duration(days: 30)),
+      lastDate: now.add(const Duration(days: 60)),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -183,10 +190,11 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
         _selectedTargetShift = null; // Reset ca để user chọn ca của ngày mới
         _selectedSwapStaff = null;   // Reset nhân viên
       });
+      await _loadShiftsForDate(picked);
     }
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
     if (widget.actionType == ShiftActionType.swap) {
@@ -227,21 +235,33 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
         break;
     }
 
-    LeaveRepository().createRequest({
-      'type': reqType,
-      'title': '${widget.actionType == ShiftActionType.leave ? "Xin nghỉ ca" : "Đổi ca"}: ${widget.shift.shiftName}',
-      'content': _reasonController.text.trim(),
-      'employeeId': '1',
-    }).then((_) {}).catchError((_) {});
-
-    Navigator.pop(context, true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: AppColors.success,
-        content: Text(successMsg),
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    try {
+      final user = UserScope.currentUser(context);
+      final empId = (user?.id.isNotEmpty == true) ? user!.id : (user?.email ?? '1');
+      await LeaveRepository().createRequest({
+        'type': reqType,
+        'title': '${widget.actionType == ShiftActionType.leave ? "Xin nghỉ ca" : "Đổi ca"}: ${widget.shift.shiftName}',
+        'content': _reasonController.text.trim(),
+        'employeeId': empId,
+      });
+      if (!mounted) return;
+      Navigator.pop(context, true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.success,
+          content: Text(successMsg),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text('❌ Gửi yêu cầu thất bại: $e'),
+        ),
+      );
+    }
   }
 
   @override
@@ -326,7 +346,7 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
                           child: _buildShiftBadge(
                             FontAwesomeIcons.calendarDay,
                             'Thời gian',
-                            '${widget.dayOfWeek}, ${widget.date}/2026',
+                            '${widget.dayOfWeek}, ${_fullDate(widget.date)}',
                           ),
                         ),
                         Expanded(
@@ -420,7 +440,11 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             isExpanded: true,
-            initialValue: _selectedColleague,
+            initialValue: _availableColleagues.contains(_selectedColleague) ? _selectedColleague : null,
+            hint: Text(
+              _availableColleagues.isEmpty ? 'Đang tải danh sách nhân sự...' : 'Chọn đồng nghiệp...',
+              style: const TextStyle(fontSize: 14),
+            ),
             decoration: InputDecoration(
               prefixIcon: const Icon(Icons.person_outline_rounded, color: Colors.orange, size: 22),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),

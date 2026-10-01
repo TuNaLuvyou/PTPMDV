@@ -24,25 +24,34 @@ class ApiException implements Exception {
 /// - Hiểu envelope `{ data }` / `{ error: { code, message } }`.
 /// - SOAP (`/soap/payroll`) đi qua gateway nguyên vẹn XML, không bọc envelope.
 class ApiClient {
+  static String? _sharedCookie;
+  static String? _sharedAccessToken;
+
   final String baseUrl;
   final Duration timeout;
-  String? _cookie;
-  String? _accessToken;
 
   ApiClient({String? baseUrl, Duration? timeout})
       : baseUrl = baseUrl ?? CompanyConfig.apiBaseUrl,
         timeout = timeout ?? CompanyConfig.apiTimeout;
 
+  String? get cookie => _sharedCookie;
+  String? get accessToken => _sharedAccessToken;
+
   void setSession({String? cookie, String? accessToken}) {
-    _cookie = cookie;
-    _accessToken = accessToken;
+    if (cookie != null) _sharedCookie = cookie;
+    if (accessToken != null) _sharedAccessToken = accessToken;
+  }
+
+  static void clearSession() {
+    _sharedCookie = null;
+    _sharedAccessToken = null;
   }
 
   Map<String, String> _headers({bool json = true}) {
     final h = <String, String>{};
     if (json) h['Content-Type'] = 'application/json';
-    if (_cookie != null) h['Cookie'] = _cookie!;
-    if (_accessToken != null) h['Authorization'] = 'Bearer $_accessToken';
+    if (_sharedCookie != null) h['Cookie'] = _sharedCookie!;
+    if (_sharedAccessToken != null) h['Authorization'] = 'Bearer $_sharedAccessToken';
     return h;
   }
 
@@ -95,8 +104,19 @@ class ApiClient {
     // Lưu cookie phiên hrm-session nếu server set.
     final setCookie = res.headers['set-cookie'];
     if (setCookie != null && setCookie.contains('hrm-session')) {
-      _cookie = setCookie.split(';').first;
+      _sharedCookie = setCookie.split(';').first;
     }
+    // Lưu access token nếu server trả về trong body
+    try {
+      final decoded = jsonDecode(res.body);
+      if (decoded is Map) {
+        final token = decoded['accessToken'] ??
+            (decoded['data'] is Map ? decoded['data']['accessToken'] : null);
+        if (token != null) {
+          _sharedAccessToken = token.toString();
+        }
+      }
+    } catch (_) {}
     if (res.statusCode < 200 || res.statusCode >= 300) {
       dynamic body;
       try {
@@ -120,7 +140,8 @@ class ApiClient {
           .post(uri,
               headers: {
                 'Content-Type': 'text/xml; charset=utf-8',
-                if (_cookie != null) 'Cookie': _cookie!,
+                if (_sharedCookie != null) 'Cookie': _sharedCookie!,
+                if (_sharedAccessToken != null) 'Authorization': 'Bearer $_sharedAccessToken',
               },
               body: xmlBody)
           .timeout(timeout);

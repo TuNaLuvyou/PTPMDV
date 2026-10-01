@@ -16,7 +16,7 @@ import {
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
 import { apiGet, apiPost, GatewayError, GATEWAY_URL } from "@/lib/api";
-import { shiftRequests as initialMockRequests, attendanceConfig as initialAttendanceConfig } from "@/mock-data/portal";
+import { fetchBranchOptions, type BranchOption } from "@/lib/branches";
 import type { ShiftRequest, Employee } from "@/types";
 import ShiftRequestSection from "@/features/shift-requests/components/RequestList";
 import AttendanceConfigModal, { type AttendanceConfigState } from "@/features/shared/components/modals/AttendanceForm";
@@ -104,7 +104,7 @@ function mapBackendRequest(r: any, empMap?: Map<string, string>): ShiftRequest {
     status = "chờ duyệt";
   }
 
-  const createdDate = r.createdAt ? new Date(r.createdAt).toLocaleDateString("vi-VN") : "17/08/2026";
+  const createdDate = r.createdAt ? new Date(r.createdAt).toLocaleDateString("vi-VN") : new Date().toLocaleDateString("vi-VN");
   const from = r.from || `${createdDate} 08:00`;
   const to = r.to || `${createdDate} 17:30`;
 
@@ -122,13 +122,14 @@ function mapBackendRequest(r: any, empMap?: Map<string, string>): ShiftRequest {
 }
 
 export default function RequestsPage() {
-  const { role, branchSlug } = useCurrentUser();
+  const { role, branchSlug, user } = useCurrentUser();
   const isAdmin = role === "admin";
   const isManager = role === "manager";
   const managerBranch = branchSlug.toUpperCase();
 
-  const [requests, setRequests] = useState<ShiftRequest[]>(initialMockRequests);
+  const [requests, setRequests] = useState<ShiftRequest[]>([]);
   const [empList, setEmpList] = useState<Employee[]>([]);
+  const [branchOptions, setBranchOptions] = useState<BranchOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionInProgress, setActionInProgress] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -141,8 +142,8 @@ export default function RequestsPage() {
 
   const [attendanceOpen, setAttendanceOpen] = useState(false);
   const [attConfig, setAttConfig] = useState<AttendanceConfigState>({
-    gracePeriod: initialAttendanceConfig.gracePeriod,
-    shiftSwapMode: initialAttendanceConfig.shiftSwapMode,
+    gracePeriod: "5 phút",
+    shiftSwapMode: "Nhân viên tự xác nhận",
     requireReasonSwap: true,
     allowDoubleCheckin: true,
   });
@@ -175,11 +176,14 @@ export default function RequestsPage() {
 
       const queryString = queryParams.toString() ? `?${queryParams.toString()}` : "";
 
-      const [requestsRes, employeesRes, configRes] = await Promise.allSettled([
+      const [requestsRes, employeesRes, configRes, branchesRes] = await Promise.allSettled([
         apiGet<any[]>(`/api/requests${queryString}`),
         apiGet<Employee[]>("/api/employees"),
         apiGet<any>("/api/attendance/config"),
+        fetchBranchOptions(),
       ]);
+
+      if (branchesRes.status === "fulfilled") setBranchOptions(branchesRes.value);
 
       let employeesData: Employee[] = [];
       if (employeesRes.status === "fulfilled" && Array.isArray(employeesRes.value)) {
@@ -192,8 +196,12 @@ export default function RequestsPage() {
         currentEmpMap.set(e.id, e.name);
       }
 
-      if (requestsRes.status === "fulfilled" && Array.isArray(requestsRes.value) && requestsRes.value.length > 0) {
+      if (requestsRes.status === "fulfilled" && Array.isArray(requestsRes.value)) {
         setRequests(requestsRes.value.map((r) => mapBackendRequest(r, currentEmpMap)));
+      } else {
+        setRequests([]);
+        const r = (requestsRes as PromiseRejectedResult).reason;
+        setError(r instanceof GatewayError ? r.message : "Không thể tải danh sách yêu cầu từ máy chủ");
       }
 
       if (configRes.status === "fulfilled" && configRes.value) {
@@ -255,7 +263,7 @@ export default function RequestsPage() {
     };
   }, [requests, isManager, branchSlug]);
 
-  const currentUserName = isAdmin ? "Trần Minh Tuấn (Admin)" : "Vũ Thành Công (Quản lý)";
+  const currentUserName = user?.name ? `${user.name} (${user.roleTitle || role})` : isAdmin ? "Quản trị viên" : "Quản lý";
 
   // Duyệt yêu cầu (PUT /api/requests/:id/approve)
   const handleApprove = async (id: string, note?: string) => {
@@ -272,11 +280,8 @@ export default function RequestsPage() {
       // Tải lại danh sách để đồng bộ trạng thái mới nhất từ backend
       fetchData();
     } catch (e: any) {
-      setRequests((prev) =>
-        prev.map((x) => (x.id === id ? { ...x, status: "đã duyệt" as const } : x))
-      );
-      const msg = e instanceof GatewayError ? e.message : e?.message || "Đã phê duyệt yêu cầu";
-      showToast(msg, "success");
+      const msg = e instanceof GatewayError ? e.message : e?.message || "Không thể phê duyệt yêu cầu";
+      showToast(msg, "danger");
     } finally {
       setActionInProgress(false);
     }
@@ -296,11 +301,8 @@ export default function RequestsPage() {
       showToast("Đã từ chối yêu cầu. Thông báo tự động đã được gửi.", "success");
       fetchData();
     } catch (e: any) {
-      setRequests((prev) =>
-        prev.map((x) => (x.id === id ? { ...x, status: "từ chối" as const } : x))
-      );
-      const msg = e instanceof GatewayError ? e.message : e?.message || "Đã từ chối yêu cầu";
-      showToast(msg, "success");
+      const msg = e instanceof GatewayError ? e.message : e?.message || "Không thể từ chối yêu cầu";
+      showToast(msg, "danger");
     } finally {
       setActionInProgress(false);
     }
@@ -438,7 +440,7 @@ export default function RequestsPage() {
             </select>
           </div>
 
-          {!isManager && (
+          {!isManager && branchOptions.length > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-gray-500">Chi nhánh:</span>
               <select
@@ -447,9 +449,9 @@ export default function RequestsPage() {
                 className="text-xs font-medium border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:border-primary"
               >
                 <option value="all">Tất cả chi nhánh</option>
-                <option value="HN-1">Hoàn Kiếm (HN-1)</option>
-                <option value="HN-2">Ba Đình (HN-2)</option>
-                <option value="ĐN-1">Đà Nẵng (ĐN-1)</option>
+                {branchOptions.map((b) => (
+                  <option key={b.slug} value={b.slug}>{b.name || b.slug}</option>
+                ))}
               </select>
             </div>
           )}

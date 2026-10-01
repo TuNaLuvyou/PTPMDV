@@ -5,7 +5,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGear, faRotateRight } from "@fortawesome/free-solid-svg-icons";
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
-import { attendanceConfig } from "@/mock-data/portal";
 import type { Payslip } from "@/types";
 import PayslipSection from "@/features/payslips/components/PayslipList";
 import BulkClosePayslipModal from "@/features/payslips/components/modals/PayslipClose";
@@ -91,8 +90,8 @@ export default function PayslipsPage() {
   const [confirmCloseSlipTarget, setConfirmCloseSlipTarget] = useState<Payslip | null>(null);
   const [closingOne, setClosingOne] = useState(false);
   const [attConfig, setAttConfig] = useState<AttendanceConfigState>({
-    gracePeriod: attendanceConfig.gracePeriod,
-    shiftSwapMode: attendanceConfig.shiftSwapMode,
+    gracePeriod: "5 phút",
+    shiftSwapMode: "Nhân viên tự xác nhận",
     requireReasonSwap: true,
     allowDoubleCheckin: true,
   });
@@ -102,10 +101,18 @@ export default function PayslipsPage() {
       setLoading(true);
       setError(null);
       const query = month !== "all" ? `?month=${encodeURIComponent(month)}` : "";
-      const [rows, emps] = await Promise.all([
+      const [rows, emps, cfg] = await Promise.all([
         apiGet<PayslipRow[]>(`/api/payroll/payslips${query}`),
         apiGet<EmployeeRow[]>("/api/employees"),
+        apiGet<any>("/api/attendance/config").catch(() => null),
       ]);
+      if (cfg) {
+        setAttConfig((prev) => ({
+          ...prev,
+          gracePeriod: cfg.gracePeriodMinutes ? `${cfg.gracePeriodMinutes} phút` : prev.gracePeriod,
+          shiftSwapMode: cfg.shiftSwapMode || prev.shiftSwapMode,
+        }));
+      }
       const nameById = new Map(emps.map((e) => [e.id, e] as const));
       setEmployees(emps);
       setSlips(
@@ -310,8 +317,9 @@ export default function PayslipsPage() {
       <BulkClosePayslipModal
         open={closeSlipOpen}
         onClose={() => setCloseSlipOpen(false)}
-        defaultMonth={selectedMonth !== "all" ? selectedMonth : "08/2026"}
-        pendingCount={pendingOfMonth(selectedMonth !== "all" ? selectedMonth : "08/2026").length}
+        defaultMonth={selectedMonth !== "all" ? selectedMonth : monthOptions[0] ?? ""}
+        pendingCount={pendingOfMonth(selectedMonth !== "all" ? selectedMonth : monthOptions[0] ?? "").length}
+        monthOptions={monthOptions}
         saving={bulkSaving}
         onConfirm={handleBulkClose}
       />
@@ -319,7 +327,7 @@ export default function PayslipsPage() {
         open={generateOpen}
         onClose={() => setGenerateOpen(false)}
         employees={employees.map((e) => ({ id: e.id, name: e.name }))}
-        defaultMonth={selectedMonth !== "all" ? selectedMonth : "10-2026"}
+        defaultMonth={selectedMonth !== "all" ? selectedMonth.replace("/", "-") : ""}
         saving={generateSaving}
         error={generateError}
         onConfirm={handleGenerate}

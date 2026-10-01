@@ -27,13 +27,16 @@ hrm-enterprise/
 ## Chạy dự án
 
 ```bash
-# 1. Core Server (http://localhost:4000)
-cd backend && npm install && npm run dev
+# 1. Chạy Backend (Chỉ 1 lệnh chạy đồng thời cả 6 Microservices từ thư mục gốc):
+npm run dev
+# hoặc: node backend/server.js
+# Hoặc khởi chạy hạ tầng bằng Docker Compose:
+docker compose up -d
 
 # 2. Web Portal (http://localhost:3000)
 cd frontend && npm install && npm run dev
 
-# 3. Mobile App
+# 3. Mobile App (Flutter)
 cd mobile && flutter pub get && flutter run
 ```
 

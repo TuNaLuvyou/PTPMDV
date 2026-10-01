@@ -10,6 +10,7 @@ import WifiTableSection from "@/features/wifi/components/WifiList";
 import WifiFormModal, { type WifiFormPayload } from "@/features/wifi/components/modals/WifiForm";
 import { useCurrentUser } from "@/context/AuthContext";
 import { apiGet, apiPost, GATEWAY_URL, GatewayError } from "@/lib/api";
+import { fetchBranchOptions, type BranchOption } from "@/lib/branches";
 
 // api.ts dùng chung chưa có apiPut/apiDelete (quy tắc phân công: chỉ đọc, không sửa)
 // nên đặt helper cục bộ trong trang, giống tiền lệ các trang trước của Agent 2.
@@ -67,6 +68,7 @@ export default function WifiPage() {
   const { role, branchSlug } = useCurrentUser();
   const isManager = role === "manager";
   const [configs, setConfigs] = useState<WifiConfig[]>([]);
+  const [branchOptions, setBranchOptions] = useState<BranchOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -79,6 +81,7 @@ export default function WifiPage() {
       setError(null);
       const data = await apiGet<WifiConfig[]>("/api/wifi-configs");
       setConfigs(data || []);
+      setBranchOptions(await fetchBranchOptions());
     } catch (e) {
       setError(e instanceof GatewayError ? e.message : "Lỗi tải cấu hình Wi-Fi");
     } finally {
@@ -182,6 +185,7 @@ export default function WifiPage() {
           setEditingItem(null);
         }}
         initial={editingItem}
+        branches={branchOptions}
         saving={saving}
         onSubmit={handleSubmit}
       />

@@ -17,6 +17,7 @@ class ScheduleScreen extends StatefulWidget {
 class _ScheduleScreenState extends State<ScheduleScreen> {
   // Offset tuần so với tuần hiện tại (0: Tuần này, -1: Tuần trước, 1: Tuần sau, -2, 2, ...)
   int _weekOffset = 0;
+  List<ApiShiftModel> _apiShifts = [];
 
   DateTime get _today {
     final now = DateTime.now();
@@ -33,7 +34,24 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     super.initState();
     final todayFormatted = '${_today.day.toString().padLeft(2, '0')}/${_today.month.toString().padLeft(2, '0')}';
     _expandedDays.add(todayFormatted);
-    ShiftRepository().getShifts().then((_) {}).catchError((_) {});
+    _fetchShifts();
+  }
+
+  Future<void> _fetchShifts() async {
+    try {
+      final list = await ShiftRepository().getShifts();
+      if (mounted) {
+        setState(() {
+          _apiShifts = list;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _apiShifts = [];
+        });
+      }
+    }
   }
 
   String _getWeekTitle(int offset) {
@@ -53,7 +71,39 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   List<DayScheduleModel> _getWeekData(int offset) {
-    return ScheduleService.getWeekData(offset);
+    // Dựng lịch tuần từ API thật (_apiShifts). Không dùng mock cứng.
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final monday = ScheduleService.getMonday(today).add(Duration(days: offset * 7));
+    const dayNames = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'];
+    return List.generate(7, (i) {
+      final dayDate = monday.add(Duration(days: i));
+      final isToday = dayDate.year == today.year && dayDate.month == today.month && dayDate.day == today.day;
+      final dateStr = '${dayDate.day.toString().padLeft(2, '0')}/${dayDate.month.toString().padLeft(2, '0')}';
+      final shifts = _apiShifts.where((s) {
+        // API date có thể là dd/mm/yyyy hoặc ISO — so khớp lỏng
+        return s.date.contains(dateStr) || s.date.contains('${dayDate.year}-${dayDate.month.toString().padLeft(2, '0')}-${dayDate.day.toString().padLeft(2, '0')}');
+      }).map((s) {
+        double hours = 4.0;
+        try {
+          final sp = s.scheduledStart.split(':');
+          final ep = s.scheduledEnd.split(':');
+          hours = ((int.parse(ep[0]) * 60 + int.parse(ep[1])) - (int.parse(sp[0]) * 60 + int.parse(sp[1]))) / 60.0;
+          if (hours <= 0) hours = 4.0;
+        } catch (_) {}
+        return ShiftDetail(
+          id: s.id,
+          shiftName: s.template,
+          startTime: s.scheduledStart,
+          endTime: s.scheduledEnd,
+          hours: hours,
+          branch: s.branchSlug ?? '',
+          role: '',
+          status: ScheduleService.calculateShiftStatus(date: dayDate, startTime: s.scheduledStart, endTime: s.scheduledEnd),
+        );
+      }).toList();
+      return DayScheduleModel(dayOfWeek: dayNames[i], date: dateStr, isToday: isToday, shifts: shifts);
+    });
   }
 
   void _selectWeek(int offset) {
@@ -87,9 +137,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          try {
-            await ShiftRepository().getShifts();
-          } catch (_) {}
+          await _fetchShifts();
           if (mounted) setState(() {});
         },
         child: SingleChildScrollView(

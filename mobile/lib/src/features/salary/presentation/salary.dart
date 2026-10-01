@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/state/user_scope.dart';
 import '../../../core/models/payslip.dart';
 import '../../../core/utils/formatters.dart';
 import '../data/salary_repository.dart';
+import 'bank_disbursement_screen.dart';
 
 class WorkLogItem {
   final String date;
@@ -31,80 +33,55 @@ class SalaryScreen extends StatefulWidget {
 }
 
 class _SalaryScreenState extends State<SalaryScreen> {
-  String _selectedMonth = 'Tháng 08/2026';
-  final List<String> _months = [
-    'Tháng 08/2026 (Hiện tại)',
-    'Tháng 07/2026',
-    'Tháng 06/2026',
-  ];
+  // Kỳ lương tính động theo tháng hiện tại + danh sách thật từ API.
+  // Không dùng tháng 08/2026 cứng.
+  late String _selectedMonth;
+  late final List<String> _months;
 
-  final List<WorkLogItem> _workLogs = const [
-    WorkLogItem(
-      date: '20/08/2026 (T5)',
-      checkIn: '07:55',
-      checkOut: 'Đang làm...',
-      hours: 4.0,
-      basePay: 100000,
-      status: 'Hợp lệ',
-    ),
-    WorkLogItem(
-      date: '19/08/2026 (T4)',
-      checkIn: '07:58',
-      checkOut: '16:05',
-      hours: 8.0,
-      basePay: 200000,
-      status: 'Hợp lệ',
-    ),
-    WorkLogItem(
-      date: '18/08/2026 (T3)',
-      checkIn: '11:50',
-      checkOut: '18:02',
-      hours: 6.0,
-      basePay: 150000,
-      status: 'Hợp lệ',
-    ),
-    WorkLogItem(
-      date: '17/08/2026 (T2)',
-      checkIn: '08:05',
-      checkOut: '12:00',
-      hours: 4.0,
-      basePay: 100000,
-      status: 'Trễ 5p',
-    ),
-    WorkLogItem(
-      date: '15/08/2026 (T7)',
-      checkIn: '13:55',
-      checkOut: '22:10',
-      hours: 8.0,
-      basePay: 200000,
-      status: 'Hợp lệ',
-    ),
-    WorkLogItem(
-      date: '14/08/2026 (T6)',
-      checkIn: '17:50',
-      checkOut: '23:05',
-      hours: 5.0,
-      basePay: 125000,
-      status: 'Hợp lệ',
-    ),
-  ];
-
-  final SalaryRepository _salaryRepository = SalaryRepository();
-  List<PayslipModel> _apiPayslips = const [];
+  String _monthLabel(DateTime d, {bool current = false}) {
+    final m = d.month.toString().padLeft(2, '0');
+    return current ? 'Tháng $m/${d.year} (Hiện tại)' : 'Tháng $m/${d.year}';
+  }
 
   @override
   void initState() {
     super.initState();
+    final now = DateTime.now();
+    _months = [
+      _monthLabel(now, current: true),
+      _monthLabel(DateTime(now.year, now.month - 1)),
+      _monthLabel(DateTime(now.year, now.month - 2)),
+    ];
+    _selectedMonth = _months.first.replaceAll(' (Hiện tại)', '');
     _loadPayslips();
   }
 
+  final SalaryRepository _salaryRepository = SalaryRepository();
+  final List<WorkLogItem> _workLogs = [];
+  List<PayslipModel> _apiPayslips = const [];
+  bool _loadingLogs = true;
+
   Future<void> _loadPayslips() async {
-    // Gọi API thật qua gateway; service chưa sẵn sàng thì giữ mock hiện có.
+    // Gọi API thật qua gateway (payroll-service). Không dùng mock cứng.
     try {
-      final items = await _salaryRepository.getPayslips();
-      if (mounted) setState(() => _apiPayslips = items);
+      final user = UserScope.currentUser(context);
+      final canManage = user?.canManage ?? false;
+      final items = await _salaryRepository.getPayslips(
+        employeeId: canManage ? null : (user?.id.isNotEmpty == true ? user!.id : null),
+      );
+      if (mounted) {
+        setState(() {
+          _apiPayslips = items;
+          _loadingLogs = false;
+        });
+      }
     } catch (_) {
-      // Giữ danh sách mock hiện có khi API chưa sẵn sàng.
+      if (mounted) {
+        setState(() {
+          _apiPayslips = [];
+          _loadingLogs = false;
+        });
+      }
     }
   }
 
@@ -130,6 +107,18 @@ class _SalaryScreenState extends State<SalaryScreen> {
         backgroundColor: Colors.white,
         centerTitle: true,
         elevation: 0,
+        actions: [
+          IconButton(
+            tooltip: 'Chi lương Ngân hàng (SOAP / REST)',
+            icon: const FaIcon(FontAwesomeIcons.buildingColumns, size: 16, color: AppColors.primary),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const BankDisbursementScreen()),
+              );
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -175,8 +164,24 @@ class _SalaryScreenState extends State<SalaryScreen> {
             const SizedBox(height: 16),
 
             // 1b. Phiếu lương từ API thật (gateway -> payroll-service).
-            // Ẩn khi API chưa sẵn sàng để giữ mock hiện có.
-            if (_apiPayslips.isNotEmpty)
+            if (_loadingLogs)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: Text('Đang tải phiếu lương từ máy chủ...', style: TextStyle(fontSize: 12)),
+              )
+            else if (_apiPayslips.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: const Text('Chưa có phiếu lương từ máy chủ.', style: TextStyle(fontSize: 12)),
+              )
+            else
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
@@ -239,7 +244,9 @@ class _SalaryScreenState extends State<SalaryScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _formatCurrency(6800000),
+                    _apiPayslips.isNotEmpty
+                        ? _formatCurrency(_apiPayslips.first.netSalary.toInt())
+                        : _formatCurrency(0),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 28,
@@ -247,11 +254,16 @@ class _SalaryScreenState extends State<SalaryScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Row(
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Đã làm: 160 giờ • 22 công', style: TextStyle(color: Colors.white, fontSize: 12)),
-                      Text('Ngày chốt: 31/08', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                      Text(
+                        _apiPayslips.isNotEmpty
+                            ? 'Kỳ ${_apiPayslips.first.month}'
+                            : 'Chưa có dữ liệu chấm công',
+                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                      const Text('Nguồn: máy chủ', style: TextStyle(color: Colors.white70, fontSize: 12)),
                     ],
                   ),
                 ],
@@ -259,7 +271,7 @@ class _SalaryScreenState extends State<SalaryScreen> {
             ),
             const SizedBox(height: 20),
 
-            // 3. Salary Breakdown
+            // 3. Salary Breakdown từ API thật
             _buildSectionHeader('Chi tiết các khoản thu nhập'),
             const SizedBox(height: 10),
             Container(
@@ -271,23 +283,17 @@ class _SalaryScreenState extends State<SalaryScreen> {
               ),
               child: Column(
                 children: [
-                  _buildSalaryRow('Số giờ làm việc được phân công', '160 giờ'),
+                  _buildSalaryRow('Lương cơ bản', _apiPayslips.isNotEmpty ? _formatCurrency(_apiPayslips.first.baseSalary.toInt()) : _formatCurrency(0)),
                   const Divider(height: 16),
-                  _buildSalaryRow('Số ca làm việc được phân công', '28 ca'),
+                  _buildSalaryRow('Tổng phạt', _apiPayslips.isNotEmpty ? _formatCurrency(_apiPayslips.first.totalPenalty.toInt()) : _formatCurrency(0), isNegative: true),
                   const Divider(height: 16),
-                  _buildSalaryRow('Số giờ làm việc tính lương', '158 giờ'),
-                  const Divider(height: 16),
-                  _buildSalaryRow('Số ca làm việc tính lương', '27 ca'),
-                  const Divider(height: 16),
-                  _buildSalaryRow('Số lần đi muộn', '2 lần'),
-                  const Divider(height: 16),
-                  _buildSalaryRow('Khấu trừ', '100.000 đ', isNegative: true),
+                  _buildSalaryRow('Thực lĩnh', _apiPayslips.isNotEmpty ? _formatCurrency(_apiPayslips.first.netSalary.toInt()) : _formatCurrency(0)),
                 ],
               ),
             ),
             const SizedBox(height: 24),
 
-            // 4. Daily Work Log
+            // 4. Daily Work Log từ API thật (hiện trống khi chưa có attendance chi tiết)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -299,6 +305,18 @@ class _SalaryScreenState extends State<SalaryScreen> {
               ],
             ),
             const SizedBox(height: 10),
+            if (_workLogs.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: const Text('Chưa có nhật ký chấm công chi tiết từ máy chủ.', style: TextStyle(fontSize: 12)),
+              )
+            else
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
