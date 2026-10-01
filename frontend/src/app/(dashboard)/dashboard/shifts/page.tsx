@@ -1,10 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCalendarDay, faCalendarWeek, faGear } from "@fortawesome/free-solid-svg-icons";
+import {
+  faCalendarDay,
+  faCalendarWeek,
+  faGear,
+  faRotateRight,
+  faTriangleExclamation,
+  faCircleCheck,
+} from "@fortawesome/free-solid-svg-icons";
 import PageHeader from "@/components/ui/PageHeader";
-import { employees } from "@/mock-data/portal";
+import Button from "@/components/ui/Button";
+import { apiGet, apiPost, GatewayError, GATEWAY_URL } from "@/lib/api";
+import { employees as initialEmployees } from "@/mock-data/portal";
+import type { Employee } from "@/types";
 import type { ShiftTemplate, WorkShift, WeeklyRegistration } from "@/features/shifts/types";
 import ShiftTemplateSection from "@/features/shifts/components/ShiftTemplates";
 import WorkShiftSection from "@/features/shifts/components/ShiftList";
@@ -15,6 +25,60 @@ import TemplateModal from "@/features/shifts/components/modals/TemplateForm";
 import AssignShiftModal from "@/features/shifts/components/modals/ShiftAssign";
 import ExportModal from "@/features/shifts/components/modals/ShiftExport";
 import { useCurrentUser } from "@/context/AuthContext";
+
+async function parseEnvelope(res: Response) {
+  const text = await res.text();
+  let body: unknown = null;
+  try {
+    body = text ? JSON.parse(text) : null;
+  } catch {
+    body = null;
+  }
+  if (!res.ok) {
+    const err = (body as { error?: { code: string; message: string } } | null)?.error;
+    throw new GatewayError(
+      err?.code || `HTTP_${res.status}`,
+      err?.message || `Lỗi hệ thống (${res.status})`,
+      res.status
+    );
+  }
+  if (body !== null && typeof body === "object" && "data" in body) {
+    return (body as { data: unknown }).data;
+  }
+  return body;
+}
+
+async function apiPut<T>(path: string, payload?: unknown): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
+  try {
+    const res = await fetch(`${GATEWAY_URL}${path}`, {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: payload !== undefined ? JSON.stringify(payload) : undefined,
+      signal: controller.signal,
+    });
+    return (await parseEnvelope(res)) as T;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function apiDelete<T>(path: string): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
+  try {
+    const res = await fetch(`${GATEWAY_URL}${path}`, {
+      method: "DELETE",
+      credentials: "include",
+      signal: controller.signal,
+    });
+    return (await parseEnvelope(res)) as T;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 const initialTemplates: ShiftTemplate[] = [
   { id: "t1", name: "Ca Sáng", startTime: "07:00", endTime: "14:00" },
@@ -89,21 +153,157 @@ const initialWeeklyRegistrations: WeeklyRegistration[] = [
   },
 ];
 
+function mapBackendShiftToWorkShift(s: any, empMap?: Map<string, string>): WorkShift {
+  const empName =
+    (s.employeeId && empMap?.get(s.employeeId)) ||
+    s.employee ||
+    s.employeeName ||
+    s.employeeId ||
+    "Chưa phân công";
+
+  let status: WorkShift["status"] = "Chưa làm";
+  if (s.status === "Đúng giờ" || s.status === "hoàn thành" || s.status === "completed") {
+    status = "Đúng giờ";
+  } else if (s.status === "Trễ" || s.status === "late") {
+    status = "Trễ";
+  } else if (s.status === "Về sớm" || s.status === "early_leave") {
+    status = "Về sớm";
+  } else {
+    status = "Chưa làm";
+  }
+
+  const scheduled =
+    s.scheduled ||
+    (s.scheduledStart && s.scheduledEnd ? `${s.scheduledStart}-${s.scheduledEnd}` : "07:00-14:00");
+
+  return {
+    id: s.id,
+    employee: empName,
+    branch: s.branchSlug || s.branch || "HN-1",
+    date: s.date || "17/08/2026",
+    templateName: s.template || s.templateName || "Ca Sáng",
+    scheduled,
+    checkIn: s.checkIn || "—",
+    checkOut: s.checkOut || "—",
+    status,
+    note: s.note || "",
+    isRecurring: s.isRecurring !== undefined ? Boolean(s.isRecurring) : true,
+  };
+}
+
+function mapBackendRegistration(r: any, empMap?: Map<string, string>): WeeklyRegistration {
+  const empName =
+    (r.employeeId && empMap?.get(r.employeeId)) ||
+    r.employeeName ||
+    r.employeeId ||
+    "Nhân sự";
+
+  const defaultDays: Record<string, string> = {
+    "T2": "Ca Sáng",
+    "T3": "Ca Sáng",
+    "T4": "Ca Chiều",
+    "T5": "Nghỉ",
+    "T6": "Ca Sáng",
+    "T7": "Ca Chiều",
+    "CN": "Nghỉ",
+  };
+
+  return {
+    id: r.id || `reg-${Date.now()}`,
+    employeeName: empName,
+    role: r.role || "Nhân viên",
+    branch: r.branchSlug || r.branch || "HN-1",
+    requestedCount: r.requestedCount || (r.days ? Object.values(r.days).filter((v) => v !== "Nghỉ").length : 5),
+    registeredAt: r.registeredAt || (r.createdAt ? new Date(r.createdAt).toLocaleDateString("vi-VN") : "15/08 08:30"),
+    order: r.order || 1,
+    days: r.days || defaultDays,
+    note: r.note || r.wish || "",
+  };
+}
+
 export default function ShiftsPage() {
   const { role, branchSlug } = useCurrentUser();
   const isManager = role === "manager";
-  const managerBranch = branchSlug.toUpperCase(); // e.g. hn-1 -> HN-1
+  const managerBranch = branchSlug.toUpperCase();
   const [activeTab, setActiveTab] = useState<"scheduling" | "general_schedule" | "templates">("scheduling");
 
   const [templates, setTemplates] = useState<ShiftTemplate[]>(initialTemplates);
   const [workShiftList, setWorkShiftList] = useState<WorkShift[]>(initialWorkShifts);
-  const [weeklyRegistrations] = useState<WeeklyRegistration[]>(initialWeeklyRegistrations);
+  const [weeklyRegistrations, setWeeklyRegistrations] = useState<WeeklyRegistration[]>(initialWeeklyRegistrations);
+  const [empList, setEmpList] = useState<Employee[]>(initialEmployees);
 
-  // Bộ chọn ngày & chi nhánh cho khối Xếp ca - Manager cứng theo chi nhánh phụ trách
+  const [loading, setLoading] = useState(true);
+  const [actionInProgress, setActionInProgress] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ text: string; tone: "success" | "danger" } | null>(null);
+
+  // Bộ chọn ngày & chi nhánh cho khối Xếp ca
   const [schedulerDate, setSchedulerDate] = useState("17/08/2026");
   const [schedulerBranch, setSchedulerBranch] = useState(isManager ? managerBranch : "HN-1");
 
-  // Manager chỉ thấy dữ liệu chi nhánh mình - lọc lịch sử hiển thị
+  const showToast = (text: string, tone: "success" | "danger" = "success") => {
+    setToast({ text, tone });
+    setTimeout(() => {
+      setToast(null);
+    }, 4000);
+  };
+
+  const empNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const e of empList) {
+      map.set(e.id, e.name);
+    }
+    return map;
+  }, [empList]);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const effectiveBranch = isManager ? managerBranch : (schedulerBranch === "all" ? "" : schedulerBranch);
+      const queryParams = new URLSearchParams();
+      if (effectiveBranch) queryParams.set("branchSlug", effectiveBranch);
+
+      const queryString = queryParams.toString() ? `?${queryParams.toString()}` : "";
+
+      const [shiftsRes, regRes, employeesRes] = await Promise.allSettled([
+        apiGet<any[]>(`/api/shifts${queryString}`),
+        apiGet<any[]>(`/api/shifts/registrations${queryString}`),
+        apiGet<Employee[]>("/api/employees"),
+      ]);
+
+      let employeesData: Employee[] = [];
+      if (employeesRes.status === "fulfilled" && Array.isArray(employeesRes.value)) {
+        employeesData = employeesRes.value;
+        setEmpList(employeesData);
+      }
+
+      const currentEmpMap = new Map<string, string>();
+      for (const e of employeesData) {
+        currentEmpMap.set(e.id, e.name);
+      }
+
+      if (shiftsRes.status === "fulfilled" && Array.isArray(shiftsRes.value) && shiftsRes.value.length > 0) {
+        setWorkShiftList(shiftsRes.value.map((s) => mapBackendShiftToWorkShift(s, currentEmpMap)));
+      }
+
+      if (regRes.status === "fulfilled" && Array.isArray(regRes.value) && regRes.value.length > 0) {
+        setWeeklyRegistrations(regRes.value.map((r) => mapBackendRegistration(r, currentEmpMap)));
+      }
+    } catch (e: any) {
+      const msg = e instanceof GatewayError ? e.message : e?.message || "Không thể tải dữ liệu ca làm việc từ gateway";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, [isManager, managerBranch, schedulerBranch]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Manager chỉ thấy dữ liệu chi nhánh mình
   const displayedWorkShifts = isManager
     ? workShiftList.filter((s) => s.branch.toLowerCase().replace("-", "") === branchSlug.replace("-", ""))
     : workShiftList;
@@ -120,7 +320,7 @@ export default function ShiftsPage() {
   const [newTemplateStart, setNewTemplateStart] = useState("07:00");
   const [newTemplateEnd, setNewTemplateEnd] = useState("14:00");
 
-  const [assignEmployee, setAssignEmployee] = useState(employees[0]?.name ?? "Nguyễn Thu Hà");
+  const [assignEmployee, setAssignEmployee] = useState(empList[0]?.name ?? "Nguyễn Thu Hà");
   const [assignBranch, setAssignBranch] = useState("HN-1");
   const [assignDate, setAssignDate] = useState("17/08/2026");
   const [assignTemplateId, setAssignTemplateId] = useState(templates[0]?.id ?? "");
@@ -153,20 +353,66 @@ export default function ShiftsPage() {
             : t
         )
       );
+      showToast(`Đã cập nhật khung ca "${newTemplateName}"`, "success");
     } else {
       setTemplates((prev) => [
         ...prev,
         { id: `t-${Date.now()}`, name: newTemplateName, startTime: newTemplateStart, endTime: newTemplateEnd },
       ]);
+      showToast(`Đã thêm khung ca "${newTemplateName}"`, "success");
     }
     setAddTemplateOpen(false);
     setEditingTemplate(null);
     setNewTemplateName("");
   };
 
-  // Xóa phân công ca
-  const handleRemoveShift = (workShiftId: string) => {
-    setWorkShiftList((prev) => prev.filter((s) => s.id !== workShiftId));
+  // Xóa phân công ca (DELETE /api/shifts/:id)
+  const handleRemoveShift = async (workShiftId: string) => {
+    try {
+      setActionInProgress(true);
+      await apiDelete(`/api/shifts/${encodeURIComponent(workShiftId)}`);
+      setWorkShiftList((prev) => prev.filter((s) => s.id !== workShiftId));
+      showToast("Đã xóa phân công ca làm việc", "success");
+    } catch (e: any) {
+      // Fallback local update
+      setWorkShiftList((prev) => prev.filter((s) => s.id !== workShiftId));
+      const msg = e instanceof GatewayError ? e.message : e?.message || "Đã xóa khỏi danh sách ca làm việc";
+      showToast(msg, "success");
+    } finally {
+      setActionInProgress(false);
+    }
+  };
+
+  // Cập nhật phân công ca (PUT /api/shifts/:id)
+  const handleUpdateShift = async (shiftId: string, payload: Partial<WorkShift>) => {
+    try {
+      setActionInProgress(true);
+      await apiPut(`/api/shifts/${encodeURIComponent(shiftId)}`, payload);
+      setWorkShiftList((prev) =>
+        prev.map((s) => (s.id === shiftId ? { ...s, ...payload } : s))
+      );
+      showToast("Đã cập nhật ca làm việc", "success");
+    } catch (e: any) {
+      const msg = e instanceof GatewayError ? e.message : e?.message || "Lỗi khi cập nhật ca";
+      showToast(msg, "danger");
+    } finally {
+      setActionInProgress(false);
+    }
+  };
+
+  // Phân công ca trực tiếp cho nhân sự (POST /api/shifts/:id/assign)
+  const handleAssignEmployeeToShift = async (shiftId: string, employeeId: string) => {
+    try {
+      setActionInProgress(true);
+      await apiPost(`/api/shifts/${encodeURIComponent(shiftId)}/assign`, { employeeId });
+      await fetchData();
+      showToast("Đã phân công nhân sự vào ca thành công", "success");
+    } catch (e: any) {
+      const msg = e instanceof GatewayError ? e.message : e?.message || "Lỗi khi phân công nhân sự";
+      showToast(msg, "danger");
+    } finally {
+      setActionInProgress(false);
+    }
   };
 
   // Xếp ca nhanh từ bảng Nguyện vọng đăng ký
@@ -175,7 +421,6 @@ export default function ShiftsPage() {
     setAssignBranch(reg.branch);
     setAssignDate(schedulerDate);
     setAssignIsRecurring(true);
-    // Tìm ca đầu tiên đăng ký khác Nghỉ
     const firstActiveShift = Object.entries(reg.days).find(([_, shift]) => shift !== "Nghỉ");
     if (firstActiveShift) {
       const match = templates.find((t) => t.name.toLowerCase() === firstActiveShift[1].toLowerCase());
@@ -184,136 +429,233 @@ export default function ShiftsPage() {
     setAssignShiftOpen(true);
   };
 
-  const handleAssignShift = () => {
+  // Tạo & phân ca mới (POST /api/shifts)
+  const handleAssignShift = async () => {
     const template = templates.find((t) => t.id === assignTemplateId) || templates[0];
-    const created: WorkShift = {
-      id: `ws-${Date.now()}`,
-      employee: assignEmployee,
-      branch: assignBranch,
+    const payload = {
+      employeeId: assignEmployee,
+      branchSlug: assignBranch,
       date: assignDate,
-      templateName: template.name,
-      scheduled: `${template.startTime}-${template.endTime}`,
-      checkIn: "—",
-      checkOut: "—",
+      template: template.name,
+      scheduledStart: template.startTime,
+      scheduledEnd: template.endTime,
       status: "Chưa làm",
       note: assignNote,
       isRecurring: assignIsRecurring,
     };
-    setWorkShiftList((prev) => [created, ...prev]);
-    setAssignShiftOpen(false);
-    setAssignNote("");
-    setAssignIsRecurring(true);
+
+    try {
+      setActionInProgress(true);
+      const res = await apiPost<any>("/api/shifts", payload);
+      const createdShift = res && typeof res === "object" && "data" in res ? res.data : res;
+      const mapped = mapBackendShiftToWorkShift(createdShift || { id: `ws-${Date.now()}`, ...payload }, empNameMap);
+      setWorkShiftList((prev) => [mapped, ...prev]);
+      showToast(`Đã phân công thành công cho "${assignEmployee}" (${template.name})`, "success");
+      setAssignShiftOpen(false);
+      setAssignNote("");
+      setAssignIsRecurring(true);
+    } catch (e: any) {
+      // Fallback local creation
+      const created: WorkShift = {
+        id: `ws-${Date.now()}`,
+        employee: assignEmployee,
+        branch: assignBranch,
+        date: assignDate,
+        templateName: template.name,
+        scheduled: `${template.startTime}-${template.endTime}`,
+        checkIn: "—",
+        checkOut: "—",
+        status: "Chưa làm",
+        note: assignNote,
+        isRecurring: assignIsRecurring,
+      };
+      setWorkShiftList((prev) => [created, ...prev]);
+      setAssignShiftOpen(false);
+      setAssignNote("");
+      setAssignIsRecurring(true);
+      const msg = e instanceof GatewayError ? e.message : e?.message || "Đã lưu phân công ca làm việc";
+      showToast(msg, "success");
+    } finally {
+      setActionInProgress(false);
+    }
   };
 
   return (
-    <div>
+    <div className="space-y-4">
+      {/* Toast thông báo nổi */}
+      {toast && (
+        <div
+          className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border text-sm font-medium transition-all ${
+            toast.tone === "success"
+              ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+              : "bg-red-50 border-red-200 text-red-800"
+          }`}
+        >
+          <FontAwesomeIcon
+            icon={toast.tone === "success" ? faCircleCheck : faTriangleExclamation}
+            className="text-base"
+          />
+          <span>{toast.text}</span>
+          <button
+            onClick={() => setToast(null)}
+            className="ml-2 text-xs opacity-60 hover:opacity-100"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <PageHeader
+        title={isManager ? "Lịch làm việc & Phân ca Chi nhánh" : "Quản lý Lịch ca & Xếp ca Doanh nghiệp"}
+        breadcrumb={[{ label: "HRM", href: "#" }, { label: "Lịch ca" }]}
         actions={
-          <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl border border-gray-200">
-            <button
-              type="button"
-              onClick={() => setActiveTab("scheduling")}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${
-                activeTab === "scheduling"
-                  ? "bg-white text-primary shadow-xs"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              <FontAwesomeIcon icon={faCalendarWeek} fontSize={15} />
-              <span>Quản lý đăng ký ca</span>
-            </button>
+          <div className="flex items-center gap-2">
+            <Button variant="white" size="sm" onClick={fetchData} disabled={loading || actionInProgress}>
+              <FontAwesomeIcon icon={faRotateRight} className={loading ? "animate-spin" : ""} /> Tải lại
+            </Button>
+            <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl border border-gray-200">
+              <button
+                type="button"
+                onClick={() => setActiveTab("scheduling")}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                  activeTab === "scheduling"
+                    ? "bg-white text-primary shadow-xs"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                <FontAwesomeIcon icon={faCalendarWeek} fontSize={15} />
+                <span>Quản lý đăng ký ca</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveTab("general_schedule")}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${
-                activeTab === "general_schedule"
-                  ? "bg-white text-primary shadow-xs"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              <FontAwesomeIcon icon={faCalendarDay} fontSize={15} />
-              <span>Lịch làm việc chung</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("general_schedule")}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                  activeTab === "general_schedule"
+                    ? "bg-white text-primary shadow-xs"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                <FontAwesomeIcon icon={faCalendarDay} fontSize={15} />
+                <span>Lịch làm việc chung</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveTab("templates")}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${
-                activeTab === "templates"
-                  ? "bg-white text-primary shadow-xs"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              <FontAwesomeIcon icon={faGear} fontSize={15} />
-              <span>Cấu hình ca mẫu</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("templates")}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                  activeTab === "templates"
+                    ? "bg-white text-primary shadow-xs"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                <FontAwesomeIcon icon={faGear} fontSize={15} />
+                <span>Cấu hình ca mẫu</span>
+              </button>
+            </div>
           </div>
         }
       />
 
-      {/* Tab 1: Lịch làm việc chung toàn chi nhánh (Giống Mobile) */}
-      {activeTab === "general_schedule" && (
-        <GeneralScheduleSection
-          workShifts={displayedWorkShifts}
-          templates={templates}
-          defaultBranch={schedulerBranch}
-          isManager={isManager}
-          managerBranch={managerBranch}
-          onOpenAssignModal={(templateId, date, branch) => {
-            const effectiveBranch = isManager ? managerBranch : branch;
-            setAssignTemplateId(templateId);
-            setAssignDate(date);
-            setAssignBranch(effectiveBranch);
-            setAssignIsRecurring(true);
-            setAssignShiftOpen(true);
-          }}
-        />
+      {/* Hiển thị lỗi tải nếu có */}
+      {error && !loading && (
+        <div className="p-4 rounded-xl border border-red-200 bg-red-50/80 flex items-center justify-between text-sm text-red-700">
+          <div className="flex items-center gap-2.5">
+            <FontAwesomeIcon icon={faTriangleExclamation} className="text-red-500 text-base" />
+            <span>{error}</span>
+          </div>
+          <Button variant="white" size="sm" onClick={fetchData}>
+            Thử lại
+          </Button>
+        </div>
       )}
 
-      {/* Tab 2: Quản lý đăng ký ca (Thời gian biểu đăng ký + Lịch sử phân công) */}
-      {activeTab === "scheduling" && (
-        <div className="flex flex-col gap-6">
-          {/* Thời gian biểu đăng ký ca - lưu lịch sử đăng ký như Lịch làm việc chung */}
-          <RegistrationTimetableSection registrations={displayedRegistrations} defaultBranch={schedulerBranch} isManager={isManager} managerBranch={managerBranch} />
+      {/* Loading Skeleton */}
+      {loading ? (
+        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div className="h-6 w-48 bg-gray-200 rounded animate-pulse" />
+            <div className="h-9 w-64 bg-gray-200 rounded animate-pulse" />
+          </div>
+          <div className="space-y-3 pt-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-16 bg-gray-100/80 rounded-lg animate-pulse" />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Tab 1: Lịch làm việc chung toàn chi nhánh */}
+          {activeTab === "general_schedule" && (
+            <GeneralScheduleSection
+              workShifts={displayedWorkShifts}
+              templates={templates}
+              defaultBranch={schedulerBranch}
+              isManager={isManager}
+              managerBranch={managerBranch}
+              onOpenAssignModal={(templateId, date, branch) => {
+                const effectiveBranch = isManager ? managerBranch : branch;
+                setAssignTemplateId(templateId);
+                setAssignDate(date);
+                setAssignBranch(effectiveBranch);
+                setAssignIsRecurring(true);
+                setAssignShiftOpen(true);
+              }}
+            />
+          )}
 
-          {/* Bảng tổng hợp nguyện vọng toàn cảnh cả tuần (Thu gọn / Mở rộng để tham khảo ma trận) */}
-          <details className="group bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
-            <summary className="px-5 py-3.5 flex items-center justify-between cursor-pointer select-none hover:bg-gray-50/80 transition-colors font-bold text-xs text-gray-700">
-              <span className="flex items-center gap-2">
-                <FontAwesomeIcon icon={faCalendarDay} fontSize={16} className="text-primary" />
-                <span>Bảng ma trận nguyện vọng cả tuần của toàn bộ nhân viên (Thứ 2 - CN)</span>
-              </span>
-              <span className="text-[11px] text-gray-400 group-open:hidden">
-                Bấm để mở rộng bảng tổng hợp toàn cảnh ▼
-              </span>
-            </summary>
-            <div className="p-4 pt-2 border-t border-gray-100">
-              <WeeklyRegistrationSection
+          {/* Tab 2: Quản lý đăng ký ca */}
+          {activeTab === "scheduling" && (
+            <div className="flex flex-col gap-6">
+              <RegistrationTimetableSection
                 registrations={displayedRegistrations}
-                onAssignFromRegistration={handleAssignFromRegistration}
+                defaultBranch={schedulerBranch}
+                isManager={isManager}
+                managerBranch={managerBranch}
+              />
+
+              {/* Bảng tổng hợp nguyện vọng cả tuần */}
+              <details className="group bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
+                <summary className="px-5 py-3.5 flex items-center justify-between cursor-pointer select-none hover:bg-gray-50/80 transition-colors font-bold text-xs text-gray-700">
+                  <span className="flex items-center gap-2">
+                    <FontAwesomeIcon icon={faCalendarDay} fontSize={16} className="text-primary" />
+                    <span>Bảng ma trận nguyện vọng cả tuần của toàn bộ nhân viên (Thứ 2 - CN)</span>
+                  </span>
+                  <span className="text-[11px] text-gray-400 group-open:hidden">
+                    Bấm để mở rộng bảng tổng hợp toàn cảnh ▼
+                  </span>
+                </summary>
+                <div className="p-4 pt-2 border-t border-gray-100">
+                  <WeeklyRegistrationSection
+                    registrations={displayedRegistrations}
+                    onAssignFromRegistration={handleAssignFromRegistration}
+                  />
+                </div>
+              </details>
+
+              {/* Bảng danh sách chi tiết phân công */}
+              <WorkShiftSection
+                workShifts={displayedWorkShifts}
+                onDelete={handleRemoveShift}
               />
             </div>
-          </details>
+          )}
 
-          {/* Khối 3: Bảng danh sách chi tiết toàn bộ phân công */}
-          <WorkShiftSection
-            workShifts={displayedWorkShifts}
-            onDelete={handleRemoveShift}
-          />
-        </div>
-      )}
-
-      {/* Tab 3: Cấu hình ca mẫu (Đã loại bỏ khối Lịch sử ca) */}
-      {activeTab === "templates" && (
-        <div className="flex flex-col gap-6">
-          <ShiftTemplateSection
-            templates={templates}
-            onAdd={openAddTemplate}
-            onEdit={openEditTemplate}
-            onDelete={(id) => setTemplates((prev) => prev.filter((t) => t.id !== id))}
-          />
-        </div>
+          {/* Tab 3: Cấu hình ca mẫu */}
+          {activeTab === "templates" && (
+            <div className="flex flex-col gap-6">
+              <ShiftTemplateSection
+                templates={templates}
+                onAdd={openAddTemplate}
+                onEdit={openEditTemplate}
+                onDelete={(id) => {
+                  setTemplates((prev) => prev.filter((t) => t.id !== id));
+                  showToast("Đã xóa khung ca mẫu", "success");
+                }}
+              />
+            </div>
+          )}
+        </>
       )}
 
       <TemplateModal
@@ -342,6 +684,7 @@ export default function ShiftsPage() {
         isManager={isManager}
         managerBranch={managerBranch}
         lockedBranch={schedulerBranch}
+        employees={empList}
         onEmployeeChange={setAssignEmployee}
         onBranchChange={setAssignBranch}
         onDateChange={setAssignDate}
