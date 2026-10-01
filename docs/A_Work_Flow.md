@@ -170,7 +170,8 @@ Gợi ý kỹ thuật **(suy ra)**: phiên dùng cookie `hrm-session`, nên CORS
 - [x] [Agent 1 – Task A3] Tích hợp trang departments về API thật `GET/POST/PUT/DELETE /api/departments` qua gateway (nhánh `feat/frontend-departments`).
 - [x] [Agent 2 – Task B1] Tích hợp trang bank (Ngân hàng & Chi lương: REST Idempotent + SOAP) về API thật qua gateway (nhánh `feat/frontend-payroll-content-api`).
 - [x] [Agent 2 – Task B2] Tích hợp trang payslips (điều chỉnh thưởng/phạt, chốt đơn + hàng loạt, tạo phiếu tháng) về API thật qua gateway (nhánh `feat/frontend-payslips`).
-- [ ] Tích hợp các trang dashboard còn lại (shifts, tasks, requests, news, regulations, wifi, dashboard tổng) về API thật qua gateway.
+- [x] [Agent 2 – Task B3] Tích hợp trang news (tạo/sửa/xóa bài viết) về API thật qua gateway (nhánh `feat/frontend-news`).
+- [ ] Tích hợp các trang dashboard còn lại (shifts, tasks, requests, regulations, wifi, dashboard tổng) về API thật qua gateway.
 - [ ] RBAC menu theo `buildMenuItems(role)` nối với role thật từ identity-service.
 - [ ] Chốt ma trận phân quyền theo vai trò cho từng endpoint — **Phụ trách: A** (B §9 ghi chưa quy định) **(suy ra)**.
 
