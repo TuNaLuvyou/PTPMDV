@@ -96,13 +96,13 @@ Mỗi service có `GET /health`. Tài liệu PTPMDV không nêu định dạng b
   - `POST /api/notifications` — gửi thông báo (admin/manager).
   - `PUT /api/notifications/:id/read` — đánh dấu đã đọc.
   - `DELETE /api/notifications/:id`.
-- [ ] **Bảng tin (News/Announcement):**
+- [x] **Bảng tin (News/Announcement):** (Đã hoàn thành trên nhánh `feat/integration-service`)
   - `GET /api/news`, `GET /api/news/:id`.
   - `POST /api/news`, `PUT /api/news/:id`, `DELETE /api/news/:id` — chỉ `admin`/`manager`.
-- [ ] **Nội quy (Regulations):**
+- [x] **Nội quy (Regulations):** (Đã hoàn thành trên nhánh `feat/integration-service`)
   - `GET /api/regulations`, `GET /api/regulations/:id`.
   - `POST /api/regulations`, `PUT /api/regulations/:id`, `DELETE /api/regulations/:id`.
-- [ ] **Wi-Fi chấm công:**
+- [x] **Wi-Fi chấm công:** (Đã hoàn thành trên nhánh `feat/integration-service`)
   - `GET /api/wifi-configs?branch=`.
   - `POST /api/wifi-configs`, `PUT /api/wifi-configs/:id`, `DELETE /api/wifi-configs/:id`.
 - [x] `GET /health` (Đã hoàn thành trên nhánh `feat/integration-service`).
@@ -148,7 +148,7 @@ Ghi chú: `createdAt`, `updatedAt`, `date` dùng ISO 8601 hoặc `DD-MM-YYYY` �
 | Mốc | Việc của E |
 |---|---|
 | 1 | Xong requests, notifications, SOAP |
-| 2 | Xong bảng tin, nội quy, Wi-Fi |
+| 2 | Xong bảng tin, nội quy, Wi-Fi (✅ Đã xong trên nhánh `feat/integration-service`) |
 
 Mốc đầu tiên của A là gateway + identity. Cần bám sát để chạy được qua gateway khi tích hợp.
 
