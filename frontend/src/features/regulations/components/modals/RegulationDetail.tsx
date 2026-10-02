@@ -93,10 +93,6 @@ export default function RegulationDetailModal({ item, onClose, onEdit }: Props) 
               <span className="font-semibold text-slate-800">{item.effectiveDate}</span>
             </div>
             <div>
-              <span className="text-slate-500 block">Phiên bản:</span>
-              <span className="font-semibold text-slate-800">v{item.version}</span>
-            </div>
-            <div>
               <span className="text-slate-500 block">Cập nhật lần cuối:</span>
               <span className="font-semibold text-slate-800">{item.updatedAt}</span>
             </div>
@@ -119,7 +115,7 @@ export default function RegulationDetailModal({ item, onClose, onEdit }: Props) 
           </div>
 
           {/* Tài liệu đính kèm */}
-          {item.attachments && item.attachments > 0 && (
+          {Boolean((item.attachments ?? 0) > 0) && (
             <div>
               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Tài liệu đính kèm ban hành:</h4>
               <div className="space-y-2">

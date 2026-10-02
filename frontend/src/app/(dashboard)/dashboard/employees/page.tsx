@@ -96,7 +96,9 @@ function CreateEmployeeDialog({
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [branch, setBranch] = useState(managerBranch || "HN-1");
+  const [branch, setBranch] = useState(
+    isManager ? managerBranch : ""
+  );
   const [department, setDepartment] = useState("Phòng Kinh Doanh");
   const [role, setRole] = useState("Nhân viên");
   const [systemRole, setSystemRole] = useState<"admin" | "manager" | "staff">("staff");
@@ -110,7 +112,7 @@ function CreateEmployeeDialog({
 
   useEffect(() => {
     if (open) {
-      setBranch(managerBranch || "HN-1");
+      setBranch(isManager ? managerBranch : "");
       // Mặc định phòng ban đầu tiên từ API thay vì tên cứng.
       setDepartment((prev) =>
         departments.some((d) => d.name === prev)
@@ -119,7 +121,7 @@ function CreateEmployeeDialog({
       );
       setErrorMsg("");
     }
-  }, [open, managerBranch, departments]);
+  }, [open, isManager, managerBranch, branches, departments]);
 
   const handleCreate = async () => {
     if (!name.trim()) {
@@ -137,7 +139,7 @@ function CreateEmployeeDialog({
         name: name.trim(),
         phone: phone.trim(),
         email: email.trim(),
-        branch: (isManager ? managerBranch : branch).toUpperCase(),
+        branch: isManager ? managerBranch : (branch ? branch.toUpperCase() : ""),
         department,
         role,
         systemRole,
@@ -215,7 +217,7 @@ function CreateEmployeeDialog({
             placeholder="Mật khẩu ban đầu"
           />
         </Field>
-        <Field label="Gán chi nhánh" required>
+        <Field label="Gán chi nhánh">
           {isManager ? (
             <div className="px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm font-bold text-gray-800 flex items-center justify-between">
               <span>Chi nhánh {managerBranch.toUpperCase()}</span>
@@ -228,9 +230,10 @@ function CreateEmployeeDialog({
               value={branch}
               onChange={(e) => setBranch(e.target.value)}
             >
+              <option value="">-- Chưa phân chi nhánh --</option>
               {branches.map((b) => (
-                <option key={b.id} value={b.slug}>
-                  {b.name}
+                <option key={b.id || b.slug} value={b.slug.toUpperCase()}>
+                  {b.name} ({b.slug.toUpperCase()})
                 </option>
               ))}
             </Select>
@@ -352,17 +355,24 @@ export default function EmployeesPage() {
         apiGet<Branch[]>("/api/branches").catch(() => [] as Branch[]),
         apiGet<Department[]>("/api/departments").catch(() => [] as Department[]),
       ]);
-      setBranches(branchesData || []);
+      const validBranches = branchesData || [];
+      setBranches(validBranches);
       setDepartments(departmentsData || []);
-      const normalized = (data || []).map((e: any) => ({
-        ...e,
-        branch: e.branch || e.branchSlug || "HN-1",
-        department: e.department || "",
-        role: e.role || "Nhân viên",
-        systemRole: e.systemRole || "staff",
-        status: e.status || "đang làm",
-        phone: e.phone || "",
-      }));
+      const normalized = (data || []).map((e: any) => {
+        const rawBranch = e.branch || e.branchSlug;
+        const matched = validBranches.find(
+          (b) => b.slug.toUpperCase() === (rawBranch || "").toUpperCase()
+        );
+        return {
+          ...e,
+          branch: matched ? matched.slug.toUpperCase() : (rawBranch ? rawBranch.toUpperCase() : ""),
+          department: e.department || "",
+          role: e.role || "Nhân viên",
+          systemRole: e.systemRole || "staff",
+          status: e.status || "đang làm",
+          phone: e.phone || "",
+        };
+      });
       setRawEmployees(normalized);
     } catch (e: any) {
       const msg = e instanceof GatewayError ? e.message : e?.message || "Không thể tải danh sách nhân sự từ server";
@@ -381,13 +391,12 @@ export default function EmployeesPage() {
   const filteredEmployees = isManager
     ? rawEmployees.filter(
         (e) =>
-          e.branch.toLowerCase().replace("-", "") === branchSlug.replace("-", "").toLowerCase() ||
-          e.branch.toUpperCase() === "HN-1"
+          e.branch.toLowerCase().replace("-", "") === branchSlug.replace("-", "").toLowerCase()
       )
     : rawEmployees;
 
   const pageTitle = isManager
-    ? "Nhân sự Chi nhánh Hoàn Kiếm (HN-1)"
+    ? `Nhân sự Chi nhánh ${branchSlug.toUpperCase()}`
     : "Danh sách Nhân sự Toàn công ty";
 
   const handleCreateEmployee = async (payload: Partial<Employee>) => {
@@ -395,7 +404,7 @@ export default function EmployeesPage() {
       setActionInProgress(true);
       await apiPost<Employee>("/api/employees", {
         ...payload,
-        branchSlug: payload.branch || (isManager ? branchSlug.toUpperCase() : "HN-1"),
+        branchSlug: payload.branch ? payload.branch.toUpperCase() : (isManager ? branchSlug.toUpperCase() : null),
       });
       showToast("Tạo nhân viên mới thành công!", "success");
       await fetchEmployees();
@@ -411,12 +420,20 @@ export default function EmployeesPage() {
   const handleSaveEmployee = async (updated: Employee) => {
     try {
       setActionInProgress(true);
-      await apiPut<Employee>(`/api/employees/${updated.id}`, {
+      const res = await apiPut<Employee>(`/api/employees/${updated.id}`, {
         ...updated,
-        branchSlug: updated.branch,
+        branchSlug: updated.branch ? updated.branch.toUpperCase() : null,
+        cccdFront: typeof updated.cccdFront === "string" ? updated.cccdFront : null,
+        cccdBack: typeof updated.cccdBack === "string" ? updated.cccdBack : null,
       });
-      setRawEmployees((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
-      setSelectedEmployee(updated);
+      const saved = res || updated;
+      const finalObj: Employee = {
+        ...updated,
+        ...saved,
+        branch: saved.branchSlug ? saved.branchSlug.toUpperCase() : (saved.branch ? saved.branch.toUpperCase() : ""),
+      };
+      setRawEmployees((prev) => prev.map((e) => (e.id === updated.id ? finalObj : e)));
+      setSelectedEmployee(finalObj);
       showToast("Cập nhật thông tin nhân viên thành công!", "success");
     } catch (e: any) {
       const msg = e instanceof GatewayError ? e.message : e?.message || "Lỗi khi cập nhật nhân viên";

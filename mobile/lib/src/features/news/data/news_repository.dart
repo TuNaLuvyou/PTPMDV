@@ -25,8 +25,11 @@ class NewsRepository {
 
   Future<List<NewsArticle>> getNews() async {
     final data = await api.getJson('/api/news');
-    final List list = data is List ? data : [];
-    return list.whereType<Map<String, dynamic>>().map((j) {
+    final List list = data is List
+        ? data
+        : (data is Map && data['data'] is List ? data['data'] as List : []);
+    return list.whereType<Map>().map((m) {
+      final j = m.cast<String, dynamic>();
       return NewsArticle(
         id: j['id']?.toString() ?? '',
         title: j['title']?.toString() ?? '',

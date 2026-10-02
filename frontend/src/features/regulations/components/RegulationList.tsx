@@ -186,10 +186,7 @@ export default function RegulationSection({ items, onView, onEdit, onDelete, onT
                         <FontAwesomeIcon icon={faCalendar} fontSize={14} className="text-slate-400" />
                         Hiệu lực: <strong className="text-slate-700">{item.effectiveDate}</strong>
                       </span>
-                      <span>
-                        Phiên bản: <strong className="text-slate-700">v{item.version}</strong>
-                      </span>
-                      {item.attachments && (
+                      {Boolean((item.attachments ?? 0) > 0) && (
                         <span className="text-primary-600 font-medium flex items-center gap-1">
                           📎 {item.attachments} tài liệu đính kèm
                         </span>

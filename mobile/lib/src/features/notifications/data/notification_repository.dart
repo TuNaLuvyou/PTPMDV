@@ -10,10 +10,12 @@ class NotificationRepository {
     final data = await api.getJson('/api/notifications', query: {
       if (employeeId != null) 'employeeId': employeeId,
     });
-    final List list = data is List ? data : [];
+    final List list = data is List
+        ? data
+        : (data is Map && data['data'] is List ? data['data'] as List : []);
     return list
-        .whereType<Map<String, dynamic>>()
-        .map(AppNotificationModel.fromJson)
+        .whereType<Map>()
+        .map((m) => AppNotificationModel.fromJson(m.cast<String, dynamic>()))
         .toList();
   }
 

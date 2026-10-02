@@ -7,8 +7,7 @@ let memory = [];
 
 async function ensureSeeded() {
   if (database.getPrisma()) {
-    const prisma = database.getPrisma();
-    await prisma.department.deleteMany({}).catch(() => {});
+    // Không xoá dữ liệu phòng ban đang có
   }
 }
 
@@ -62,7 +61,19 @@ async function update(id, payload) {
   const prisma = database.getPrisma();
   if (prisma) {
     try {
-      return await prisma.department.update({ where: { id }, data: payload });
+      const existing = await prisma.department.findUnique({ where: { id } });
+      if (existing) {
+        const oldName = existing.name;
+        const updated = await prisma.department.update({ where: { id }, data: payload });
+        // Cascade: update employees' department if name changed
+        if (payload.name && payload.name !== oldName) {
+          await prisma.employee.updateMany({
+            where: { department: oldName },
+            data: { department: payload.name },
+          });
+        }
+        return updated;
+      }
     } catch (_) {}
   }
   const idx = memory.findIndex((d) => d.id === id);

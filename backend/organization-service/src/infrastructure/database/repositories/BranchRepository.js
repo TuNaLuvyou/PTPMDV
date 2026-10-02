@@ -3,13 +3,27 @@
 // Repository Branch: Postgres qua Prisma, fallback memory.
 const database = require("../../../../config/database");
 
-const seedBranches = [];
-let memory = [];
+const seedBranches = [
+  { name: "Chi nhánh Hoàn Kiếm", slug: "hn-1", address: "123 Trương Định, Hoàn Kiếm, Hà Nội", phone: "02438230000", status: "hoạt động" },
+  { name: "Chi nhánh Hà Đông", slug: "hn-2", address: "200 Quang Trung, Hà Đông, Hà Nội", phone: "02438380000", status: "hoạt động" },
+  { name: "Chi nhánh Đống Đa", slug: "dn-1", address: "45 Chùa Bộc, Đống Đa, Hà Nội", phone: "02438560000", status: "hoạt động" },
+];
+let memory = [...seedBranches];
 
 async function ensureSeeded() {
-  if (database.getPrisma()) {
-    const prisma = database.getPrisma();
-    await prisma.branch.deleteMany({}).catch(() => {});
+  const prisma = database.getPrisma();
+  if (prisma) {
+    // Chỉ tạo chi nhánh mặc định khi bảng còn trống — không xoá dữ liệu đang có.
+    const count = await prisma.branch.count().catch(() => 0);
+    if (count === 0) {
+      for (const b of seedBranches) {
+        await prisma.branch.upsert({
+          where: { slug: b.slug },
+          update: {},
+          create: { ...b, staff: 0 },
+        }).catch(() => {});
+      }
+    }
   }
 }
 
@@ -88,10 +102,19 @@ async function update(slug, payload) {
         },
       });
       if (existing) {
-        return await prisma.branch.update({
+        const oldSlug = existing.slug;
+        const updated = await prisma.branch.update({
           where: { id: existing.id },
           data: payload,
         });
+        // Cascade: update employees' branchSlug if slug changed
+        if (payload.slug && payload.slug !== oldSlug) {
+          await prisma.employee.updateMany({
+            where: { branchSlug: oldSlug },
+            data: { branchSlug: payload.slug },
+          });
+        }
+        return updated;
       }
     } catch (_) {}
   }

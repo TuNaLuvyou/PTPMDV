@@ -53,6 +53,21 @@ async function createRegulation(req, res, next) {
       attachments: typeof req.body.attachments === "number" ? req.body.attachments : 0,
     });
 
+    // Đồng bộ tạo thông báo toàn hệ thống khi ban hành nội quy mới
+    try {
+      const NotificationRepository = require("../../infrastructure/database/repositories/NotificationRepository");
+      await NotificationRepository.create({
+        title: `📋 Nội quy mới: ${created.title}`,
+        body: created.summary || created.content,
+        requestType: "REGULATION",
+        senderName: created.author || "Ban Giám Đốc",
+        senderRole: "Ban Quản trị",
+        metadata: { regulationId: created.id, code: created.code, scope: created.scope },
+      });
+    } catch (e) {
+      console.warn("[RegulationController] Không thể tự động tạo thông báo:", e.message);
+    }
+
     return res.status(201).json({
       data: created,
       message: "Tạo nội quy thành công",

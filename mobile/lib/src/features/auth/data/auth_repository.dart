@@ -16,8 +16,11 @@ class AuthRepository {
   AuthRepository({ApiClient? api}) : api = api ?? ApiClient();
 
   UserModel _toUser(Map<String, dynamic> j) {
-    final slug = (j['branchSlug']?.toString() ?? 'HN-1').toLowerCase();
-    final branch = branchById(slug);
+    final rawSlug = (j['branchSlug'] ?? j['branch'])?.toString().trim();
+    final slug = (rawSlug != null && rawSlug.isNotEmpty && rawSlug.toLowerCase() != 'null')
+        ? rawSlug.toLowerCase()
+        : null;
+    final branch = slug != null ? branchById(slug) : null;
     return UserModel(
       id: j['id']?.toString() ?? '',
       name: j['name']?.toString() ?? '',
@@ -25,7 +28,7 @@ class AuthRepository {
       phone: j['phone']?.toString() ?? '',
       role: j['role']?.toString() ?? 'staff',
       roleTitle: j['roleTitle']?.toString() ?? '',
-      assignedBranchId: branch.id,
+      assignedBranchId: branch?.id,
       gender: j['gender']?.toString() ?? '',
       birthDate: j['birthDate']?.toString() ?? '',
       province: j['province']?.toString() ?? '',
@@ -34,15 +37,15 @@ class AuthRepository {
       cccd: j['cccd']?.toString() ?? '',
       issueDate: j['issueDate']?.toString() ?? '',
       issuePlace: j['issuePlace']?.toString() ?? '',
-      salaryType: j['salaryType']?.toString() ?? 'hourly',
+      salaryType: j['salaryType']?.toString() ?? 'monthly',
       hourlySalary: (j['hourlySalary'] as num?)?.toDouble() ?? 0.0,
       baseSalary: (j['baseSalary'] as num?)?.toDouble() ?? 0.0,
       bankName: j['bankName']?.toString() ?? '',
       bankAccountNumber: j['bankAccountNumber']?.toString() ?? '',
       bankAccountName: j['bankAccountName']?.toString() ?? '',
       avatarUrl: j['avatarUrl']?.toString(),
-      cccdFrontUrl: j['cccdFrontUrl']?.toString(),
-      cccdBackUrl: j['cccdBackUrl']?.toString(),
+      cccdFrontUrl: (j['cccdFrontUrl'] ?? j['cccdFront'])?.toString(),
+      cccdBackUrl: (j['cccdBackUrl'] ?? j['cccdBack'])?.toString(),
     );
   }
 

@@ -12,8 +12,27 @@ function bankRef() {
   return `BANK-${Math.floor(10000000 + Math.random() * 90000000)}`;
 }
 
-const seedAccounts = [];
-let memoryAccounts = [];
+const seedAccounts = [
+  {
+    id: "bank-vcb-01",
+    accountNumber: "0011004567890",
+    accountName: "CONG TY TNHH HRM SYSTEM",
+    bankName: "Vietcombank",
+    balance: 500000000,
+    status: "hoạt động",
+    isPrimary: true,
+  },
+  {
+    id: "bank-bidv-02",
+    accountNumber: "12410003456789",
+    accountName: "CONG TY TNHH HRM SYSTEM",
+    bankName: "BIDV",
+    balance: 250000000,
+    status: "hoạt động",
+    isPrimary: false,
+  },
+];
+let memoryAccounts = [...seedAccounts];
 let memoryPayouts = [];
 let memoryPayslips = [];
 
@@ -21,9 +40,12 @@ async function ensureSeeded() {
   const prisma = database.getPrisma();
   if (prisma) {
     try {
-      await prisma.payslip.deleteMany({}).catch(() => {});
-      await prisma.payout.deleteMany({}).catch(() => {});
-      await prisma.bankAccount.deleteMany({}).catch(() => {});
+      for (const a of seedAccounts) {
+        const existed = await prisma.bankAccount.findUnique({ where: { accountNumber: a.accountNumber } }).catch(() => null);
+        if (!existed) {
+          await prisma.bankAccount.create({ data: a }).catch(() => {});
+        }
+      }
     } catch (_) {}
   }
   return { mode: prisma ? "postgres" : "memory" };

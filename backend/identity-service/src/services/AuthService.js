@@ -5,7 +5,90 @@ const { User } = require("../domain/entities/User");
 const { UnauthorizedError, ValidationError, NotFoundError } = require("../domain/errors");
 const UserRepository = require("../infrastructure/database/repositories/UserRepository");
 const DeviceRepository = require("../infrastructure/database/repositories/DeviceRepository");
+const config = require("../../config");
 const { signAccessToken, signRefreshToken, verifyToken } = require("../utils/jwt");
+
+async function enrichWithEmployee(user) {
+  try {
+    const orgUrl = config.organizationServiceUrl || "http://localhost:4002";
+    let emp = null;
+    if (user.id) {
+      const resById = await fetch(`${orgUrl}/api/employees/${user.id}`, {
+        signal: AbortSignal.timeout(2000),
+      }).catch(() => null);
+      if (resById && resById.ok) {
+        const json = await resById.json();
+        emp = json.data;
+      }
+    }
+    if (!emp && user.email) {
+      const resByEmail = await fetch(`${orgUrl}/api/employees?email=${encodeURIComponent(user.email)}`, {
+        signal: AbortSignal.timeout(2000),
+      }).catch(() => null);
+      if (resByEmail && resByEmail.ok) {
+        const json = await resByEmail.json();
+        emp = Array.isArray(json.data) ? json.data[0] : null;
+      }
+    }
+    if (emp) {
+      return {
+        ...user,
+        phone: emp.phone || "",
+        gender: emp.gender || "",
+        birthDate: emp.birthDate || "",
+        province: emp.province || "",
+        ward: emp.ward || "",
+        street: emp.street || "",
+        cccd: emp.cccd || "",
+        issueDate: emp.issueDate || "",
+        issuePlace: emp.issuePlace || "",
+        cccdFront: emp.cccdFront || null,
+        cccdBack: emp.cccdBack || null,
+        cccdFrontUrl: emp.cccdFront || null,
+        cccdBackUrl: emp.cccdBack || null,
+        salaryType: emp.salaryType || "monthly",
+        hourlySalary: emp.hourlySalary || 0,
+        baseSalary: emp.baseSalary || 0,
+        bankName: emp.bankName || "",
+        bankAccountNumber: emp.bankAccountNumber || "",
+        bankAccountName: emp.bankAccountName || "",
+        department: emp.department || "",
+        status: emp.status || "đang làm",
+        joinDate: emp.joinDate || "",
+        branchSlug: emp.branchSlug !== undefined ? emp.branchSlug : user.branchSlug,
+        branch: emp.branchSlug ? emp.branchSlug.toUpperCase() : "",
+      };
+    }
+  } catch (err) {
+    console.warn("[AuthService] Enrich employee thất bại:", err.message);
+  }
+  return {
+    ...user,
+    phone: "",
+    gender: "",
+    birthDate: "",
+    province: "",
+    ward: "",
+    street: "",
+    cccd: "",
+    issueDate: "",
+    issuePlace: "",
+    cccdFront: null,
+    cccdBack: null,
+    cccdFrontUrl: null,
+    cccdBackUrl: null,
+    salaryType: "monthly",
+    hourlySalary: 0,
+    baseSalary: 0,
+    bankName: "",
+    bankAccountNumber: "",
+    bankAccountName: "",
+    department: "",
+    status: "đang làm",
+    joinDate: "",
+    branch: user.branchSlug ? user.branchSlug.toUpperCase() : "",
+  };
+}
 
 async function loginUseCase({ email, password }, req) {
   if (!email || !password) throw new ValidationError("Thiếu email hoặc mật khẩu");
@@ -24,8 +107,10 @@ async function loginUseCase({ email, password }, req) {
     }
   }
 
+  const enrichedUser = await enrichWithEmployee(user.toJSON());
+
   return {
-    user: user.toJSON(),
+    user: enrichedUser,
     accessToken: signAccessToken(payload),
     refreshToken: signRefreshToken(payload),
   };
@@ -36,7 +121,8 @@ async function getMeUseCase(userId) {
   if (!row) {
     throw new UnauthorizedError("Phiên đăng nhập hết hạn");
   }
-  return new User(row).toJSON();
+  const user = new User(row).toJSON();
+  return await enrichWithEmployee(user);
 }
 
 async function changePasswordUseCase({ userId, currentPassword, newPassword }) {

@@ -48,6 +48,21 @@ async function createNews(req, res, next) {
       pinned: Boolean(req.body.pinned),
     });
 
+    // Đồng bộ tạo thông báo toàn hệ thống để ứng dụng di động nhận được thông báo
+    try {
+      const NotificationRepository = require("../../infrastructure/database/repositories/NotificationRepository");
+      await NotificationRepository.create({
+        title: `📢 Bảng tin: ${created.title}`,
+        body: created.summary || created.content,
+        requestType: "NEWS",
+        senderName: created.author || "Ban Quản trị",
+        senderRole: "Quản trị viên",
+        metadata: { newsId: created.id, tag: created.tag },
+      });
+    } catch (e) {
+      console.warn("[NewsController] Không thể tự động tạo thông báo:", e.message);
+    }
+
     return res.status(201).json({
       data: created,
       message: "Tạo tin tức thành công",

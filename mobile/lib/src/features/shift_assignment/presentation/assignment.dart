@@ -96,39 +96,10 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
   int _selectedDayIndex = 0;
 
   // Set các ID ca đang được mở rộng xổ xuống
-  final Set<String> _expandedShiftIds = {'morning', 'afternoon'};
+  final Set<String> _expandedShiftIds = {};
 
-  // Danh sách các ca làm việc chuẩn
-  final List<ShiftInfo> _availableShifts = const [
-    ShiftInfo(
-      id: 'morning',
-      name: 'Ca Sáng',
-      timeRange: '07:00 - 14:00',
-      icon: FontAwesomeIcons.sun,
-      color: Color(0xFFE65100),
-    ),
-    ShiftInfo(
-      id: 'afternoon',
-      name: 'Ca Chiều',
-      timeRange: '14:00 - 22:00',
-      icon: FontAwesomeIcons.cloudSun,
-      color: Color(0xFF0277BD),
-    ),
-    ShiftInfo(
-      id: 'evening',
-      name: 'Ca Tối',
-      timeRange: '18:00 - 23:00',
-      icon: FontAwesomeIcons.moon,
-      color: Color(0xFF4A148C),
-    ),
-    ShiftInfo(
-      id: 'admin',
-      name: 'Ca Hành chính',
-      timeRange: '08:00 - 17:00',
-      icon: FontAwesomeIcons.briefcase,
-      color: Color(0xFF00695C),
-    ),
-  ];
+  // Danh sách ca làm việc — đồng bộ từ API /api/shifts/templates
+  List<ShiftInfo> _availableShifts = [];
 
   // Danh sách nhân sự của chi nhánh — chỉ dùng API thật, khởi rỗng để hiện empty state
   List<AssignedStaff> _branchEmployees = [];
@@ -210,6 +181,33 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
   Future<void> _loadApiData() async {
     try {
       final branch = BranchScope.read(context)?.notifier?.value;
+      try {
+        final templates = await ShiftRepository().getTemplates();
+        final loadedShifts = <ShiftInfo>[];
+        for (final t in templates) {
+          final id = t['id']?.toString() ?? '';
+          final name = t['name']?.toString() ?? '';
+          final start = t['startTime']?.toString() ?? '';
+          final end = t['endTime']?.toString() ?? '';
+          if (id.isNotEmpty && name.isNotEmpty) {
+            loadedShifts.add(ShiftInfo(
+              id: id,
+              name: name,
+              timeRange: start.isNotEmpty && end.isNotEmpty ? '$start - $end' : start,
+              icon: FontAwesomeIcons.clock,
+              color: AppColors.primary,
+            ));
+          }
+        }
+        if (mounted) {
+          setState(() {
+            _availableShifts = loadedShifts;
+            _expandedShiftIds.removeWhere((id) => !_availableShifts.any((s) => s.id == id));
+            _initAssignments();
+          });
+        }
+      } catch (_) {}
+
       final employees = await EmployeeRepository().getEmployees();
       if (mounted) {
         setState(() {
@@ -237,7 +235,7 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
           final rawName = r['employeeName']?.toString() ?? '';
           final empName = emp?.name ?? (rawName.isNotEmpty ? rawName : 'Chưa phân công');
           empWishes.putIfAbsent(empName, () => {});
-          final wish = r['wish']?.toString() ?? r['shiftId']?.toString() ?? 'Ca Sáng';
+          final wish = r['wish']?.toString() ?? r['shiftId']?.toString() ?? 'Ca làm việc';
           final day = r['day']?.toString() ?? 'T2';
           empWishes[empName]![day] = wish;
         }
@@ -311,7 +309,7 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
                       avatarText: 'NV',
                       shiftId: s.id,
                     );
-              final templateName = s.template.isEmpty ? 'Ca Sáng' : s.template;
+              final templateName = s.template.isEmpty ? 'Ca làm việc' : s.template;
               newAssignments[dayKey] ??= {};
               newAssignments[dayKey]![templateName] ??= [];
               newAssignments[dayKey]![templateName]!.add(staff);
@@ -532,10 +530,37 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
               const SizedBox(height: 12),
 
               // Hiển thị danh sách các ca làm việc
-              ..._availableShifts.map((shift) {
-                final isExpanded = _expandedShiftIds.contains(shift.id);
-                return _buildShiftAccordion(dayKey, shift, isExpanded);
-              }),
+              if (_availableShifts.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: const Column(
+                    children: [
+                      FaIcon(FontAwesomeIcons.calendarXmark, size: 22, color: AppColors.textSecondary),
+                      SizedBox(height: 8),
+                      Text(
+                        'Chưa có ca mẫu nào được thiết lập',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Quản trị cần thêm ca mẫu trước khi xếp ca',
+                        style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ..._availableShifts.map((shift) {
+                  final isExpanded = _expandedShiftIds.contains(shift.id);
+                  return _buildShiftAccordion(dayKey, shift, isExpanded);
+                }),
 
               const SizedBox(height: 16),
             ],

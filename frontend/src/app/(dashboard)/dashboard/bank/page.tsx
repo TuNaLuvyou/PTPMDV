@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPlus,
-  faRotateRight,
 } from "@fortawesome/free-solid-svg-icons";
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
@@ -14,6 +13,7 @@ import SoapTransactionsTable from "@/features/bank/components/SoapHistory";
 import SoapTestModal from "@/features/bank/components/modals/SoapTest";
 import SoapPayloadDetailModal from "@/features/bank/components/modals/PayloadDetail";
 import CreatePayrollDisbursementModal from "@/features/bank/components/modals/PayoutCreate";
+import CreateBankAccountModal from "@/features/bank/components/modals/BankAccountCreate";
 import BankConfigModal from "@/features/bank/components/modals/BankForm";
 import { initialSoapGatewayConfig } from "@/features/bank/mock";
 import type { BankPartner, SoapTransaction } from "@/features/bank/types";
@@ -88,14 +88,15 @@ export default function BankIntegrationPage() {
 
   const [testModalOpen, setTestModalOpen] = useState(false);
   const [createDisburseOpen, setCreateDisburseOpen] = useState(false);
+  const [createAccountOpen, setCreateAccountOpen] = useState(false);
   const [selectedPayloadTx, setSelectedPayloadTx] =
     useState<SoapTransaction | null>(null);
   const [selectedBankConfig, setSelectedBankConfig] =
     useState<BankPartner | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError(null);
       const [accounts, payouts] = await Promise.all([
         apiGet<BankAccountRow[]>("/api/payroll/bank-accounts"),
@@ -110,7 +111,7 @@ export default function BankIntegrationPage() {
     } catch (e) {
       setError(e instanceof GatewayError ? e.message : "Lỗi tải dữ liệu ngân hàng");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
@@ -158,10 +159,31 @@ export default function BankIntegrationPage() {
     }
   };
 
+  const handleDeleteAccount = async (bankId: string, label: string) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa tài khoản "${label}"?`)) return;
+    // Cập nhật giao diện lập tức (Optimistic UI) — không gây nháy/load lại trang
+    setPartners((prev) => prev.filter((p) => p.id !== bankId));
+    try {
+      const res = await fetch(`${GATEWAY_URL}/api/payroll/bank-accounts/${bankId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error?.message || `HTTP_${res.status}`);
+      }
+      // Đồng bộ ngầm phía sau (silent: true không bật skeleton full page)
+      fetchData(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Lỗi khi xóa tài khoản");
+      fetchData(true);
+    }
+  };
+
   const handleDisburseSuccess = (newTx: SoapTransaction, deduped: boolean) => {
     setTransactions((prev) => [{ ...newTx, deduped }, ...prev]);
-    // Refetch để cập nhật số dư tài khoản công ty sau khi chi.
-    fetchData();
+    // Đồng bộ ngầm để cập nhật số dư tài khoản công ty sau khi chi, không nháy trang.
+    fetchData(true);
   };
 
   if (loading) {
@@ -200,10 +222,10 @@ export default function BankIntegrationPage() {
           <div className="flex items-center gap-2">
             <Button
               variant="white"
-              onClick={() => setTestModalOpen(true)}
+              onClick={() => setCreateAccountOpen(true)}
               className="text-xs"
             >
-              <FontAwesomeIcon icon={faRotateRight} fontSize={12} /> Kiểm tra đường truyền
+              <FontAwesomeIcon icon={faPlus} fontSize={12} /> Thêm tài khoản
             </Button>
             <Button
               onClick={() => setCreateDisburseOpen(true)}
@@ -219,7 +241,7 @@ export default function BankIntegrationPage() {
       {error && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-medium flex items-center justify-between gap-3">
           <span>{error}</span>
-          <Button variant="white" onClick={fetchData} className="text-xs shrink-0">
+          <Button variant="white" onClick={() => fetchData()} className="text-xs shrink-0">
             Thử lại
           </Button>
         </div>
@@ -238,6 +260,8 @@ export default function BankIntegrationPage() {
         partners={partners}
         onSetPrimary={handleSetPrimary}
         onOpenConfig={(p) => setSelectedBankConfig(p)}
+        onOpenCreate={() => setCreateAccountOpen(true)}
+        onDeleteAccount={handleDeleteAccount}
       />
 
       {/* 3. Bảng Lịch sử Lệnh Chi lương SOAP API */}
@@ -248,6 +272,12 @@ export default function BankIntegrationPage() {
       />
 
       {/* Modals */}
+      <CreateBankAccountModal
+        open={createAccountOpen}
+        onClose={() => setCreateAccountOpen(false)}
+        onCreated={() => fetchData(true)}
+      />
+
       <SoapTestModal
         open={testModalOpen}
         onClose={() => setTestModalOpen(false)}

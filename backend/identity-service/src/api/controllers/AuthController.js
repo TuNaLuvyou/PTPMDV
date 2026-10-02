@@ -122,6 +122,16 @@ async function revokeDevice(req, res, next) {
   }
 }
 
+async function syncUser(req, res, next) {
+  try {
+    const UserRepository = require("../../infrastructure/database/repositories/UserRepository");
+    const user = await UserRepository.createOrUpdateUser(req.body);
+    return res.status(200).json({ data: user, message: "Đồng bộ tài khoản thành công" });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 module.exports = {
   login,
   me,
@@ -131,4 +141,5 @@ module.exports = {
   refresh,
   getDevices,
   revokeDevice,
+  syncUser,
 };

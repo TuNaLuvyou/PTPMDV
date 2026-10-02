@@ -114,12 +114,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       Map<String, Map<String, dynamic>> rawById = {};
       try {
         final raw = await _repo.api.getJson('/api/notifications');
-        if (raw is List) {
-          for (final e in raw.whereType<Map>()) {
-            final m = e.cast<String, dynamic>();
-            final id = m['id']?.toString() ?? '';
-            if (id.isNotEmpty) rawById[id] = m;
-          }
+        final rawList = raw is List
+            ? raw
+            : (raw is Map && raw['data'] is List ? raw['data'] as List : []);
+        for (final e in rawList.whereType<Map>()) {
+          final m = e.cast<String, dynamic>();
+          final id = m['id']?.toString() ?? '';
+          if (id.isNotEmpty) rawById[id] = m;
         }
       } catch (_) {}
       if (mounted) {

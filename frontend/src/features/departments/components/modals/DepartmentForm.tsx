@@ -84,21 +84,17 @@ export default function DepartmentModal({ open, onClose, department, employees, 
         </Field>
 
         <Field label="Trưởng phòng / Phụ trách" className="md:col-span-2">
-          <div className="space-y-2">
-            <Select value={manager} onChange={(e) => setManager(e.target.value)}>
-              <option value="">-- Chọn nhân sự phụ trách --</option>
-              {employees.map((emp) => (
-                <option key={emp.id} value={emp.name}>
-                  {emp.name} — {emp.role} ({emp.branch})
-                </option>
-              ))}
-            </Select>
-            <Input
-              value={manager}
-              onChange={(e) => setManager(e.target.value)}
-              placeholder="Hoặc nhập tên người phụ trách nếu chưa có tài khoản..."
-            />
-          </div>
+          <Select value={manager} onChange={(e) => setManager(e.target.value)}>
+            <option value="">-- Chọn nhân sự phụ trách --</option>
+            {manager && !employees.some((emp) => emp.name === manager) && (
+              <option value={manager}>{manager}</option>
+            )}
+            {employees.map((emp) => (
+              <option key={emp.id} value={emp.name}>
+                {emp.name}
+              </option>
+            ))}
+          </Select>
         </Field>
 
         <Field label="Mô tả chức năng & nhiệm vụ" className="md:col-span-2">

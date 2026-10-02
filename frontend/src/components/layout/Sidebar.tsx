@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChevronLeft, faUtensils } from "@fortawesome/free-solid-svg-icons";
+import { faChevronLeft, faUser } from "@fortawesome/free-solid-svg-icons";
 import { cn } from "@/lib/utils";
 
 export interface SidebarItem {
@@ -85,7 +85,7 @@ export default function Sidebar({
           title={brand}
         >
           <span className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center shrink-0">
-            <FontAwesomeIcon icon={faUtensils} fontSize={18} />
+            <FontAwesomeIcon icon={faUser} fontSize={16} />
           </span>
           {!collapsed && (
             <span className="font-bold text-lg text-gray-800 whitespace-nowrap truncate min-w-0">{brand}</span>

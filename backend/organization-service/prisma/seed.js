@@ -14,9 +14,8 @@ async function ensureSeeded() {
     await EmployeeRepository.ensureSeeded();
     return { mode: "memory" };
   }
-  // Postgres: xóa phòng ban và nhân sự khác, chỉ giữ 1 tài khoản admin
-  await prisma.department.deleteMany({}).catch(() => {});
-  await prisma.employee.deleteMany({ where: { email: { not: "admin@company.com" } } }).catch(() => {});
+  // Chi nhánh: chỉ tạo mặc định khi bảng còn trống, không xoá chi nhánh đang có.
+  await BranchRepository.ensureSeeded();
 
   const adminEmployee = {
     id: "e-admin",

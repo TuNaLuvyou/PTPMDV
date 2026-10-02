@@ -29,6 +29,7 @@ import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import { Field, Input, Select } from "@/components/ui/Form";
 import Badge, { StatusBadge } from "@/components/ui/Badge";
+import { apiPost } from "@/lib/api";
 import type { Employee, UserRole, Branch, Department } from "@/types";
 
 interface Props {
@@ -67,7 +68,7 @@ export default function EmployeeDetailModal({
   departments = [],
   onSave,
   isManager = false,
-  managerBranch = "HN-1",
+  managerBranch = "",
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<DetailTab>("profile");
@@ -85,7 +86,7 @@ export default function EmployeeDetailModal({
   const [street, setStreet] = useState("");
 
   // 3. Công tác & Phân quyền
-  const [branch, setBranch] = useState("HN-1");
+  const [branch, setBranch] = useState("");
   const [department, setDepartment] = useState("");
   const [role, setRole] = useState("");
   const [systemRole, setSystemRole] = useState<UserRole>("staff");
@@ -104,6 +105,10 @@ export default function EmployeeDetailModal({
   const [cccd, setCccd] = useState("");
   const [issueDate, setIssueDate] = useState("");
   const [issuePlace, setIssuePlace] = useState("");
+  const [cccdFrontUrl, setCccdFrontUrl] = useState<string | null>(null);
+  const [cccdBackUrl, setCccdBackUrl] = useState<string | null>(null);
+  const [uploadingFront, setUploadingFront] = useState(false);
+  const [uploadingBack, setUploadingBack] = useState(false);
 
   // Đồng bộ dữ liệu khi mở modal hoặc thay đổi employee
   useEffect(() => {
@@ -118,7 +123,10 @@ export default function EmployeeDetailModal({
       setWard(employee.ward || "");
       setStreet(employee.street || "");
 
-      setBranch(employee.branch);
+      const branchExists = branches.some(
+        (b) => b.slug.toUpperCase() === (employee.branch || "").toUpperCase()
+      );
+      setBranch(branchExists ? employee.branch.toUpperCase() : (employee.branch || "").toUpperCase());
       setDepartment(employee.department || departments[0]?.name || "");
       setRole(employee.role);
       setSystemRole(employee.systemRole || "staff");
@@ -135,6 +143,14 @@ export default function EmployeeDetailModal({
       setCccd(employee.cccd || "");
       setIssueDate(employee.issueDate || "");
       setIssuePlace(employee.issuePlace || "");
+      setCccdFrontUrl(
+        (typeof employee.cccdFront === "string" && employee.cccdFront) ? employee.cccdFront :
+        (typeof (employee as any).cccdFrontUrl === "string" ? (employee as any).cccdFrontUrl : null)
+      );
+      setCccdBackUrl(
+        (typeof employee.cccdBack === "string" && employee.cccdBack) ? employee.cccdBack :
+        (typeof (employee as any).cccdBackUrl === "string" ? (employee as any).cccdBackUrl : null)
+      );
 
       setIsEditing(false);
       setActiveTab("profile");
@@ -142,6 +158,31 @@ export default function EmployeeDetailModal({
   }, [employee, open]);
 
   if (!employee) return null;
+
+  const handleUploadCccd = (file: File, side: "front" | "back") => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = reader.result as string;
+      try {
+        if (side === "front") setUploadingFront(true);
+        else setUploadingBack(true);
+        const res = await apiPost<{ url: string }>("/api/upload", {
+          file: base64,
+          folder: "hrm/cccd",
+        });
+        if (res?.url) {
+          if (side === "front") setCccdFrontUrl(res.url);
+          else setCccdBackUrl(res.url);
+        }
+      } catch (err: any) {
+        alert("Lỗi tải ảnh lên Cloudinary: " + (err?.message || "Vui lòng thử lại"));
+      } finally {
+        if (side === "front") setUploadingFront(false);
+        else setUploadingBack(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleCancelEdit = () => {
     // Hoàn tác về thông tin ban đầu
@@ -155,7 +196,10 @@ export default function EmployeeDetailModal({
     setWard(employee.ward || "");
     setStreet(employee.street || "");
 
-    setBranch(employee.branch);
+    const branchExists = branches.some(
+      (b) => b.slug.toUpperCase() === (employee.branch || "").toUpperCase()
+    );
+    setBranch(branchExists ? employee.branch.toUpperCase() : (employee.branch || "").toUpperCase());
     setDepartment(employee.department || departments[0]?.name || "");
     setRole(employee.role);
     setSystemRole(employee.systemRole || "staff");
@@ -172,6 +216,8 @@ export default function EmployeeDetailModal({
     setCccd(employee.cccd || "");
     setIssueDate(employee.issueDate || "");
     setIssuePlace(employee.issuePlace || "");
+    setCccdFrontUrl(typeof employee.cccdFront === "string" ? employee.cccdFront : null);
+    setCccdBackUrl(typeof employee.cccdBack === "string" ? employee.cccdBack : null);
 
     setIsEditing(false);
   };
@@ -188,6 +234,7 @@ export default function EmployeeDetailModal({
       ward,
       street,
       branch: isManager ? managerBranch : branch,
+      branchSlug: (isManager ? managerBranch : branch) ? (isManager ? managerBranch : branch).toLowerCase() : undefined,
       department,
       role,
       systemRole,
@@ -202,8 +249,8 @@ export default function EmployeeDetailModal({
       cccd,
       issueDate,
       issuePlace,
-      cccdFront: true,
-      cccdBack: true,
+      cccdFront: cccdFrontUrl || (typeof employee.cccdFront === "string" ? employee.cccdFront : null) || (employee as any).cccdFrontUrl || null,
+      cccdBack: cccdBackUrl || (typeof employee.cccdBack === "string" ? employee.cccdBack : null) || (employee as any).cccdBackUrl || null,
     };
 
     if (onSave) {
@@ -215,12 +262,12 @@ export default function EmployeeDetailModal({
   const getSystemRoleLabel = (r: UserRole) => {
     switch (r) {
       case "admin":
-        return "Quản trị viên (Admin)";
+        return "Quản trị viên";
       case "manager":
-        return "Quản lý Chi nhánh (Manager)";
+        return "Quản lý Chi nhánh";
       case "staff":
       default:
-        return "Nhân viên (Staff)";
+        return "Nhân viên";
     }
   };
 
@@ -272,9 +319,6 @@ export default function EmployeeDetailModal({
                     {isEditing ? name || employee.name : employee.name}
                   </h3>
                   <StatusBadge status={isEditing ? status : employee.status} />
-                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
-                    {getSystemRoleLabel(isEditing ? systemRole : employee.systemRole)}
-                  </span>
                   <span
                     className={`text-xs font-semibold px-2.5 py-0.5 rounded-md border ${
                       (isEditing ? salaryType : employee.salaryType) === "hourly"
@@ -296,7 +340,7 @@ export default function EmployeeDetailModal({
                   </span>
                   <span>•</span>
                   <span>
-                    Chi nhánh: <strong className="text-gray-800">{isEditing ? branch : employee.branch}</strong>
+                    Chi nhánh: <strong className="text-gray-800">{(isEditing ? branch : employee.branch) || "Chưa phân chi nhánh"}</strong>
                   </span>
                   <span>•</span>
                   <span>
@@ -581,7 +625,7 @@ export default function EmployeeDetailModal({
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Chi nhánh làm việc:</span>
                       <span className="font-semibold text-primary text-xs">
-                        {employee.branch}
+                        {employee.branch || "Chưa phân chi nhánh"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
@@ -649,7 +693,7 @@ export default function EmployeeDetailModal({
                   <h5 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-2">
                     <FontAwesomeIcon icon={faBuilding} /> Vị trí công tác
                   </h5>
-                  <Field label="Chi nhánh làm việc" required>
+                  <Field label="Chi nhánh làm việc">
                     {isManager ? (
                       <div className="px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm font-bold text-gray-800 flex items-center justify-between">
                         <span>{managerBranch}</span>
@@ -659,11 +703,16 @@ export default function EmployeeDetailModal({
                       </div>
                     ) : (
                       <Select value={branch} onChange={(e) => setBranch(e.target.value)}>
+                        <option value="">-- Chưa phân chi nhánh --</option>
                         {branches.map((b) => (
-                          <option key={b.id} value={b.slug.toUpperCase()}>
+                          <option key={b.id || b.slug} value={b.slug.toUpperCase()}>
                             {b.name} ({b.slug.toUpperCase()})
                           </option>
                         ))}
+                        {branch &&
+                          !branches.some((b) => b.slug.toUpperCase() === branch) && (
+                            <option value={branch}>{branch}</option>
+                          )}
                       </Select>
                     )}
                   </Field>
@@ -697,9 +746,9 @@ export default function EmployeeDetailModal({
                       onChange={(e) => setSystemRole(e.target.value as UserRole)}
                       disabled={isManager}
                     >
-                      <option value="staff">Nhân viên (Staff)</option>
-                      <option value="manager">Quản lý Chi nhánh (Manager)</option>
-                      <option value="admin">Quản trị viên (Admin)</option>
+                      <option value="staff">Nhân viên</option>
+                      <option value="manager">Quản lý Chi nhánh</option>
+                      <option value="admin">Quản trị viên</option>
                     </Select>
                   </Field>
 
@@ -931,15 +980,26 @@ export default function EmployeeDetailModal({
                     </div>
                     <div className="flex justify-between items-center py-1.5">
                       <span className="text-gray-500 text-xs">Trạng thái định danh:</span>
-                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold flex items-center gap-1">
-                        <FontAwesomeIcon icon={faCheck} className="text-[10px]" />
-                        Đã xác thực định danh
-                      </span>
+                      {employee.cccd && employee.cccdFront && employee.cccdBack ? (
+                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold flex items-center gap-1">
+                          <FontAwesomeIcon icon={faCheck} className="text-[10px]" />
+                          Đã xác thực định danh đầy đủ
+                        </span>
+                      ) : employee.cccd ? (
+                        <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-semibold flex items-center gap-1">
+                          <FontAwesomeIcon icon={faInfoCircle} className="text-[10px]" />
+                          Đã có số CCCD (chưa đủ ảnh 2 mặt)
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200 text-[11px] font-semibold flex items-center gap-1">
+                          Chưa cập nhật thông tin định danh
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* Thẻ mô phỏng ảnh CCCD */}
+                {/* Thẻ bản chụp ảnh CCCD */}
                 <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-2xs space-y-4">
                   <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
                     <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center text-sm">
@@ -953,51 +1013,54 @@ export default function EmployeeDetailModal({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Thẻ mặt trước */}
-                    <div className="relative rounded-xl border border-gray-200 bg-gradient-to-br from-emerald-50/50 via-teal-50/30 to-blue-50/50 p-4 shadow-2xs flex flex-col justify-between h-36">
-                      <div className="flex justify-between items-start">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+                    {employee.cccdFront && typeof employee.cccdFront === "string" ? (
+                      <div className="relative rounded-xl border border-gray-200 overflow-hidden h-36 bg-gray-50 shadow-2xs group">
+                        <img
+                          src={employee.cccdFront}
+                          alt="Mặt trước CCCD"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-bold shadow-xs">
+                          ✓ Đã tải ảnh
+                        </div>
+                        <div className="absolute bottom-0 inset-x-0 bg-black/60 px-2 py-1 text-[10px] text-white font-medium text-center">
                           Mặt trước CCCD
-                        </span>
-                        <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                          ✓ Đã chụp
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-7 rounded bg-amber-200 border border-amber-300 flex items-center justify-center text-[10px] font-bold text-amber-800 shadow-2xs">
-                          CHIP
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-mono text-xs font-bold text-gray-900 truncate">
-                        {employee.cccd || "Chưa cập nhật"}
-                          </p>
-                          <p className="text-[10px] text-gray-500 truncate">{employee.name}</p>
                         </div>
                       </div>
-                      <div className="text-[9px] text-gray-400 text-right">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
-                    </div>
+                    ) : (
+                      <div className="relative rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 shadow-2xs flex flex-col items-center justify-center h-36 text-center">
+                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-2">
+                          <FontAwesomeIcon icon={faCamera} className="text-sm" />
+                        </div>
+                        <span className="text-xs font-bold text-gray-700">Mặt trước CCCD</span>
+                        <span className="text-[11px] text-gray-400 mt-0.5">Chưa tải ảnh lên</span>
+                      </div>
+                    )}
 
                     {/* Thẻ mặt sau */}
-                    <div className="relative rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 via-slate-50 to-gray-100 p-4 shadow-2xs flex flex-col justify-between h-36">
-                      <div className="flex justify-between items-start">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-700">
-                          Mặt sau CCCD
-                        </span>
-                        <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                          ✓ Đã chụp
-                        </span>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="h-4 bg-gray-200 rounded border border-gray-300 flex items-center px-2 text-[8px] font-mono text-gray-600">
-                          |||| ||||| |||| |||||||| ||||
+                    {employee.cccdBack && typeof employee.cccdBack === "string" ? (
+                      <div className="relative rounded-xl border border-gray-200 overflow-hidden h-36 bg-gray-50 shadow-2xs group">
+                        <img
+                          src={employee.cccdBack}
+                          alt="Mặt sau CCCD"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-bold shadow-xs">
+                          ✓ Đã tải ảnh
                         </div>
-                        <p className="text-[9px] text-gray-500">
-                          {employee.issuePlace || "Chưa cập nhật"} • {employee.issueDate || "—"}
-                        </p>
+                        <div className="absolute bottom-0 inset-x-0 bg-black/60 px-2 py-1 text-[10px] text-white font-medium text-center">
+                          Mặt sau CCCD
+                        </div>
                       </div>
-                      <div className="text-[9px] font-mono text-gray-400 truncate">
-                        IDVNM{employee.cccd || "____________"}&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;
+                    ) : (
+                      <div className="relative rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 shadow-2xs flex flex-col items-center justify-center h-36 text-center">
+                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-2">
+                          <FontAwesomeIcon icon={faCamera} className="text-sm" />
+                        </div>
+                        <span className="text-xs font-bold text-gray-700">Mặt sau CCCD</span>
+                        <span className="text-[11px] text-gray-400 mt-0.5">Chưa tải ảnh lên</span>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1033,19 +1096,88 @@ export default function EmployeeDetailModal({
 
                 <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
                   <h5 className="text-xs font-bold uppercase tracking-wider text-teal-700 flex items-center gap-2">
-                    <FontAwesomeIcon icon={faCamera} /> Cập nhật ảnh CCCD 2 mặt
+                    <FontAwesomeIcon icon={faCamera} /> Cập nhật ảnh CCCD 2 mặt (Cloudinary)
                   </h5>
                   <div className="space-y-3">
-                    <div className="p-3 rounded-xl border border-dashed border-gray-300 bg-gray-50 text-center hover:bg-gray-100 transition-colors cursor-pointer">
-                      <FontAwesomeIcon icon={faCamera} className="text-gray-400 text-lg mb-1" />
-                      <p className="text-xs font-semibold text-gray-700">Tải lên ảnh Mặt trước CCCD</p>
-                      <p className="text-[10px] text-gray-400">Định dạng JPG, PNG dưới 5MB</p>
-                    </div>
-                    <div className="p-3 rounded-xl border border-dashed border-gray-300 bg-gray-50 text-center hover:bg-gray-100 transition-colors cursor-pointer">
-                      <FontAwesomeIcon icon={faCamera} className="text-gray-400 text-lg mb-1" />
-                      <p className="text-xs font-semibold text-gray-700">Tải lên ảnh Mặt sau CCCD</p>
-                      <p className="text-[10px] text-gray-400">Định dạng JPG, PNG dưới 5MB</p>
-                    </div>
+                    {/* Upload mặt trước */}
+                    <label className="p-3 rounded-xl border border-dashed border-gray-300 bg-gray-50 text-center hover:bg-gray-100 transition-colors cursor-pointer block relative">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploadingFront}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) handleUploadCccd(f, "front");
+                        }}
+                      />
+                      {uploadingFront ? (
+                        <p className="text-xs font-semibold text-primary py-2 animate-pulse">
+                          Đang tải ảnh mặt trước lên Cloudinary...
+                        </p>
+                      ) : cccdFrontUrl ? (
+                        <div className="flex items-center justify-between px-2">
+                          <div className="flex items-center gap-2.5">
+                            <img
+                              src={cccdFrontUrl}
+                              alt="Mặt trước"
+                              className="w-12 h-9 object-cover rounded-md border border-gray-200"
+                            />
+                            <div className="text-left">
+                              <span className="text-xs font-bold text-emerald-700 block">✓ Đã tải ảnh mặt trước</span>
+                              <span className="text-[10px] text-gray-400">Bấm để thay ảnh</span>
+                            </div>
+                          </div>
+                          <span className="text-xs font-semibold text-primary hover:underline">Đổi ảnh</span>
+                        </div>
+                      ) : (
+                        <>
+                          <FontAwesomeIcon icon={faCamera} className="text-gray-400 text-lg mb-1" />
+                          <p className="text-xs font-semibold text-gray-700">Tải lên ảnh Mặt trước CCCD</p>
+                          <p className="text-[10px] text-gray-400">Định dạng JPG, PNG dưới 5MB</p>
+                        </>
+                      )}
+                    </label>
+
+                    {/* Upload mặt sau */}
+                    <label className="p-3 rounded-xl border border-dashed border-gray-300 bg-gray-50 text-center hover:bg-gray-100 transition-colors cursor-pointer block relative">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploadingBack}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) handleUploadCccd(f, "back");
+                        }}
+                      />
+                      {uploadingBack ? (
+                        <p className="text-xs font-semibold text-primary py-2 animate-pulse">
+                          Đang tải ảnh mặt sau lên Cloudinary...
+                        </p>
+                      ) : cccdBackUrl ? (
+                        <div className="flex items-center justify-between px-2">
+                          <div className="flex items-center gap-2.5">
+                            <img
+                              src={cccdBackUrl}
+                              alt="Mặt sau"
+                              className="w-12 h-9 object-cover rounded-md border border-gray-200"
+                            />
+                            <div className="text-left">
+                              <span className="text-xs font-bold text-emerald-700 block">✓ Đã tải ảnh mặt sau</span>
+                              <span className="text-[10px] text-gray-400">Bấm để thay ảnh</span>
+                            </div>
+                          </div>
+                          <span className="text-xs font-semibold text-primary hover:underline">Đổi ảnh</span>
+                        </div>
+                      ) : (
+                        <>
+                          <FontAwesomeIcon icon={faCamera} className="text-gray-400 text-lg mb-1" />
+                          <p className="text-xs font-semibold text-gray-700">Tải lên ảnh Mặt sau CCCD</p>
+                          <p className="text-[10px] text-gray-400">Định dạng JPG, PNG dưới 5MB</p>
+                        </>
+                      )}
+                    </label>
                   </div>
                 </div>
               </div>

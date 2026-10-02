@@ -69,6 +69,33 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     _cccdFrontUrl = widget.user?.cccdFrontUrl;
     _cccdBackUrl = widget.user?.cccdBackUrl;
     _cccdCtrl = TextEditingController(text: _cccd);
+    _loadFreshUser();
+  }
+
+  Future<void> _loadFreshUser() async {
+    try {
+      final fresh = await AuthRepository().me();
+      if (fresh != null && mounted) {
+        setState(() {
+          _nameCtrl.text = fresh.name;
+          _phoneCtrl.text = fresh.phone;
+          _birthDate = fresh.birthDate;
+          _gender = fresh.gender;
+          _province = fresh.province;
+          _ward = fresh.ward;
+          _street = fresh.street;
+          _bankAcc = fresh.bankAccountNumber;
+          _bankName = fresh.bankName;
+          _cccd = fresh.cccd;
+          _issueDate = fresh.issueDate;
+          _issuePlace = fresh.issuePlace;
+          _avatarUrl = fresh.avatarUrl;
+          _cccdFrontUrl = fresh.cccdFrontUrl;
+          _cccdBackUrl = fresh.cccdBackUrl;
+          _cccdCtrl.text = fresh.cccd;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -123,13 +150,26 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       if (current != null) {
         try {
           await EmployeeRepository().updateEmployee(current.id, {
-            if (newName.isNotEmpty) 'name': newName,
-            if (newPhone.isNotEmpty) 'phone': newPhone,
+            'name': newName,
+            'phone': newPhone,
             'cccd': _cccd,
+            'birthDate': _birthDate,
+            'gender': _gender,
+            'province': _province,
+            'ward': _ward,
+            'street': _street,
+            'bankAccountNumber': _bankAcc,
+            'bankName': _bankName,
+            'issueDate': _issueDate,
+            'issuePlace': _issuePlace,
             if (_avatarUrl != null) 'avatarUrl': _avatarUrl,
-            if (_cccdFrontUrl != null) 'cccdFrontUrl': _cccdFrontUrl,
-            if (_cccdBackUrl != null) 'cccdBackUrl': _cccdBackUrl,
+            'cccdFront': _cccdFrontUrl,
+            'cccdBack': _cccdBackUrl,
           });
+          final fresh = await AuthRepository().me();
+          if (fresh != null && mounted) {
+            UserScope.setUser(context, fresh);
+          }
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: AppColors.success, content: Text('✅ Đã lưu thông tin cá nhân')));
         } catch (_) {
@@ -410,26 +450,41 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          width: 70,
-          height: 48,
+          width: 78,
+          height: 52,
           decoration: BoxDecoration(
-            color: (url != null && url.isNotEmpty) ? Colors.transparent : Colors.green.shade50,
+            color: (url != null && url.isNotEmpty) ? Colors.transparent : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: (url != null && url.isNotEmpty) ? AppColors.primary : Colors.green.shade200),
+            border: Border.all(color: (url != null && url.isNotEmpty) ? AppColors.primary : Colors.grey.shade300),
           ),
           clipBehavior: Clip.antiAlias,
           child: (url != null && url.isNotEmpty)
-              ? Image.network(
-                  url,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image, size: 18, color: Colors.grey)),
+              ? Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.network(
+                      url,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image, size: 18, color: Colors.grey)),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        color: Colors.black54,
+                        padding: const EdgeInsets.symmetric(vertical: 1),
+                        child: Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
                 )
               : Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const FaIcon(FontAwesomeIcons.camera, size: 14, color: Colors.green),
+                    const FaIcon(FontAwesomeIcons.camera, size: 13, color: AppColors.textSecondary),
                     const SizedBox(height: 2),
-                    Text(label, style: const TextStyle(fontSize: 9, color: Colors.green, fontWeight: FontWeight.w600)),
+                    Text('$label\n(Chưa chụp)', textAlign: TextAlign.center, style: const TextStyle(fontSize: 8, color: AppColors.textSecondary, height: 1.1)),
                   ],
                 ),
         ),

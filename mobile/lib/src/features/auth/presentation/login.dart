@@ -47,7 +47,11 @@ class _LoginScreenState extends State<LoginScreen> {
       // Đăng nhập thật qua gateway -> identity-service (cookie hrm-session).
       final user = await AuthRepository().login(email, password);
       if (!mounted) return;
-      BranchScope.select(context, branchById(user.assignedBranchId ?? 'hn-1'));
+      if (user.assignedBranchId != null && user.assignedBranchId!.isNotEmpty) {
+        BranchScope.select(context, branchById(user.assignedBranchId!));
+      } else {
+        BranchScope.select(context, null);
+      }
       UserScope.setUser(context, user);
       context.pushReplacement('/main', extra: user);
     } on ApiException catch (e) {

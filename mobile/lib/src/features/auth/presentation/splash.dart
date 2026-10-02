@@ -31,7 +31,11 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
     final session = results[0];
     if (session is UserModel) {
-      BranchScope.select(context, branchById(session.assignedBranchId ?? 'hn-1'));
+      if (session.assignedBranchId != null && session.assignedBranchId!.isNotEmpty) {
+        BranchScope.select(context, branchById(session.assignedBranchId!));
+      } else {
+        BranchScope.select(context, null);
+      }
       UserScope.setUser(context, session);
       context.go('/main', extra: session);
     } else {

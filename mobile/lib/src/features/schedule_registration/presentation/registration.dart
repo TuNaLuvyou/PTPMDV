@@ -21,10 +21,6 @@ class ShiftOption {
 // Danh sách ca mẫu chuẩn do Quản trị thiết lập (đồng bộ với hệ thống ca quản trị)
 List<ShiftOption> adminShiftTemplates = [
   const ShiftOption(id: 'off', name: 'Nghỉ (Không làm ca)', timeRange: 'Nghỉ ca'),
-  const ShiftOption(id: 't1', name: 'Ca Sáng', timeRange: '07:00 - 14:00'),
-  const ShiftOption(id: 't2', name: 'Ca Chiều', timeRange: '14:00 - 22:00'),
-  const ShiftOption(id: 't3', name: 'Ca Tối', timeRange: '18:00 - 23:00'),
-  const ShiftOption(id: 't4', name: 'Ca Hành chính', timeRange: '08:00 - 17:00'),
 ];
 
 class DayShiftRegistration {
@@ -164,27 +160,23 @@ class _ScheduleRegistrationScreenState extends State<ScheduleRegistrationScreen>
       final repo = ShiftRepository();
       try {
         final tpls = await repo.getTemplates();
-        if (tpls.isNotEmpty) {
-          final List<ShiftOption> loaded = [
-            const ShiftOption(id: 'off', name: 'Nghỉ (Không làm ca)', timeRange: 'Nghỉ ca'),
-          ];
-          for (final t in tpls) {
-            final id = t['id']?.toString() ?? '';
-            final name = t['name']?.toString() ?? '';
-            final start = t['startTime']?.toString() ?? '';
-            final end = t['endTime']?.toString() ?? '';
-            if (id.isNotEmpty && name.isNotEmpty) {
-              loaded.add(ShiftOption(
-                id: id,
-                name: name,
-                timeRange: start.isNotEmpty && end.isNotEmpty ? '$start - $end' : start,
-              ));
-            }
-          }
-          if (loaded.length > 1) {
-            adminShiftTemplates = loaded;
+        final List<ShiftOption> loaded = [
+          const ShiftOption(id: 'off', name: 'Nghỉ (Không làm ca)', timeRange: 'Nghỉ ca'),
+        ];
+        for (final t in tpls) {
+          final id = t['id']?.toString() ?? '';
+          final name = t['name']?.toString() ?? '';
+          final start = t['startTime']?.toString() ?? '';
+          final end = t['endTime']?.toString() ?? '';
+          if (id.isNotEmpty && name.isNotEmpty) {
+            loaded.add(ShiftOption(
+              id: id,
+              name: name,
+              timeRange: start.isNotEmpty && end.isNotEmpty ? '$start - $end' : start,
+            ));
           }
         }
+        adminShiftTemplates = loaded;
       } catch (_) {}
 
       final regs = empId.isNotEmpty
@@ -547,7 +539,9 @@ class _ScheduleRegistrationScreenState extends State<ScheduleRegistrationScreen>
                                 )
                               : DropdownButtonFormField<String>(
                                   isExpanded: true,
-                                  initialValue: day.selectedShiftId,
+                                  initialValue: adminShiftTemplates.any((s) => s.id == day.selectedShiftId)
+                                      ? day.selectedShiftId
+                                      : 'off',
                                   decoration: InputDecoration(
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                     border: OutlineInputBorder(

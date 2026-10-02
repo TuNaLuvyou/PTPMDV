@@ -1,8 +1,6 @@
 "use client";
 
 import React from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faStore } from "@fortawesome/free-solid-svg-icons";
 import DashboardShell from "@/components/layout/DashboardShell";
 import { useCurrentUser } from "@/context/AuthContext";
 import { buildMenuItems } from "@/lib/permissions";
@@ -14,7 +12,7 @@ export default function DashboardLayout({
 }) {
   const { user, role } = useCurrentUser();
   const isAdmin = role === "admin";
-  const roleName = isAdmin ? "Quản trị viên (Admin)" : "Quản lý Chi nhánh (Manager)";
+  const roleName = isAdmin ? "Quản trị viên" : "Quản lý Chi nhánh";
   const groups = buildMenuItems(role);
 
   return (
@@ -25,10 +23,6 @@ export default function DashboardLayout({
       userRole={roleName}
       logoutHref="/login"
       profileHref="/dashboard/employees"
-      sidebarFooter={{
-        icon: <FontAwesomeIcon icon={faStore} fontSize={16} />,
-        text: user.branchName || (isAdmin ? "Toàn bộ hệ thống (HQ)" : "Chi nhánh HN-1 (Phụ trách)"),
-      }}
     >
       {children}
     </DashboardShell>

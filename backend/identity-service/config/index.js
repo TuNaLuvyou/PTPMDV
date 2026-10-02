@@ -16,4 +16,5 @@ module.exports = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "15m",
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d",
   corsOrigin: (process.env.CORS_ORIGIN || "http://localhost:3000").split(","),
+  organizationServiceUrl: process.env.ORGANIZATION_SERVICE_URL || "http://localhost:4002",
 };

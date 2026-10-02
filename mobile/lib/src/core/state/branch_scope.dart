@@ -28,7 +28,7 @@ class BranchScope extends InheritedNotifier<ValueNotifier<Branch?>> {
 
   static String label(BuildContext context) {
     final branch = selectedBranch(context);
-    return branch?.name ?? 'Tất cả chi nhánh';
+    return branch?.name ?? 'Chưa phân chi nhánh';
   }
 
   static void select(BuildContext context, Branch? branch) {

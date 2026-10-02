@@ -125,6 +125,27 @@ async function createEmployee(req, res, next) {
     const errors = validateEmployee(req.body);
     if (errors.length) throw new ValidationError(errors.join("; "));
     const row = await OrgService.EmployeeRepository.create(req.body);
+
+    // Tự động đồng bộ tạo tài khoản đăng nhập sang identity-service
+    try {
+      const identityUrl = process.env.IDENTITY_SERVICE_URL || "http://localhost:4001";
+      await fetch(`${identityUrl}/api/auth/internal/sync-user`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: row.id,
+          email: row.email,
+          name: row.name,
+          role: row.systemRole || "staff",
+          roleTitle: row.role || "Nhân viên",
+          branchSlug: row.branchSlug || null,
+        }),
+        signal: AbortSignal.timeout(3000),
+      });
+    } catch (syncErr) {
+      console.warn("[OrgController] Đồng bộ user sang identity-service:", syncErr.message);
+    }
+
     return res.status(201).json({ data: row, message: "Thao tác thành công" });
   } catch (e) {
     return next(e);
@@ -141,6 +162,27 @@ async function updateEmployee(req, res, next) {
       err.code = "EMPLOYEE_NOT_FOUND";
       throw err;
     }
+
+    // Đồng bộ thông tin cập nhật sang identity-service
+    if (row.email) {
+      try {
+        const identityUrl = process.env.IDENTITY_SERVICE_URL || "http://localhost:4001";
+        await fetch(`${identityUrl}/api/auth/internal/sync-user`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: row.id,
+            email: row.email,
+            name: row.name,
+            role: row.systemRole || "staff",
+            roleTitle: row.role || "Nhân viên",
+            branchSlug: row.branchSlug || null,
+          }),
+          signal: AbortSignal.timeout(3000),
+        });
+      } catch (_) {}
+    }
+
     return res.status(200).json({ data: row, message: "Thao tác thành công" });
   } catch (e) {
     return next(e);

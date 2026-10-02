@@ -21,11 +21,12 @@ export interface Employee {
   cccd?: string;        // Số CCCD (12 chữ số)
   issueDate?: string;   // Ngày cấp
   issuePlace?: string;  // Nơi cấp
-  cccdFront?: string | boolean; // Trạng thái ảnh mặt trước
-  cccdBack?: string | boolean;  // Trạng thái ảnh mặt sau
+  cccdFront?: string | boolean | null; // Trạng thái ảnh mặt trước
+  cccdBack?: string | boolean | null;  // Trạng thái ảnh mặt sau
 
   // Công tác & Phân quyền
   branch: string;
+  branchSlug?: string;
   department: string;
   role: "Quản trị viên" | "Quản lý" | "Nhân sự" | "Kế toán" | "Lễ tân" | "Kỹ thuật" | string;
   systemRole: UserRole;

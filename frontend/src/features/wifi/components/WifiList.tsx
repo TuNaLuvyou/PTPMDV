@@ -1,7 +1,7 @@
 "use client";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPencil, faTrashCan, faWifi } from "@fortawesome/free-solid-svg-icons";
+import { faTrashCan, faWifi } from "@fortawesome/free-solid-svg-icons";
 import Badge, { StatusBadge } from "@/components/ui/Badge";
 import Table, { Column } from "@/components/ui/Table";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -9,11 +9,10 @@ import type { WifiConfig } from "@/types";
 
 interface Props {
   configs: WifiConfig[];
-  onEdit: (item: WifiConfig) => void;
   onDelete: (id: string) => void;
 }
 
-export default function WifiTableSection({ configs, onEdit, onDelete }: Props) {
+export default function WifiTableSection({ configs, onDelete }: Props) {
   const columns: Column<WifiConfig>[] = [
     {
       key: "ssid",
@@ -33,14 +32,6 @@ export default function WifiTableSection({ configs, onEdit, onDelete }: Props) {
       header: "Thao tác",
       render: (w) => (
         <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => onEdit(w)}
-            className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors cursor-pointer"
-            title="Sửa cấu hình Wi-Fi"
-          >
-            <FontAwesomeIcon icon={faPencil} fontSize={15} />
-          </button>
           <button
             type="button"
             onClick={() => onDelete(w.id)}

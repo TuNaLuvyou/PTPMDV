@@ -24,7 +24,7 @@ export default function BankHeaderStats({
   transactions,
   onTestSoap,
 }: Props) {
-  const primaryBank = partners.find((p) => p.isPrimary) || partners[0];
+  const primaryBank = partners.find((p) => p.isPrimary) || partners[0] || null;
   const totalBalance = partners.reduce((sum, p) => sum + p.balance, 0);
   const totalDisbursed = transactions
     .filter((t) => t.status === "success")
@@ -50,7 +50,7 @@ export default function BankHeaderStats({
           <div className="text-xs text-gray-500 mt-0.5">
             Thời gian phản hồi máy chủ:{" "}
             <span className="font-semibold text-gray-800">
-              {gatewayConfig.avgResponseTime}
+              {gatewayConfig?.avgResponseTime || "120ms"}
             </span>
           </div>
         </div>
@@ -80,17 +80,19 @@ export default function BankHeaderStats({
             </div>
           </div>
           <div className="text-lg font-bold text-gray-900 truncate">
-            {primaryBank.name}
+            {primaryBank ? primaryBank.name : "Chưa liên kết tài khoản"}
           </div>
           <div className="text-xs text-gray-500 font-mono mt-0.5">
             Số tài khoản nguồn:{" "}
-            <span className="font-bold text-gray-800">{primaryBank.accountNumber}</span>
+            <span className="font-bold text-gray-800">
+              {primaryBank ? primaryBank.accountNumber : "Chưa thiết lập"}
+            </span>
           </div>
         </div>
         <div className="mt-4 flex items-center justify-between text-xs border-t border-gray-100 pt-3 text-gray-600">
           <span>Chi nhánh mở tài khoản:</span>
           <span className="font-semibold text-gray-800">
-            {primaryBank.branch}
+            {primaryBank ? primaryBank.branch : "---"}
           </span>
         </div>
       </div>
@@ -114,9 +116,9 @@ export default function BankHeaderStats({
           </div>
         </div>
         <div className="mt-4 flex items-center justify-between text-xs border-t border-gray-100 pt-3 text-gray-600">
-          <span>Tài khoản chính ({primaryBank.shortName}):</span>
+          <span>Tài khoản chính ({primaryBank?.shortName || "Chưa có"}):</span>
           <span className="font-bold text-emerald-700 text-sm">
-            {formatVND(primaryBank.balance)}
+            {primaryBank ? formatVND(primaryBank.balance) : "0 ₫"}
           </span>
         </div>
       </div>

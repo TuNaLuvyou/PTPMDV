@@ -170,3 +170,10 @@ select {
   cursor: pointer;
 }
 
+/* Ẩn Next.js Dev Indicator nút tròn logo "N" ở góc màn hình */
+[data-nextjs-dev-indicator],
+nextjs-portal,
+#nextjs-dev-indicator {
+  display: none !important;
+}
+

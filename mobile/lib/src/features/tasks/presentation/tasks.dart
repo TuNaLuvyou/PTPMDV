@@ -1243,13 +1243,6 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                             color: isDone ? Colors.grey.shade500 : AppColors.textPrimary,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          task.description,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                        ),
                       ],
                     ),
                   ),

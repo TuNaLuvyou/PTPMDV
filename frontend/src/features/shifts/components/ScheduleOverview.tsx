@@ -281,19 +281,19 @@ export default function GeneralScheduleSection({
           {/* Bộ lọc chi nhánh & tìm kiếm */}
           <div className="flex items-center gap-2.5 flex-wrap">
             {isManager ? (
-              <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-700">
-                <FontAwesomeIcon icon={faStore} fontSize={15} className="text-primary" />
-                <span>Chi nhánh: <strong className="text-gray-900">{managerBranch}</strong></span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary-50 text-primary border border-primary-200 ml-1">Cố định</span>
+              <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 h-8 text-xs font-medium text-gray-700">
+                <FontAwesomeIcon icon={faStore} fontSize={13} className="text-primary" />
+                <span className="text-xs">Chi nhánh: <strong className="text-gray-900">{managerBranch}</strong></span>
+                <span className="text-[10px] px-1 py-0.5 rounded bg-primary-50 text-primary border border-primary-200 ml-0.5">Cố định</span>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-700">
-                <FontAwesomeIcon icon={faStore} fontSize={15} className="text-primary" />
-                <span>Chi nhánh:</span>
+              <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 h-8 text-xs text-gray-600">
+                <FontAwesomeIcon icon={faStore} fontSize={13} className="text-primary shrink-0" />
+                <span className="whitespace-nowrap text-xs">Chi nhánh:</span>
                 <select
                   value={selectedBranch}
                   onChange={(e) => setSelectedBranch(e.target.value)}
-                  className="bg-transparent border-none text-xs font-bold text-gray-900 focus:outline-hidden cursor-pointer"
+                  className="bg-transparent border-none text-xs font-bold text-gray-900 focus:outline-hidden cursor-pointer !pr-5 !py-0"
                 >
                   <option value="all">Tất cả chi nhánh</option>
                   {branches.map((b) => (
@@ -306,7 +306,7 @@ export default function GeneralScheduleSection({
             )}
 
             <div className="relative">
-              <FontAwesomeIcon icon={faMagnifyingGlass} fontSize={15}
+              <FontAwesomeIcon icon={faMagnifyingGlass} fontSize={14}
                 className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
               />
               <input
@@ -314,18 +314,18 @@ export default function GeneralScheduleSection({
                 placeholder="Tìm tên hoặc SĐT..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-xs bg-gray-50 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-primary w-40"
+                className="pl-8 pr-3 h-8 border border-gray-200 rounded-lg text-xs bg-gray-50 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-primary w-40"
               />
             </div>
 
-            <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs">
-              <FontAwesomeIcon icon={faFilter} fontSize={14} className="text-gray-400" />
+            <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 h-8 text-xs">
+              <FontAwesomeIcon icon={faFilter} fontSize={13} className="text-gray-400" />
               <select
                 value={statusFilter}
                 onChange={(e) =>
                   setStatusFilter(e.target.value as "all" | "checked_in" | "not_yet")
                 }
-                className="bg-transparent border-none text-xs text-gray-700 focus:outline-hidden cursor-pointer"
+                className="bg-transparent border-none text-xs text-gray-700 focus:outline-hidden cursor-pointer !pr-5 !py-0"
               >
                 <option value="all">Tất cả trạng thái</option>
                 <option value="checked_in">Đã chấm công</option>

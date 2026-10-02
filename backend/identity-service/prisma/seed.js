@@ -10,7 +10,6 @@ async function main() {
   const seeds = [
     { id: "e-admin", email: "admin@company.com", name: "Trần Minh Tuấn", role: "admin", roleTitle: "Quản trị viên", branchSlug: null },
   ];
-  await prisma.user.deleteMany({ where: { email: { not: "admin@company.com" } } }).catch(() => {});
   for (const s of seeds) {
     await prisma.user.upsert({
       where: { email: s.email },

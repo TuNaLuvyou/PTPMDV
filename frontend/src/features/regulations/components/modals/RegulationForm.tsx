@@ -190,15 +190,6 @@ export default function RegulationFormModal({ initial, defaultCode = "", onClose
               📌 Ghim văn bản này lên đầu danh sách
             </label>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500">Phiên bản:</span>
-            <input
-              type="text"
-              value={formVersion}
-              onChange={(e) => setFormVersion(e.target.value)}
-              className="w-16 px-2 py-1 text-xs border border-slate-200 rounded text-center"
-            />
-          </div>
         </div>
       </div>
     </Modal>
