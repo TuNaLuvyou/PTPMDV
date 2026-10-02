@@ -1,10 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { Field, Input, Select, Checkbox } from "@/components/ui/Form";
+import { apiGet } from "@/lib/api";
 import type { ShiftTemplate } from "@/features/shifts/types";
-import type { Employee } from "@/types";
+import type { Employee, Branch } from "@/types";
 
 interface Props {
   open: boolean;
@@ -52,6 +54,12 @@ export default function AssignShiftModal({
   onSave,
 }: Props) {
   const empList = employeesProp ?? [];
+  const [branches, setBranches] = useState<Branch[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    apiGet<Branch[]>("/api/branches").then((d) => setBranches(d || [])).catch(() => {});
+  }, [open ]);
   const isBranchLocked = isManager || (lockedBranch !== undefined && lockedBranch !== "all" && lockedBranch !== "");
   const branchDisplay = isManager ? (managerBranch ?? branch) : (lockedBranch && lockedBranch !== "all" ? lockedBranch : branch);
   return (
@@ -72,9 +80,11 @@ export default function AssignShiftModal({
             </div>
           ) : (
             <Select value={branch} onChange={(e) => onBranchChange(e.target.value)}>
-              <option value="HN-1">Chi nhánh HN-1</option>
-              <option value="HN-2">Chi nhánh HN-2</option>
-              <option value="ĐN-1">Chi nhánh ĐN-1</option>
+              {branches.map((b) => (
+                <option key={b.id || b.slug} value={b.slug.toUpperCase()}>
+                  Chi nhánh {b.slug.toUpperCase()} ({b.name})
+                </option>
+              ))}
             </Select>
           )}
           {isManager && <p className="text-[11px] text-gray-400 mt-1">Manager chỉ phân ca cho chi nhánh phụ trách</p>}

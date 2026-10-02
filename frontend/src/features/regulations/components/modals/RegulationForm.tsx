@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import { Field, Input, Textarea, Select } from "@/components/ui/Form";
-import type { Regulation, RegulationStatus, RegulationCategory } from "@/types";
+import { apiGet } from "@/lib/api";
+import type { Regulation, RegulationStatus, RegulationCategory, Branch } from "@/types";
 
 export interface RegulationFormInput {
   code: string;
@@ -40,6 +41,11 @@ export default function RegulationFormModal({ initial, defaultCode = "", onClose
   const [formAuthor, setFormAuthor] = useState(initial?.author ?? "Ban Giám Đốc");
   const [formVersion, setFormVersion] = useState(initial?.version ?? "1.0");
   const [formPinned, setFormPinned] = useState(!!initial?.pinned);
+  const [branches, setBranches] = useState<Branch[]>([]);
+
+  useEffect(() => {
+    apiGet<Branch[]>("/api/branches").then((d) => setBranches(d || [])).catch(() => {});
+  }, []);
 
   const handleSave = () => {
     if (!formTitle.trim() || !formContent.trim()) {
@@ -129,8 +135,11 @@ export default function RegulationFormModal({ initial, defaultCode = "", onClose
               onChange={(e) => setFormScope(e.target.value)}
             >
               <option value="Toàn công ty">Toàn công ty</option>
-              <option value="HN-1">Chi nhánh Hoàn Kiếm (HN-1)</option>
-              <option value="HN-2">Chi nhánh Ba Đình (HN-2)</option>
+              {branches.map((b) => (
+                <option key={b.id || b.slug} value={b.slug.toUpperCase()}>
+                  Chi nhánh {b.name} ({b.slug.toUpperCase()})
+                </option>
+              ))}
             </Select>
           </Field>
 

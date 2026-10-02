@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCalendar, faEye, faGavel, faMagnifyingGlass, faPen, faThumbtack, faTrashCan, faUser } from "@fortawesome/free-solid-svg-icons";
 import { Card, CardBody } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
-import type { Regulation } from "@/types";
+import { apiGet } from "@/lib/api";
+import type { Regulation, Branch } from "@/types";
 import { getStatusTone, getCategoryColor } from "../helpers";
 
 interface Props {
@@ -22,6 +23,11 @@ export default function RegulationSection({ items, onView, onEdit, onDelete, onT
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [scopeFilter, setScopeFilter] = useState("all");
+  const [branches, setBranches] = useState<Branch[]>([]);
+
+  useEffect(() => {
+    apiGet<Branch[]>("/api/branches").then((d) => setBranches(d || [])).catch(() => {});
+  }, []);
 
   // Filtered items
   const filteredItems = items.filter((item) => {
@@ -102,8 +108,11 @@ export default function RegulationSection({ items, onView, onEdit, onDelete, onT
               >
                 <option value="all">Tất cả phạm vi áp dụng</option>
                 <option value="Toàn công ty">Toàn công ty</option>
-                <option value="HN-1">Chi nhánh Hoàn Kiếm (HN-1)</option>
-                <option value="HN-2">Chi nhánh Ba Đình (HN-2)</option>
+                {branches.map((b) => (
+                  <option key={b.id || b.slug} value={b.slug.toUpperCase()}>
+                    Chi nhánh {b.name} ({b.slug.toUpperCase()})
+                  </option>
+                ))}
               </select>
             </div>
           </div>
