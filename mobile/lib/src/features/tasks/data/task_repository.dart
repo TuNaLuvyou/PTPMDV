@@ -11,6 +11,8 @@ class ApiTaskModel {
   final String? dueDate;
   final String? assigneeId;
   final String? createdAt;
+  final String? proofUrl;
+  final bool requirePhoto;
 
   const ApiTaskModel({
     required this.id,
@@ -22,6 +24,8 @@ class ApiTaskModel {
     this.dueDate,
     this.assigneeId,
     this.createdAt,
+    this.proofUrl,
+    this.requirePhoto = false,
   });
 
   factory ApiTaskModel.fromJson(Map<String, dynamic> j) => ApiTaskModel(
@@ -34,6 +38,8 @@ class ApiTaskModel {
         dueDate: j['dueDate']?.toString(),
         assigneeId: j['assigneeId']?.toString(),
         createdAt: j['createdAt']?.toString(),
+        proofUrl: j['proofUrl']?.toString() ?? j['proofPhotoUrl']?.toString(),
+        requirePhoto: j['requirePhoto'] == true,
       );
 
   TaskModel toTaskModel() {
@@ -69,6 +75,8 @@ class ApiTaskModel {
       status: st,
       priority: pri,
       assignedToName: assigneeId != null ? 'Nhân viên #$assigneeId' : 'Bạn',
+      requirePhoto: requirePhoto,
+      proofPhotoUrl: proofUrl,
     );
   }
 }
@@ -112,8 +120,15 @@ class TaskRepository {
     });
   }
 
-  Future<void> updateTaskStatus(String id, String status) async {
-    await api.putJson('/api/tasks/$id', {'status': status});
+  Future<void> updateTaskStatus(String id, String status, {String? proofUrl}) async {
+    await api.putJson('/api/tasks/$id', {
+      'status': status,
+      if (proofUrl != null) 'proofUrl': proofUrl,
+    });
+  }
+
+  Future<void> updateTask(String id, Map<String, dynamic> payload) async {
+    await api.putJson('/api/tasks/$id', payload);
   }
 
   Future<void> deleteTask(String id) async {

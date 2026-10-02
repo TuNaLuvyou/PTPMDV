@@ -75,10 +75,32 @@ async function deleteById(id) {
   return true;
 }
 
+let memorySettings = {};
+
+async function getSettings(userId) {
+  return memorySettings[userId] || {
+    remindCheckIn: true,
+    remindCheckOut: true,
+    remindShift: true,
+    notifyTask: true,
+    notifyLeave: true,
+  };
+}
+
+async function updateSettings(userId, data) {
+  memorySettings[userId] = {
+    ...(await getSettings(userId)),
+    ...data,
+  };
+  return memorySettings[userId];
+}
+
 module.exports = {
   findMany,
   findById,
   create,
   markAsRead,
   deleteById,
+  getSettings,
+  updateSettings,
 };

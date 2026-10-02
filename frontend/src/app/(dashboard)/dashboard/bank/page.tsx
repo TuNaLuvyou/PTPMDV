@@ -17,7 +17,7 @@ import CreatePayrollDisbursementModal from "@/features/bank/components/modals/Pa
 import BankConfigModal from "@/features/bank/components/modals/BankForm";
 import { initialSoapGatewayConfig } from "@/features/bank/mock";
 import type { BankPartner, SoapTransaction } from "@/features/bank/types";
-import { apiGet, GatewayError } from "@/lib/api";
+import { apiGet, GatewayError, GATEWAY_URL } from "@/lib/api";
 
 interface BankAccountRow {
   id: string;
@@ -26,6 +26,7 @@ interface BankAccountRow {
   bankName?: string;
   balance: number;
   status?: string;
+  isPrimary?: boolean;
 }
 
 interface PayoutRow {
@@ -52,7 +53,7 @@ function accountToPartner(row: BankAccountRow, index: number): BankPartner {
     accountName: row.accountName || displayName,
     branch: "Chi nhánh mở tài khoản",
     balance: Number(row.balance) || 0,
-    isPrimary: index === 0,
+    isPrimary: row.isPrimary === true,
     status: "active",
     soapProtocol: "SOAP 1.2 / HTTPS (qua Gateway :4000)",
     mTLSStatus: "valid",
@@ -81,7 +82,7 @@ function payoutToTx(row: PayoutRow, bankNameByAccount: Map<string, string>): Soa
 export default function BankIntegrationPage() {
   const [partners, setPartners] = useState<BankPartner[]>([]);
   const [transactions, setTransactions] = useState<SoapTransaction[]>([]);
-  const [gatewayConfig] = useState(initialSoapGatewayConfig);
+  const [gatewayConfig, setGatewayConfig] = useState(initialSoapGatewayConfig);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -115,15 +116,46 @@ export default function BankIntegrationPage() {
 
   useEffect(() => {
     fetchData();
+    apiGet<any>("/api/soap-config")
+      .then((c) => {
+        if (c && typeof c === "object") {
+          setGatewayConfig({
+            endpointUrl: c.endpointUrl ?? "",
+            wsdlUrl: c.wsdlUrl ?? "",
+            serviceName: c.serviceName ?? "",
+            port: Number(c.port) || 0,
+            securityMode: c.securityMode ?? "",
+            allowedIPs: Array.isArray(c.allowedIPs) ? c.allowedIPs : [],
+            status: c.status ?? "unknown",
+            lastPingTime: c.lastPingTime ?? "—",
+            avgResponseTime: c.avgResponseTime ?? "—",
+          });
+        }
+      })
+      .catch(() => {});
   }, [fetchData]);
 
-  const handleSetPrimary = (bankId: string) => {
-    setPartners((prev) =>
-      prev.map((p) => ({
-        ...p,
-        isPrimary: p.id === bankId,
-      }))
-    );
+  const handleSetPrimary = async (bankId: string) => {
+    try {
+      const res = await fetch(`${GATEWAY_URL}/api/payroll/bank-accounts/${bankId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPrimary: true }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error?.message || `HTTP_${res.status}`);
+      }
+      setPartners((prev) =>
+        prev.map((p) => ({
+          ...p,
+          isPrimary: p.id === bankId,
+        }))
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Lỗi đặt tài khoản chính");
+    }
   };
 
   const handleDisburseSuccess = (newTx: SoapTransaction, deduped: boolean) => {

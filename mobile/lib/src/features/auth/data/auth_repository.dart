@@ -40,6 +40,9 @@ class AuthRepository {
       bankName: j['bankName']?.toString() ?? '',
       bankAccountNumber: j['bankAccountNumber']?.toString() ?? '',
       bankAccountName: j['bankAccountName']?.toString() ?? '',
+      avatarUrl: j['avatarUrl']?.toString(),
+      cccdFrontUrl: j['cccdFrontUrl']?.toString(),
+      cccdBackUrl: j['cccdBackUrl']?.toString(),
     );
   }
 

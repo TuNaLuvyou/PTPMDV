@@ -145,6 +145,13 @@ export default function RequestsPage() {
     shiftSwapMode: "manager",
     requireReasonSwap: true,
     allowDoubleCheckin: true,
+    latePenaltyPct: "10",
+    earlyLeavePenaltyPct: "10",
+    earlyCheckinMinutes: "15",
+    maxPenaltiesPerMonth: "10 lần",
+    deductOnCheckout: true,
+    maxCheckinsPerDay: "3 lần",
+    maxSwapsPerMonth: "3 lần",
   });
 
   const showToast = (text: string, tone: "success" | "danger" = "success") => {
@@ -205,8 +212,17 @@ export default function RequestsPage() {
         const c = configRes.value;
         setAttConfig((prev) => ({
           ...prev,
-          gracePeriod: c.gracePeriodMinutes || prev.gracePeriod,
+          gracePeriod: String(c.gracePeriodMinutes ?? prev.gracePeriod),
           shiftSwapMode: c.shiftSwapMode || prev.shiftSwapMode,
+          requireReasonSwap: c.requireReasonSwap ?? prev.requireReasonSwap,
+          allowDoubleCheckin: c.allowDoubleCheckin ?? prev.allowDoubleCheckin,
+          latePenaltyPct: String(c.latePenaltyPct ?? prev.latePenaltyPct),
+          earlyLeavePenaltyPct: String(c.earlyLeavePenaltyPct ?? prev.earlyLeavePenaltyPct),
+          earlyCheckinMinutes: String(c.earlyCheckinMinutes ?? prev.earlyCheckinMinutes),
+          maxPenaltiesPerMonth: c.maxPenaltiesPerMonth != null ? `${c.maxPenaltiesPerMonth} lần` : prev.maxPenaltiesPerMonth,
+          deductOnCheckout: c.deductOnCheckout ?? prev.deductOnCheckout,
+          maxCheckinsPerDay: c.maxCheckinsPerDay != null ? `${c.maxCheckinsPerDay} lần` : prev.maxCheckinsPerDay,
+          maxSwapsPerMonth: c.maxSwapsPerMonth != null ? `${c.maxSwapsPerMonth} lần` : prev.maxSwapsPerMonth,
         }));
       }
     } catch (e: any) {
@@ -317,6 +333,15 @@ export default function RequestsPage() {
       await apiPut("/api/attendance/config", {
         gracePeriodMinutes: parseInt(attConfig.gracePeriod, 10) || 5,
         shiftSwapMode: attConfig.shiftSwapMode,
+        requireReasonSwap: attConfig.requireReasonSwap,
+        allowDoubleCheckin: attConfig.allowDoubleCheckin,
+        latePenaltyPct: parseInt(attConfig.latePenaltyPct, 10) || 0,
+        earlyLeavePenaltyPct: parseInt(attConfig.earlyLeavePenaltyPct, 10) || 0,
+        earlyCheckinMinutes: parseInt(attConfig.earlyCheckinMinutes, 10) || 0,
+        maxPenaltiesPerMonth: parseInt(attConfig.maxPenaltiesPerMonth, 10) || 0,
+        deductOnCheckout: attConfig.deductOnCheckout,
+        maxCheckinsPerDay: parseInt(attConfig.maxCheckinsPerDay, 10) || 0,
+        maxSwapsPerMonth: parseInt(attConfig.maxSwapsPerMonth, 10) || 0,
       });
       showToast("Đã lưu cấu hình chấm công vào hệ thống", "success");
     } catch {

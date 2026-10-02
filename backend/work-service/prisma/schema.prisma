@@ -48,8 +48,28 @@ model AttendanceConfig {
   gracePeriodMinutes      Int    @default(5)
   autoCloseShift          Boolean @default(false)
   shiftSwapMode           String @default("manual")
+  latePenaltyPct          Int    @default(10)
+  earlyLeavePenaltyPct    Int    @default(10)
+  earlyCheckinMinutes     Int    @default(15)
+  maxPenaltiesPerMonth    Int    @default(10)
+  deductOnCheckout        Boolean @default(true)
+  allowDoubleCheckin      Boolean @default(true)
+  maxCheckinsPerDay       Int    @default(3)
+  maxSwapsPerMonth        Int    @default(3)
+  requireReasonSwap       Boolean @default(true)
 
   @@map("attendance_configs")
+}
+
+model ShiftTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  startTime String
+  endTime   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("shift_templates")
 }
 
 model ShiftRegistration {

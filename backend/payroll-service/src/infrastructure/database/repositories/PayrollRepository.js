@@ -47,19 +47,58 @@ async function listBankAccounts() {
 
 async function updateBankAccount(id, payload) {
   const allowed = {};
-  for (const k of ["accountName", "bankName", "status", "balance"]) {
+  for (const k of ["accountName", "bankName", "status", "balance", "isPrimary"]) {
     if (payload[k] !== undefined) allowed[k] = payload[k];
   }
   const prisma = database.getPrisma();
   if (prisma) {
     try {
+      // Chỉ cho phép tối đa 1 tài khoản primary.
+      if (allowed.isPrimary === true) {
+        await prisma.bankAccount.updateMany({ where: {}, data: { isPrimary: false } });
+      }
       return await prisma.bankAccount.update({ where: { id }, data: allowed });
     } catch (_) {}
   }
   const idx = memoryAccounts.findIndex((a) => a.id === id);
   if (idx < 0) return null;
+  if (allowed.isPrimary === true) {
+    memoryAccounts = memoryAccounts.map((a) => ({ ...a, isPrimary: false }));
+  }
   memoryAccounts[idx] = { ...memoryAccounts[idx], ...allowed };
   return memoryAccounts[idx];
+}
+
+async function createBankAccount(payload) {
+  const prisma = database.getPrisma();
+  if (prisma) {
+    try {
+      if (payload.isPrimary === true) {
+        await prisma.bankAccount.updateMany({ where: {}, data: { isPrimary: false } });
+      }
+      return await prisma.bankAccount.create({ data: payload });
+    } catch (_) {}
+  }
+  const row = { id: uid("bank"), status: "hoạt động", ...payload };
+  if (row.isPrimary === true) {
+    memoryAccounts = memoryAccounts.map((a) => ({ ...a, isPrimary: false }));
+  }
+  memoryAccounts.push(row);
+  return row;
+}
+
+async function deleteBankAccount(id) {
+  const prisma = database.getPrisma();
+  if (prisma) {
+    try {
+      await prisma.bankAccount.delete({ where: { id } });
+      return true;
+    } catch (_) {}
+  }
+  const idx = memoryAccounts.findIndex((a) => a.id === id);
+  if (idx < 0) return false;
+  memoryAccounts.splice(idx, 1);
+  return true;
 }
 
 async function findAccount(accountNumber) {
@@ -285,6 +324,9 @@ module.exports = {
   ensureSeeded,
   listBankAccounts,
   updateBankAccount,
+  createBankAccount,
+  deleteBankAccount,
+  getPayslip: findPayslip,
   listPayouts,
   findByIdempotencyKey,
   createPayout,

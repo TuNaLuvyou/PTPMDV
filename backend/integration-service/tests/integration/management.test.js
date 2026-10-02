@@ -3,6 +3,7 @@
 const assert = require("node:assert/strict");
 const { test, describe, before, after } = require("node:test");
 const app = require("../../src/app");
+const database = require("../../config/database");
 
 describe("Management Modules Integration Tests (News, Regulations, WifiConfigs)", () => {
   let server;
@@ -14,8 +15,12 @@ describe("Management Modules Integration Tests (News, Regulations, WifiConfigs)"
     baseUrl = `http://localhost:${server.address().port}`;
   });
 
-  after(() => {
-    if (server) server.close();
+  after(async () => {
+    if (server) {
+      if (server.closeAllConnections) server.closeAllConnections();
+      await new Promise((r) => server.close(r));
+    }
+    await database.disconnect();
   });
 
   // --- 1. BẢNG TIN (NEWS) ---

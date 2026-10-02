@@ -30,6 +30,11 @@ class UserModel {
   final String bankAccountNumber; // Số tài khoản ngân hàng
   final String bankAccountName; // Tên chủ tài khoản
 
+  /// Hình ảnh xác thực (Cloudinary)
+  final String? avatarUrl;
+  final String? cccdFrontUrl;
+  final String? cccdBackUrl;
+
   const UserModel({
     this.id = '',
     required this.name,
@@ -52,6 +57,9 @@ class UserModel {
     this.bankName = '',
     this.bankAccountNumber = '',
     this.bankAccountName = '',
+    this.avatarUrl,
+    this.cccdFrontUrl,
+    this.cccdBackUrl,
   });
 
   bool get isAdmin => role == 'admin';

@@ -45,6 +45,36 @@ async function createPayout(req, res, next) {
   }
 }
 
+async function createBankAccount(req, res, next) {
+  try {
+    if (!req.body.accountNumber) throw new ValidationError("Thiếu accountNumber");
+    const row = await PayrollRepository.createBankAccount(req.body);
+    return res.status(201).json({ data: row, message: "Tạo tài khoản thành công" });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function deleteBankAccount(req, res, next) {
+  try {
+    const ok = await PayrollRepository.deleteBankAccount(req.params.id);
+    if (!ok) throw new NotFoundError("Không tìm thấy tài khoản ngân hàng");
+    return res.status(200).json({ data: { ok: true }, message: "Xóa tài khoản thành công" });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function getPayslip(req, res, next) {
+  try {
+    const row = await PayrollRepository.getPayslip(req.params.id);
+    if (!row) throw new NotFoundError("Không tìm thấy phiếu lương");
+    return res.status(200).json({ data: row, message: "Thao tác thành công" });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 async function listPayslips(req, res, next) {
   try {
     const rows = await PayrollRepository.listPayslips(req.query);
@@ -89,10 +119,13 @@ async function setPayslipStatus(req, res, next) {
 module.exports = {
   listBankAccounts,
   updateBankAccount,
+  createBankAccount,
+  deleteBankAccount,
   listPayouts,
   createPayout,
   listPayslips,
   generatePayslip,
   updatePayslip,
   setPayslipStatus,
+  getPayslip,
 };

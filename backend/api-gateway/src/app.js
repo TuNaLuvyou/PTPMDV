@@ -63,6 +63,7 @@ app.use(proxyTo("/api/branches", config.targets.organization, "organization-serv
 app.use(proxyTo("/api/departments", config.targets.organization, "organization-service"));
 app.use(proxyTo("/api/employees", config.targets.organization, "organization-service"));
 app.use(proxyTo("/api/shifts", config.targets.work, "work-service"));
+app.use(proxyTo("/api/shift-templates", config.targets.work, "work-service"));
 app.use(proxyTo("/api/attendance", config.targets.work, "work-service"));
 app.use(proxyTo("/api/tasks", config.targets.work, "work-service"));
 app.use(proxyTo("/api/payroll", config.targets.payroll, "payroll-service"));
@@ -73,6 +74,8 @@ app.use(proxyTo("/api/regulations", config.targets.integration, "integration-ser
 app.use(proxyTo("/api/wifi-configs", config.targets.integration, "integration-service"));
 app.use(proxyTo("/api/requests", config.targets.integration, "integration-service"));
 app.use(proxyTo("/api/notifications", config.targets.integration, "integration-service"));
+app.use(proxyTo("/api/soap-config", config.targets.integration, "integration-service"));
+app.use(proxyTo("/api/upload", config.targets.integration, "integration-service"));
 
 app.use((_req, res) => {
   res.status(404).json({ error: { code: "NOT_FOUND", message: "Không tìm thấy tài nguyên" } });

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/state/user_scope.dart';
+import '../../notifications/data/notification_repository.dart';
 
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -10,6 +12,9 @@ class NotificationSettingsScreen extends StatefulWidget {
 }
 
 class _NotificationSettingsScreenState extends State<NotificationSettingsScreen> {
+  final NotificationRepository _repo = NotificationRepository();
+  bool _isLoading = true;
+
   // 1. Nhắc nhở Check-in (Vào ca)
   bool _checkInBefore1Hour = true;
   bool _checkInBefore30Min = true;
@@ -25,6 +30,49 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   bool _tabNotificationAlert = true;
   bool _soundEnabled = true;
   bool _vibrateEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadSettings();
+    });
+  }
+
+  Future<void> _loadSettings() async {
+    try {
+      final user = UserScope.currentUser(context);
+      final data = await _repo.getSettings(userId: user?.id);
+      if (data != null && mounted) {
+        setState(() {
+          if (data['checkInBefore1Hour'] is bool) _checkInBefore1Hour = data['checkInBefore1Hour'] == true;
+          if (data['checkInBefore30Min'] is bool) _checkInBefore30Min = data['checkInBefore30Min'] == true;
+          if (data['checkInBefore10Min'] is bool) _checkInBefore10Min = data['checkInBefore10Min'] == true;
+          if (data['checkOutBefore10Min'] is bool) _checkOutBefore10Min = data['checkOutBefore10Min'] == true;
+          if (data['missedCheckOutAfter10Min'] is bool) _missedCheckOutAfter10Min = data['missedCheckOutAfter10Min'] == true;
+          if (data['missedCheckOutAfter30Min'] is bool) _missedCheckOutAfter30Min = data['missedCheckOutAfter30Min'] == true;
+          if (data['missedCheckOutAfter1Hour'] is bool) _missedCheckOutAfter1Hour = data['missedCheckOutAfter1Hour'] == true;
+          if (data['tabNotificationAlert'] is bool) _tabNotificationAlert = data['tabNotificationAlert'] == true;
+          if (data['soundEnabled'] is bool) _soundEnabled = data['soundEnabled'] == true;
+          if (data['vibrateEnabled'] is bool) _vibrateEnabled = data['vibrateEnabled'] == true;
+        });
+      }
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _saveSetting(String key, bool value, String label) async {
+    _showSavedToast(label, value);
+    try {
+      final user = UserScope.currentUser(context);
+      await _repo.updateSettings({
+        if (user?.id != null) 'userId': user!.id,
+        key: value,
+      });
+    } catch (_) {}
+  }
 
   void _showSavedToast(String label, bool value) {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -54,6 +102,11 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
+          if (_isLoading)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 12.0),
+              child: LinearProgressIndicator(minHeight: 2),
+            ),
           // Nhóm 1: Nhắc nhở Check-in (Vào ca)
           _buildSectionHeader('Nhắc nhở Chấm công vào ca (Check-in)'),
           _buildSettingsCard([
@@ -63,7 +116,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               value: _checkInBefore1Hour,
               onChanged: (val) {
                 setState(() => _checkInBefore1Hour = val);
-                _showSavedToast('Nhắc check-in trước 1 tiếng', val);
+                _saveSetting('checkInBefore1Hour', val, 'Nhắc check-in trước 1 tiếng');
               },
             ),
             const Divider(height: 1),
@@ -73,7 +126,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               value: _checkInBefore30Min,
               onChanged: (val) {
                 setState(() => _checkInBefore30Min = val);
-                _showSavedToast('Nhắc check-in trước 30 phút', val);
+                _saveSetting('checkInBefore30Min', val, 'Nhắc check-in trước 30 phút');
               },
             ),
             const Divider(height: 1),
@@ -83,7 +136,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               value: _checkInBefore10Min,
               onChanged: (val) {
                 setState(() => _checkInBefore10Min = val);
-                _showSavedToast('Nhắc check-in trước 10 phút', val);
+                _saveSetting('checkInBefore10Min', val, 'Nhắc check-in trước 10 phút');
               },
             ),
           ]),
@@ -98,7 +151,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               value: _checkOutBefore10Min,
               onChanged: (val) {
                 setState(() => _checkOutBefore10Min = val);
-                _showSavedToast('Nhắc check-out trước 10 phút', val);
+                _saveSetting('checkOutBefore10Min', val, 'Nhắc check-out trước 10 phút');
               },
             ),
             const Divider(height: 1),
@@ -108,7 +161,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               value: _missedCheckOutAfter10Min,
               onChanged: (val) {
                 setState(() => _missedCheckOutAfter10Min = val);
-                _showSavedToast('Nhắc quên check-out sau 10 phút', val);
+                _saveSetting('missedCheckOutAfter10Min', val, 'Nhắc quên check-out sau 10 phút');
               },
             ),
             const Divider(height: 1),
@@ -118,7 +171,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               value: _missedCheckOutAfter30Min,
               onChanged: (val) {
                 setState(() => _missedCheckOutAfter30Min = val);
-                _showSavedToast('Nhắc quên check-out sau 30 phút', val);
+                _saveSetting('missedCheckOutAfter30Min', val, 'Nhắc quên check-out sau 30 phút');
               },
             ),
             const Divider(height: 1),
@@ -128,7 +181,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               value: _missedCheckOutAfter1Hour,
               onChanged: (val) {
                 setState(() => _missedCheckOutAfter1Hour = val);
-                _showSavedToast('Nhắc quên check-out sau 1 tiếng', val);
+                _saveSetting('missedCheckOutAfter1Hour', val, 'Nhắc quên check-out sau 1 tiếng');
               },
             ),
           ]),
@@ -143,7 +196,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               value: _tabNotificationAlert,
               onChanged: (val) {
                 setState(() => _tabNotificationAlert = val);
-                _showSavedToast('Thông báo trung tâm', val);
+                _saveSetting('tabNotificationAlert', val, 'Thông báo trung tâm');
               },
             ),
             const Divider(height: 1),
@@ -154,7 +207,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               enabled: _tabNotificationAlert,
               onChanged: (val) {
                 setState(() => _soundEnabled = val);
-                _showSavedToast('Âm thanh thông báo', val);
+                _saveSetting('soundEnabled', val, 'Âm thanh thông báo');
               },
             ),
             const Divider(height: 1),
@@ -165,7 +218,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               enabled: _tabNotificationAlert,
               onChanged: (val) {
                 setState(() => _vibrateEnabled = val);
-                _showSavedToast('Rung thông báo', val);
+                _saveSetting('vibrateEnabled', val, 'Rung thông báo');
               },
             ),
           ]),

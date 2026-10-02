@@ -29,7 +29,7 @@ export default function BankConfigModal({ partner, onClose, onSaved }: Props) {
   useEffect(() => {
     if (partner) {
       setAccountName(partner.accountName);
-      setStatus(partner.balance >= 0 ? "hoạt động" : "hoạt động");
+      setStatus(partner.status === "active" ? "hoạt động" : "vô hiệu hóa");
       setError(null);
     }
   }, [partner]);

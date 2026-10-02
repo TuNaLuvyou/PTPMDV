@@ -79,12 +79,6 @@ async function apiDelete<T>(path: string): Promise<T> {
   }
 }
 
-const initialTemplates: ShiftTemplate[] = [
-  { id: "t1", name: "Ca Sáng", startTime: "07:00", endTime: "14:00" },
-  { id: "t2", name: "Ca Chiều", startTime: "14:00", endTime: "22:00" },
-  { id: "t3", name: "Ca Tối (Part-time)", startTime: "18:00", endTime: "23:00" },
-];
-
 function mapBackendShiftToWorkShift(s: any, empMap?: Map<string, string>): WorkShift {
   const empName =
     (s.employeeId && empMap?.get(s.employeeId)) ||
@@ -159,7 +153,7 @@ export default function ShiftsPage() {
   const managerBranch = branchSlug.toUpperCase();
   const [activeTab, setActiveTab] = useState<"scheduling" | "general_schedule" | "templates">("scheduling");
 
-  const [templates, setTemplates] = useState<ShiftTemplate[]>(initialTemplates);
+  const [templates, setTemplates] = useState<ShiftTemplate[]>([]);
   // Khung ca mẫu chưa có API backend -> giữ local state (xử lý sau).
   // Ca làm việc & nguyện vọng: khởi rỗng, chỉ nhận từ API; DB rỗng -> empty state.
   const [workShiftList, setWorkShiftList] = useState<WorkShift[]>([]);
@@ -212,10 +206,11 @@ export default function ShiftsPage() {
 
       const queryString = queryParams.toString() ? `?${queryParams.toString()}` : "";
 
-      const [shiftsRes, regRes, employeesRes] = await Promise.allSettled([
+      const [shiftsRes, regRes, employeesRes, templatesRes] = await Promise.allSettled([
         apiGet<any[]>(`/api/shifts${queryString}`),
         apiGet<any[]>(`/api/shifts/registrations${queryString}`),
         apiGet<Employee[]>("/api/employees"),
+        apiGet<any[]>(`/api/shift-templates`),
       ]);
 
       let employeesData: Employee[] = [];
@@ -228,6 +223,10 @@ export default function ShiftsPage() {
       const currentEmpMap = new Map<string, string>();
       for (const e of employeesData) {
         currentEmpMap.set(e.id, e.name);
+      }
+
+      if (templatesRes.status === "fulfilled" && Array.isArray(templatesRes.value)) {
+        setTemplates(templatesRes.value);
       }
 
       if (shiftsRes.status === "fulfilled" && Array.isArray(shiftsRes.value)) {
@@ -296,23 +295,40 @@ export default function ShiftsPage() {
     setAddTemplateOpen(true);
   };
 
-  const handleSaveTemplate = () => {
+  const handleSaveTemplate = async () => {
     if (!newTemplateName) return;
-    if (editingTemplate) {
-      setTemplates((prev) =>
-        prev.map((t) =>
-          t.id === editingTemplate.id
-            ? { ...t, name: newTemplateName, startTime: newTemplateStart, endTime: newTemplateEnd }
-            : t
-        )
-      );
-      showToast(`Đã cập nhật khung ca "${newTemplateName}"`, "success");
-    } else {
-      setTemplates((prev) => [
-        ...prev,
-        { id: `t-${Date.now()}`, name: newTemplateName, startTime: newTemplateStart, endTime: newTemplateEnd },
-      ]);
-      showToast(`Đã thêm khung ca "${newTemplateName}"`, "success");
+    try {
+      setActionInProgress(true);
+      if (editingTemplate) {
+        const updated = await apiPut<any>(`/api/shift-templates/${encodeURIComponent(editingTemplate.id)}`, {
+          name: newTemplateName,
+          startTime: newTemplateStart,
+          endTime: newTemplateEnd,
+        });
+        const row = updated && typeof updated === "object" && "data" in updated ? (updated as any).data : updated;
+        setTemplates((prev) =>
+          prev.map((t) =>
+            t.id === editingTemplate.id
+              ? { ...t, name: row?.name ?? newTemplateName, startTime: row?.startTime ?? newTemplateStart, endTime: row?.endTime ?? newTemplateEnd }
+              : t
+          )
+        );
+        showToast(`Đã cập nhật khung ca "${newTemplateName}"`, "success");
+      } else {
+        const created: any = await apiPost<any>(`/api/shift-templates`, {
+          name: newTemplateName,
+          startTime: newTemplateStart,
+          endTime: newTemplateEnd,
+        });
+        const row = created && typeof created === "object" && "data" in created ? created.data : created;
+        setTemplates((prev) => [...prev, { id: row?.id ?? `st-${Date.now()}`, name: row?.name ?? newTemplateName, startTime: row?.startTime ?? newTemplateStart, endTime: row?.endTime ?? newTemplateEnd }]);
+        showToast(`Đã thêm khung ca "${newTemplateName}"`, "success");
+      }
+    } catch (e: any) {
+      const msg = e instanceof GatewayError ? e.message : e?.message || "Lỗi khi lưu khung ca mẫu";
+      showToast(msg, "danger");
+    } finally {
+      setActionInProgress(false);
     }
     setAddTemplateOpen(false);
     setEditingTemplate(null);
@@ -582,9 +598,15 @@ export default function ShiftsPage() {
                 templates={templates}
                 onAdd={openAddTemplate}
                 onEdit={openEditTemplate}
-                onDelete={(id) => {
-                  setTemplates((prev) => prev.filter((t) => t.id !== id));
-                  showToast("Đã xóa khung ca mẫu", "success");
+                onDelete={async (id) => {
+                  try {
+                    await apiDelete(`/api/shift-templates/${encodeURIComponent(id)}`);
+                    setTemplates((prev) => prev.filter((t) => t.id !== id));
+                    showToast("Đã xóa khung ca mẫu", "success");
+                  } catch (e: any) {
+                    const msg = e instanceof GatewayError ? e.message : e?.message || "Lỗi khi xóa khung ca mẫu";
+                    showToast(msg, "danger");
+                  }
                 }}
               />
             </div>
@@ -628,7 +650,7 @@ export default function ShiftsPage() {
         onSave={handleAssignShift}
       />
 
-      <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} />
+      <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} workShifts={displayedWorkShifts} />
     </div>
   );
 }
