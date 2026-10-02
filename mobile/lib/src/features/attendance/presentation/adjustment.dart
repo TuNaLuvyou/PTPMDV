@@ -184,7 +184,8 @@ class _AttendanceAdjustmentScreenState extends State<AttendanceAdjustmentScreen>
                   return;
                 }
                 final user = UserScope.currentUser(context);
-                final empId = user?.id ?? '1';
+                final empId = user?.id ?? '';
+                if (empId.isEmpty) return;
                 try {
                   await LeaveRepository().createRequest({
                     'type': 'work_supplement',

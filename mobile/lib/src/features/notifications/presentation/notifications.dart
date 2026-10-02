@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/state/branch_scope.dart';
 import '../data/notification_repository.dart';
 import 'request_detail.dart';
 
@@ -367,10 +368,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           requestType: item.requestType ?? 'cover',
           requestTime: item.time,
           shiftName: item.shiftName ?? 'Ca làm việc',
-          shiftTime: item.shiftTime ?? '08:00 - 17:00',
-          shiftHours: item.shiftHours ?? '5.0 giờ',
-          shiftDate: item.shiftDate ?? 'Hôm nay',
-          branch: item.branch ?? 'Chi nhánh 01',
+          shiftTime: item.shiftTime ?? '—',
+          shiftHours: item.shiftHours ?? '—',
+          shiftDate: item.shiftDate ?? '—',
+          branch: item.branch ?? BranchScope.label(context),
           shiftRole: item.shiftRole ?? 'Nhân viên',
           swapShiftName: item.swapShiftName,
           swapShiftTime: item.swapShiftTime,

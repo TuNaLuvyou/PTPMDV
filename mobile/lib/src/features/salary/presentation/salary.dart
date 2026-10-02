@@ -561,7 +561,8 @@ class _SalaryScreenState extends State<SalaryScreen> {
                   return;
                 }
                 final user = UserScope.currentUser(context);
-                final uid = user?.id ?? '1';
+                final uid = user?.id ?? '';
+                if (uid.isEmpty) return;
                 try {
                   await LeaveRepository().createRequest({
                     'type': 'other',

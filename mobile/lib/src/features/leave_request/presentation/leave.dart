@@ -164,7 +164,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                   }
                   final dateStr = '${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.year}';
                   final user = UserScope.currentUser(context);
-                  final empId = user?.id ?? '1';
+                  final empId = user?.id ?? '';
+                  if (empId.isEmpty) return;
 
                   try {
                     await _leaveRepo.createRequest({

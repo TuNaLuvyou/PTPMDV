@@ -160,8 +160,10 @@ class _ScheduleRegistrationScreenState extends State<ScheduleRegistrationScreen>
   Future<void> _loadRemoteRegistrations() async {
     try {
       final user = UserScope.currentUser(context);
-      final empId = user?.id ?? '1';
-      final regs = await ShiftRepository().getRegistrations(employeeId: empId);
+      final empId = user?.id ?? '';
+      final regs = empId.isNotEmpty
+          ? await ShiftRepository().getRegistrations(employeeId: empId)
+          : <Map<String, dynamic>>[];
       if (mounted) {
         final weekData = _getOrCreateWeekData(_weekOffset);
         // Reset về rỗng trước khi điền API để rỗng hiện empty state
@@ -207,12 +209,14 @@ class _ScheduleRegistrationScreenState extends State<ScheduleRegistrationScreen>
 
   void _onSelectShift(DayShiftRegistration day, String shiftId) {
     final user = UserScope.currentUser(context);
-    final empId = user?.id ?? '1';
-    ShiftRepository().registerShift(
-      employeeId: empId,
-      shiftId: shiftId,
-      preference: day.dateStr,
-    ).catchError((_) {});
+    final empId = user?.id ?? '';
+    if (empId.isNotEmpty) {
+      ShiftRepository().registerShift(
+        employeeId: empId,
+        shiftId: shiftId,
+        preference: day.dateStr,
+      ).catchError((_) {});
+    }
     setState(() {
       day.selectedShiftId = shiftId;
     });
@@ -254,12 +258,14 @@ class _ScheduleRegistrationScreenState extends State<ScheduleRegistrationScreen>
       return;
     }
     final user = UserScope.currentUser(context);
-    final empId = user?.id ?? '1';
-    ShiftRepository().registerShift(
-      employeeId: empId,
-      shiftId: 'preference_note',
-      preference: note,
-    ).catchError((_) {});
+    final empId = user?.id ?? '';
+    if (empId.isNotEmpty) {
+      ShiftRepository().registerShift(
+        employeeId: empId,
+        shiftId: 'preference_note',
+        preference: note,
+      ).catchError((_) {});
+    }
     setState(() {
       _currentWeekData.note = note;
       _currentWeekData.noteSent = true;

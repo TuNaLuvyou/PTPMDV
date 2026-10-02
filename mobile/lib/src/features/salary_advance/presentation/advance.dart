@@ -132,7 +132,9 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
               controller: amountController,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                hintText: 'Tối đa 3.400.000 đ',
+                hintText: _estimatedSalary != null
+                    ? 'Tối đa ${_formatCurrency((_estimatedSalary! / 2).round())}'
+                    : 'Nhập số tiền muốn tạm ứng',
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 suffixText: 'VNĐ',
@@ -162,7 +164,8 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
                   return;
                 }
                 final user = UserScope.currentUser(context);
-                final empId = user?.id ?? '1';
+                final empId = user?.id ?? '';
+                if (empId.isEmpty) return;
 
                 try {
                   await _leaveRepo.createRequest({
