@@ -103,7 +103,7 @@ function mapBackendRequest(r: any, empMap?: Map<string, string>): ShiftRequest {
     status = "chờ duyệt";
   }
 
-  const createdDate = r.createdAt ? new Date(r.createdAt).toLocaleDateString("vi-VN") : "17/08/2026";
+  const createdDate = r.createdAt ? new Date(r.createdAt).toLocaleDateString("vi-VN") : "—";
   const from = r.from || `${createdDate} 08:00`;
   const to = r.to || `${createdDate} 17:30`;
 
@@ -121,7 +121,7 @@ function mapBackendRequest(r: any, empMap?: Map<string, string>): ShiftRequest {
 }
 
 export default function RequestsPage() {
-  const { role, branchSlug } = useCurrentUser();
+  const { role, branchSlug, name: currentUserRealName } = useCurrentUser();
   const isAdmin = role === "admin";
   const isManager = role === "manager";
   const managerBranch = branchSlug.toUpperCase();
@@ -260,7 +260,12 @@ export default function RequestsPage() {
     };
   }, [requests, isManager, branchSlug]);
 
-  const currentUserName = isAdmin ? "Trần Minh Tuấn (Admin)" : "Vũ Thành Công (Quản lý)";
+  const currentUserName =
+    currentUserRealName && currentUserRealName !== "Đang tải..."
+      ? `${currentUserRealName} (${isAdmin ? "Admin" : "Quản lý"})`
+      : isAdmin
+        ? "Quản trị viên"
+        : "Quản lý chi nhánh";
 
   // Duyệt yêu cầu (PUT /api/requests/:id/approve)
   const handleApprove = async (id: string, note?: string) => {

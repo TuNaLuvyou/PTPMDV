@@ -105,7 +105,7 @@ function mapBackendTaskToTaskItem(raw: any, empMap?: Map<string, Employee>): Tas
     assignedByName: raw.assignedByName || "Ban Quản lý",
     shiftName: raw.shiftName,
     branch: raw.branchSlug || raw.branch || "HN-1",
-    dueDate: raw.dueDate ? String(raw.dueDate).replace("T", " ") : "2026-10-15 18:00",
+    dueDate: raw.dueDate ? String(raw.dueDate).replace("T", " ") : "—",
     status,
     priority: raw.priority || "normal",
     assignedToEmail,
@@ -113,7 +113,7 @@ function mapBackendTaskToTaskItem(raw: any, empMap?: Map<string, Employee>): Tas
     completedAt: raw.completedAt,
     createdAt: raw.createdAt
       ? new Date(raw.createdAt).toISOString().replace("T", " ").substring(0, 16)
-      : "2026-10-01 08:00",
+      : "—",
     requirePhoto: Boolean(raw.requirePhoto),
     proofPhotoUrl: raw.proofPhotoUrl,
     photoSubmittedBy: raw.photoSubmittedBy,
@@ -122,7 +122,7 @@ function mapBackendTaskToTaskItem(raw: any, empMap?: Map<string, Employee>): Tas
 }
 
 export default function TasksPage() {
-  const { role, branchSlug } = useCurrentUser();
+  const { role, branchSlug, name: currentUserRealName } = useCurrentUser();
   const isAdmin = role === "admin";
 
   const [tasks, setTasks] = useState<TaskItem[]>([]);
@@ -342,7 +342,12 @@ export default function TasksPage() {
     }
   };
 
-  const currentUserName = isAdmin ? "Trần Minh Tuấn (Admin)" : "Vũ Thành Công (Quản lý)";
+  const currentUserName =
+    currentUserRealName && currentUserRealName !== "Đang tải..."
+      ? `${currentUserRealName} (${isAdmin ? "Admin" : "Quản lý"})`
+      : isAdmin
+        ? "Quản trị viên"
+        : "Quản lý chi nhánh";
 
   return (
     <div className="space-y-6">

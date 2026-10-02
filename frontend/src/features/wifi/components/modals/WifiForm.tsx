@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import { Field, Input, Select } from "@/components/ui/Form";
-import type { WifiConfig } from "@/types";
+import { apiGet } from "@/lib/api";
+import type { WifiConfig, Branch } from "@/types";
 
 export interface WifiFormPayload {
   ssid: string;
@@ -27,6 +28,7 @@ export default function WifiFormModal({ open, onClose, initial, saving, onSubmit
   const [bssid, setBssid] = useState("");
   const [branch, setBranch] = useState("HN-1");
   const [status, setStatus] = useState("hoạt động");
+  const [branches, setBranches] = useState<Branch[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -34,6 +36,7 @@ export default function WifiFormModal({ open, onClose, initial, saving, onSubmit
       setBssid(initial?.bssid || "");
       setBranch(initial?.branch || "HN-1");
       setStatus(initial?.status || "hoạt động");
+      apiGet<Branch[]>("/api/branches").then((d) => setBranches(d || [])).catch(() => {});
     }
   }, [open, initial]);
 
@@ -79,9 +82,11 @@ export default function WifiFormModal({ open, onClose, initial, saving, onSubmit
         <div className="grid grid-cols-2 gap-3">
           <Field label="Chi nhánh" required>
             <Select value={branch} onChange={(e) => setBranch(e.target.value)} disabled={saving}>
-              <option value="HN-1">Hoàn Kiếm (HN-1)</option>
-              <option value="HN-2">Ba Đình (HN-2)</option>
-              <option value="ĐN-1">Đà Nẵng (ĐN-1)</option>
+              {branches.map((b) => (
+                <option key={b.id || b.slug} value={b.slug.toUpperCase()}>
+                  {b.name} ({b.slug.toUpperCase()})
+                </option>
+              ))}
             </Select>
           </Field>
           <Field label="Trạng thái">
