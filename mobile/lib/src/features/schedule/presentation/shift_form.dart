@@ -289,7 +289,7 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
     try {
       await LeaveRepository().createRequest({
         'type': reqType,
-        'title': '${widget.actionType == ShiftActionType.leave ? "Xin nghỉ ca" : "Đổi ca"}: ${widget.shift.shiftName}',
+        'title': '${widget.actionType == ShiftActionType.leave ? "Xin nghỉ ca" : (widget.actionType == ShiftActionType.cover ? "Nhờ làm thay" : "Đổi ca")}: ${widget.shift.shiftName}',
         'content': _reasonController.text.trim(),
         'employeeId': me.id,
       });
@@ -396,7 +396,7 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
                           child: _buildShiftBadge(
                             FontAwesomeIcons.calendarDay,
                             'Thời gian',
-                            '${widget.dayOfWeek}, ${widget.date}/2026',
+                            '${widget.dayOfWeek}, ${widget.date}/${DateTime.now().year}',
                           ),
                         ),
                         Expanded(

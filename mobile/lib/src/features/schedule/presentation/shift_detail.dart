@@ -3,6 +3,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/state/user_scope.dart';
 import '../../attendance/data/attendance_repository.dart';
+import '../../attendance/presentation/adjustment.dart';
 import 'schedule.dart';
 import 'shift_form.dart';
 
@@ -141,7 +142,7 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${widget.dayOfWeek}, ${widget.date}/2026 • ${shift.timeRange}',
+                          '${widget.dayOfWeek}, ${widget.date}/${DateTime.now().year} • ${shift.timeRange}',
                           style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                         ),
                       ],
@@ -180,7 +181,7 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
               child: Column(
                 children: [
                   _buildInfoRow(FontAwesomeIcons.calendarDay, 'Ngày tính công',
-                      '${widget.date}/08/2026 (${widget.dayOfWeek})'),
+                      '${widget.date}/${DateTime.now().year} (${widget.dayOfWeek})'),
                   _divider(),
                   _buildInfoRow(FontAwesomeIcons.user, 'Nhân viên',
                       UserScope.currentUser(context)?.name ?? '—'),
@@ -262,7 +263,10 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
                 color: Colors.orange.shade700,
                 bgColor: Colors.orange.shade50,
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Đã gửi yêu cầu bổ sung chấm công tới quản lý'), backgroundColor: Color(0xFFEA580C)));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AttendanceAdjustmentScreen()),
+                  );
                 },
               ),
             ] else ...[

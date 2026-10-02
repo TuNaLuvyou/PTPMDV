@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/state/branch_scope.dart';
+import '../../../core/state/user_scope.dart';
 import '../../../core/models/user.dart';
 import 'info.dart';
+import '../../auth/data/auth_repository.dart';
 import '../../auth/presentation/login.dart';
 import 'notif_settings.dart';
 import 'security.dart';
@@ -26,8 +28,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  static const String _phone = '0901 234 567';
-
   late final TextEditingController _nameController;
   late final TextEditingController _phoneController;
 
@@ -35,7 +35,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.currentUser.name);
-    _phoneController = TextEditingController(text: _phone);
+    _phoneController = TextEditingController(
+      text: widget.currentUser.phone.isNotEmpty ? widget.currentUser.phone : '—',
+    );
   }
 
   @override
@@ -134,7 +136,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildProfileMenuItem(icon: FontAwesomeIcons.bell, title: 'Cài đặt thông báo', subtitle: 'Tắt/bật các thông báo cần thiết', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()))),
                   const Divider(height: 1),
                   InkWell(
-                    onTap: () {
+                    onTap: () async {
+                      await AuthRepository().logout();
+                      if (!context.mounted) return;
+                      UserScope.setUser(context, null);
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(builder: (context) => const LoginScreen()),
                       );

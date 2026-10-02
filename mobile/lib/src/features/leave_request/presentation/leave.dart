@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/state/user_scope.dart';
 import '../data/leave_repository.dart';
 
 class LeaveRequestItem {
@@ -153,7 +154,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
               ),
               const SizedBox(height: 18),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   final reason = reasonController.text.trim();
                   if (reason.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -162,33 +163,37 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                     return;
                   }
                   final dateStr = '${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.year}';
-                  setState(() {
-                    _requests.insert(
-                      0,
-                      LeaveRequestItem(
-                        id: 'lr-${DateTime.now().millisecondsSinceEpoch}',
-                        leaveType: selectedType,
-                        dates: '$dateStr ($selectedDuration)',
-                        reason: reason,
-                        status: 'pending',
-                        createdAt: 'Vừa xong',
+                  final user = UserScope.currentUser(context);
+                  final empId = user?.id ?? '';
+                  if (empId.isEmpty) return;
+
+                  try {
+                    await _leaveRepo.createRequest({
+                      'type': 'leave',
+                      'title': 'Đơn xin nghỉ: $selectedType',
+                      'content': '$dateStr ($selectedDuration) - Lý do: $reason',
+                      'employeeId': empId,
+                    });
+                    if (modalCtx.mounted) {
+                      Navigator.pop(modalCtx);
+                    }
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        backgroundColor: AppColors.success,
+                        content: Text('✅ Đã gửi đơn xin nghỉ phép thành công!'),
                       ),
                     );
-                  });
-                  _leaveRepo.createRequest({
-                    'type': 'leave',
-                    'title': 'Đơn xin nghỉ: $selectedType',
-                    'content': '$dateStr ($selectedDuration) - Lý do: $reason',
-                    'employeeId': '1',
-                  }).then((_) => _fetchRequests()).catchError((_) {});
-
-                  Navigator.pop(modalCtx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      backgroundColor: AppColors.success,
-                      content: Text('✅ Đã gửi đơn xin nghỉ phép thành công!'),
-                    ),
-                  );
+                    _fetchRequests();
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        backgroundColor: AppColors.error,
+                        content: Text('❌ Gửi đơn xin nghỉ thất bại: $e'),
+                      ),
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
@@ -244,20 +249,20 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 ),
               ],
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Phép năm còn lại', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                    SizedBox(height: 4),
-                    Text('10 / 12 ngày', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 2),
-                    Text('Đã dùng 2 ngày • Hạn đến 31/12/2026', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                    const Text('Phép năm còn lại', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    const Text('10 / 12 ngày', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 2),
+                    Text('Đã dùng 2 ngày • Hạn đến 31/12/${DateTime.now().year}', style: const TextStyle(color: Colors.white70, fontSize: 11)),
                   ],
                 ),
-                CircleAvatar(
+                const CircleAvatar(
                   radius: 26,
                   backgroundColor: Colors.white24,
                   child: FaIcon(FontAwesomeIcons.umbrellaBeach, color: Colors.white, size: 28),

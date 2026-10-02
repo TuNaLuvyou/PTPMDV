@@ -4,6 +4,7 @@ import '../../../core/constants/colors.dart';
 import '../../../core/models/user.dart';
 import '../../../core/state/branch_scope.dart';
 import '../../../core/state/user_scope.dart';
+import '../../auth/data/auth_repository.dart';
 import '../data/employee_repository.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
@@ -81,12 +82,14 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
               final current = UserScope.currentUser(context);
               if (current != null) {
                 UserScope.setUser(context, null);
               }
+              await AuthRepository().logout().catchError((_) {});
+              if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: AppColors.error, content: Text('✅ Đã xác nhận — bạn đã đăng xuất khỏi hệ thống.')));
               Navigator.pop(context);
             },

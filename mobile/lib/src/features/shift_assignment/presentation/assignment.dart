@@ -7,6 +7,8 @@ import '../../../core/models/user.dart';
 import '../../schedule/data/shift_repository.dart';
 import '../../profile/data/employee_repository.dart';
 
+import '../../../core/state/branch_scope.dart';
+
 /// Model nhân sự đã được phân công vào ca làm việc
 class AssignedStaff {
   final String id;
@@ -14,6 +16,7 @@ class AssignedStaff {
   final String role;
   final String avatarText;
   bool isRecurring;
+  String? shiftId;
 
   AssignedStaff({
     required this.id,
@@ -21,6 +24,7 @@ class AssignedStaff {
     required this.role,
     required this.avatarText,
     this.isRecurring = true,
+    this.shiftId,
   });
 }
 
@@ -39,6 +43,9 @@ class ShiftInfo {
     required this.icon,
     required this.color,
   });
+
+  String get startTime => timeRange.split('-')[0].trim();
+  String get endTime => timeRange.contains('-') ? timeRange.split('-')[1].trim() : '';
 }
 
 /// Model đơn đăng ký nguyện vọng của nhân viên
@@ -170,13 +177,24 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
     return '$monStr - $sunStr';
   }
 
+  String? _loadedBranchSlug;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _selectedDayIndex = (_today.weekday - 1).clamp(0, 6);
     _initAssignments();
-    _loadApiData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final branch = BranchScope.selectedBranch(context);
+    if (_loadedBranchSlug != branch?.slug) {
+      _loadedBranchSlug = branch?.slug;
+      _loadApiData();
+    }
   }
 
   void _initAssignments() {
@@ -191,6 +209,7 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
 
   Future<void> _loadApiData() async {
     try {
+      final branch = BranchScope.read(context)?.notifier?.value;
       final employees = await EmployeeRepository().getEmployees();
       if (mounted) {
         setState(() {
@@ -242,7 +261,7 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
       }
 
       final monday = _thisWeekMonday.add(Duration(days: _weekOffset * 7));
-      final shifts = await ShiftRepository().getShifts();
+      final shifts = await ShiftRepository().getShifts(branchSlug: branch?.slug);
       if (mounted) {
         final Map<String, Map<String, List<AssignedStaff>>> newAssignments = {};
         for (final k in _weekDayKeys) {
@@ -276,13 +295,22 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
             if (diffDays >= 0 && diffDays < 7) {
               final dayKey = _weekDayKeys[diffDays];
               final matched = s.employeeId != null ? empNameById[s.employeeId] : null;
-              final staff = matched ??
-                  AssignedStaff(
-                    id: s.employeeId ?? s.id,
-                    name: 'Chưa phân công',
-                    role: 'Nhân viên',
-                    avatarText: 'NV',
-                  );
+              final staff = (matched != null)
+                  ? AssignedStaff(
+                      id: matched.id,
+                      name: matched.name,
+                      role: matched.role,
+                      avatarText: matched.avatarText,
+                      isRecurring: true,
+                      shiftId: s.id,
+                    )
+                  : AssignedStaff(
+                      id: s.employeeId ?? s.id,
+                      name: 'Chưa phân công',
+                      role: 'Nhân viên',
+                      avatarText: 'NV',
+                      shiftId: s.id,
+                    );
               final templateName = s.template.isEmpty ? 'Ca Sáng' : s.template;
               newAssignments[dayKey] ??= {};
               newAssignments[dayKey]![templateName] ??= [];
@@ -316,24 +344,52 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
     });
   }
 
-  void _addStaffToShift(String dayKey, String shiftName, AssignedStaff staff) {
-    ShiftRepository().assignShift(shiftName, employeeId: staff.id).catchError((_) {});
+  Future<void> _addStaffToShift(String dayKey, String shiftName, AssignedStaff staff) async {
     setState(() {
       _assignments[dayKey] ??= {};
       _assignments[dayKey]![shiftName] ??= [];
       _assignments[dayKey]![shiftName]!.add(staff);
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Đã thêm ${staff.name} vào $shiftName (${staff.isRecurring ? 'Lặp lại hàng tuần' : '1 lần'})'),
-        duration: const Duration(seconds: 1),
-        behavior: SnackBarBehavior.floating,
-      ),
+
+    final dayIndex = _weekDayKeys.indexOf(dayKey);
+    final monday = _thisWeekMonday.add(Duration(days: _weekOffset * 7));
+    final targetDate = monday.add(Duration(days: dayIndex >= 0 ? dayIndex : 0));
+    final dateStr =
+        '${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}';
+    final shiftInfo = _availableShifts.firstWhere(
+      (s) => s.name == shiftName,
+      orElse: () => _availableShifts.first,
     );
+    final branch = BranchScope.read(context)?.notifier?.value;
+
+    try {
+      final created = await ShiftRepository().createShift({
+        'employeeId': staff.id,
+        'date': dateStr,
+        'template': shiftName,
+        'scheduledStart': shiftInfo.startTime,
+        'scheduledEnd': shiftInfo.endTime,
+        'branchSlug': branch?.slug,
+        'status': 'scheduled',
+      });
+      staff.shiftId = created.id;
+    } catch (_) {}
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đã thêm ${staff.name} vào $shiftName (${staff.isRecurring ? 'Lặp lại hàng tuần' : '1 lần'})'),
+          duration: const Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _removeStaffFromShift(String dayKey, String shiftName, AssignedStaff staff) {
-    ShiftRepository().deleteShift(shiftName).catchError((_) {});
+    if (staff.shiftId != null && staff.shiftId!.isNotEmpty) {
+      ShiftRepository().deleteShift(staff.shiftId!).catchError((_) {});
+    }
     setState(() {
       _assignments[dayKey]?[shiftName]?.removeWhere((s) => s.id == staff.id);
     });
@@ -443,7 +499,7 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
                   Row(
                     children: [
                       Text(
-                        '$dayFullName, $dateFormatted/2026',
+                        '$dayFullName, $dateFormatted/${DateTime.now().year}',
                         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                       ),
                       if (isToday) ...[

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/state/user_scope.dart';
 import '../../approvals/data/approval_repository.dart';
 
 enum ShiftRequestStatus { pending, accepted, rejected }
@@ -272,19 +273,19 @@ class _ShiftRequestDetailScreenState extends State<ShiftRequestDetailScreen> {
                 ),
                 child: Column(
                   children: [
-                    _buildInfoRow(FontAwesomeIcons.briefcase, 'Ca làm việc', widget.swapShiftName ?? 'Ca Tối (17:00 - 22:00)'),
+                    _buildInfoRow(FontAwesomeIcons.briefcase, 'Ca làm việc', widget.swapShiftName ?? '—'),
                     _divider(),
-                    _buildInfoRow(FontAwesomeIcons.calendarDay, 'Ngày làm việc', widget.swapShiftDate ?? 'Thứ Sáu, 21/08/2026'),
+                    _buildInfoRow(FontAwesomeIcons.calendarDay, 'Ngày làm việc', widget.swapShiftDate ?? '—'),
                     _divider(),
-                    _buildInfoRow(FontAwesomeIcons.clock, 'Khung giờ ca', widget.swapShiftTime ?? '17:00 - 22:00'),
+                    _buildInfoRow(FontAwesomeIcons.clock, 'Khung giờ ca', widget.swapShiftTime ?? '—'),
                     _divider(),
-                    _buildInfoRow(FontAwesomeIcons.stopwatch, 'Số giờ làm việc', widget.swapShiftHours ?? '5.0 giờ'),
+                    _buildInfoRow(FontAwesomeIcons.stopwatch, 'Số giờ làm việc', widget.swapShiftHours ?? '—'),
                     _divider(),
                     _buildInfoRow(FontAwesomeIcons.store, 'Chi nhánh', widget.swapShiftBranch ?? widget.branch),
                     _divider(),
-                    _buildInfoRow(FontAwesomeIcons.idCard, 'Vị trí công việc', widget.swapShiftRole ?? 'Phục vụ'),
+                    _buildInfoRow(FontAwesomeIcons.idCard, 'Vị trí công việc', widget.swapShiftRole ?? '—'),
                     _divider(),
-                    _buildInfoRow(FontAwesomeIcons.user, 'Người phụ trách', 'Nguyễn Văn A (Bạn)'),
+                    _buildInfoRow(FontAwesomeIcons.user, 'Người phụ trách', UserScope.currentUser(context)?.name != null ? '${UserScope.currentUser(context)!.name} (Bạn)' : 'Bạn'),
                   ],
                 ),
               ),

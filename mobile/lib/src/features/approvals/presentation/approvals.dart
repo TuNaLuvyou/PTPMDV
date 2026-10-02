@@ -73,6 +73,10 @@ class _ShiftRequestScreenState extends State<ShiftRequestScreen>
             t = ShiftRequestType.advance;
           } else if (m.type == 'overtime') {
             t = ShiftRequestType.coverMe;
+          } else if (m.type == 'shift_swap') {
+            t = ShiftRequestType.swap;
+          } else if (m.type == 'work_supplement') {
+            t = ShiftRequestType.adjustment;
           }
           final emp = empMap[m.employeeId];
           final name = emp?['name']?.toString() ?? 'Nhân sự #${m.employeeId}';
