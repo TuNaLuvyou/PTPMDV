@@ -103,7 +103,7 @@ function mapBackendRequest(r: any, empMap?: Map<string, string>): ShiftRequest {
     status = "chờ duyệt";
   }
 
-  const createdDate = r.createdAt ? new Date(r.createdAt).toLocaleDateString("vi-VN") : "17/08/2026";
+  const createdDate = r.createdAt ? new Date(r.createdAt).toLocaleDateString("vi-VN") : "—";
   const from = r.from || `${createdDate} 08:00`;
   const to = r.to || `${createdDate} 17:30`;
 
