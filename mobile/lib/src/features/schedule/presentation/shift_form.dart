@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/state/user_scope.dart';
 import '../../leave_request/data/leave_repository.dart';
+import '../../profile/data/employee_repository.dart';
+import '../data/shift_repository.dart';
 import 'schedule.dart';
 
 enum ShiftActionType {
@@ -20,7 +23,7 @@ class ShiftStaffMember {
     required this.id,
     required this.name,
     required this.role,
-    this.phone = '0987.654.321',
+    this.phone = '',
   });
 
   String get displayName => '$name ($role)';
@@ -48,64 +51,109 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _reasonController = TextEditingController();
 
-  // Nhờ làm thay
-  String _selectedColleague = 'Trần Văn B (Barista)';
-  final List<String> _availableColleagues = [
-    'Trần Văn B (Barista)',
-    'Lê Thị C (Thu ngân)',
-    'Phạm Quỳnh Trang (Phục vụ)',
-    'Hoàng Minh Đức (Barista)',
-    'Vũ Thị Mai (Phục vụ)',
-  ];
+  // Nhờ làm thay — tải từ /api/employees, rỗng thì dropdown trống.
+  String _selectedColleague = '';
+  List<ShiftStaffMember> _colleagues = [];
 
   // Đổi ca (Chọn ngày -> Chọn ca -> Chọn nhân viên trong ca)
   DateTime? _swapDate;
   String? _selectedTargetShift;
   ShiftStaffMember? _selectedSwapStaff;
 
-  // Dữ liệu phân ca thực tế theo Ngày -> Ca -> Danh sách nhân viên trong ca
-  final Map<String, Map<String, List<ShiftStaffMember>>> _scheduleShiftStaffData = {
-    '2026-08-21': {
-      'Ca Chiều (12:00 - 17:00)': [
-        const ShiftStaffMember(id: 's1', name: 'Trần Văn B', role: 'Barista', phone: '0987.654.321'),
-        const ShiftStaffMember(id: 's2', name: 'Phạm Quỳnh Trang', role: 'Phục vụ', phone: '0933.221.100'),
-      ],
-      'Ca Tối (17:00 - 22:00)': [
-        const ShiftStaffMember(id: 's3', name: 'Hoàng Minh Đức', role: 'Barista', phone: '0901.122.334'),
-        const ShiftStaffMember(id: 's4', name: 'Vũ Thị Mai', role: 'Phục vụ', phone: '0911.223.344'),
-      ],
-    },
-    '2026-08-22': {
-      'Ca Sáng (07:00 - 12:00)': [
-        const ShiftStaffMember(id: 's1', name: 'Trần Văn B', role: 'Barista', phone: '0987.654.321'),
-        const ShiftStaffMember(id: 's5', name: 'Đỗ Văn Hùng', role: 'Bảo vệ', phone: '0977.889.900'),
-      ],
-      'Ca Chiều (12:00 - 17:00)': [
-        const ShiftStaffMember(id: 's6', name: 'Lê Thị C', role: 'Thu ngân', phone: '0912.345.678'),
-        const ShiftStaffMember(id: 's2', name: 'Phạm Quỳnh Trang', role: 'Phục vụ', phone: '0933.221.100'),
-      ],
-      'Ca Tối (17:00 - 22:00)': [
-        const ShiftStaffMember(id: 's3', name: 'Hoàng Minh Đức', role: 'Barista', phone: '0901.122.334'),
-      ],
-    },
-    '2026-08-23': {
-      'Ca Sáng (07:00 - 12:00)': [
-        const ShiftStaffMember(id: 's2', name: 'Phạm Quỳnh Trang', role: 'Phục vụ', phone: '0933.221.100'),
-      ],
-      'Ca Chiều (12:00 - 17:00)': [
-        const ShiftStaffMember(id: 's6', name: 'Lê Thị C', role: 'Thu ngân', phone: '0912.345.678'),
-      ],
-    },
-    '2026-08-24': {
-      'Ca Sáng (07:00 - 12:00)': [
-        const ShiftStaffMember(id: 's1', name: 'Trần Văn B', role: 'Barista', phone: '0987.654.321'),
-      ],
-      'Ca Tối (17:00 - 22:00)': [
-        const ShiftStaffMember(id: 's4', name: 'Vũ Thị Mai', role: 'Phục vụ', phone: '0911.223.344'),
-        const ShiftStaffMember(id: 's6', name: 'Lê Thị C', role: 'Thu ngân', phone: '0912.345.678'),
-      ],
-    },
-  };
+  // Dữ liệu phân ca thực tế theo Ngày (yyyy-MM-dd) -> Ca -> Danh sách nhân viên.
+  // Dựng từ /api/shifts, API rỗng thì map rỗng (hiện trống, không dùng mẫu cứng).
+  Map<String, Map<String, List<ShiftStaffMember>>> _scheduleShiftStaffData = {};
+  bool _loadingRefs = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRefs();
+  }
+
+  /// Chuẩn hóa ngày backend (dd/MM/yyyy hoặc ISO) về khóa yyyy-MM-dd.
+  String _toIsoKey(String raw) {
+    final v = raw.trim();
+    final dmY = RegExp(r'^(\d{1,2})/(\d{1,2})/(\d{4})$').firstMatch(v);
+    if (dmY != null) {
+      final d = dmY.group(1)!.padLeft(2, '0');
+      final m = dmY.group(2)!.padLeft(2, '0');
+      final y = dmY.group(3)!;
+      return '$y-$m-$d';
+    }
+    final dt = DateTime.tryParse(v);
+    if (dt != null) {
+      return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+    }
+    return v;
+  }
+
+  Future<void> _loadRefs() async {
+    try {
+      final results = await Future.wait([
+        EmployeeRepository().getEmployees(),
+        ShiftRepository().getShifts(),
+      ]);
+      final emps = results[0] as List<Map<String, dynamic>>;
+      final shifts = results[1] as List<ApiShiftModel>;
+      if (!mounted) return;
+      final nameById = <String, String>{};
+      final roleById = <String, String>{};
+      final phoneById = <String, String>{};
+      for (final e in emps) {
+        final id = e['id']?.toString() ?? '';
+        if (id.isEmpty) continue;
+        nameById[id] = e['name']?.toString() ?? id;
+        roleById[id] = e['role']?.toString() ?? 'Nhân viên';
+        phoneById[id] = e['phone']?.toString() ?? '';
+      }
+      final colleagues = emps
+          .where((e) => (e['id']?.toString() ?? '').isNotEmpty)
+          .map((e) {
+            final id = e['id'].toString();
+            return ShiftStaffMember(
+              id: id,
+              name: nameById[id] ?? id,
+              role: roleById[id] ?? 'Nhân viên',
+              phone: phoneById[id] ?? '',
+            );
+          })
+          .toList();
+      final grouped = <String, Map<String, List<ShiftStaffMember>>>{};
+      for (final s in shifts) {
+        if (s.date.trim().isEmpty) continue;
+        final key = _toIsoKey(s.date);
+        final label = '${s.template} (${s.scheduledStart} - ${s.scheduledEnd})';
+        final staff = ShiftStaffMember(
+          id: s.employeeId ?? s.id,
+          name: (s.employeeId != null && nameById.containsKey(s.employeeId))
+              ? nameById[s.employeeId]!
+              : 'Chưa phân công',
+          role: s.template,
+          phone: (s.employeeId != null && phoneById.containsKey(s.employeeId))
+              ? phoneById[s.employeeId]!
+              : '',
+        );
+        grouped.putIfAbsent(key, () => {});
+        grouped[key]!.putIfAbsent(label, () => []);
+        if (staff.name != 'Chưa phân công' &&
+            !grouped[key]![label]!.any((m) => m.id == staff.id)) {
+          grouped[key]![label]!.add(staff);
+        }
+      }
+      setState(() {
+        _colleagues = colleagues;
+        if (_selectedColleague.isEmpty && colleagues.isNotEmpty) {
+          _selectedColleague = colleagues.first.displayName;
+        }
+        _scheduleShiftStaffData = grouped;
+        _loadingRefs = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingRefs = false);
+    }
+  }
 
   // Xin nghỉ
   String _selectedLeaveReason = 'Bận việc gia đình đột xuất';
@@ -157,12 +205,12 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
   }
 
   Future<void> _pickSwapDate() async {
-    final now = DateTime(2026, 8, 21);
+    final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
       initialDate: _swapDate ?? now,
-      firstDate: DateTime(2026, 8, 1),
-      lastDate: DateTime(2026, 8, 31),
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: now.add(const Duration(days: 30)),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -186,7 +234,7 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
     }
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
     if (widget.actionType == ShiftActionType.swap) {
@@ -210,6 +258,17 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
       }
     }
 
+    final me = UserScope.currentUser(context);
+    if (me?.id == null || me!.id.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('❌ Không xác định được tài khoản, vui lòng đăng nhập lại'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     String successMsg = '';
     String reqType = 'leave';
     switch (widget.actionType) {
@@ -218,7 +277,7 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
         successMsg = '✅ Đã gửi lời nhờ làm thay tới $_selectedColleague!';
         break;
       case ShiftActionType.swap:
-        reqType = 'overtime';
+        reqType = 'shift_swap';
         successMsg = '✅ Đã gửi yêu cầu đổi ca tới ${_selectedSwapStaff?.displayName}!';
         break;
       case ShiftActionType.leave:
@@ -227,21 +286,32 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
         break;
     }
 
-    LeaveRepository().createRequest({
-      'type': reqType,
-      'title': '${widget.actionType == ShiftActionType.leave ? "Xin nghỉ ca" : "Đổi ca"}: ${widget.shift.shiftName}',
-      'content': _reasonController.text.trim(),
-      'employeeId': '1',
-    }).then((_) {}).catchError((_) {});
-
-    Navigator.pop(context, true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: AppColors.success,
-        content: Text(successMsg),
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    try {
+      await LeaveRepository().createRequest({
+        'type': reqType,
+        'title': '${widget.actionType == ShiftActionType.leave ? "Xin nghỉ ca" : "Đổi ca"}: ${widget.shift.shiftName}',
+        'content': _reasonController.text.trim(),
+        'employeeId': me.id,
+      });
+      if (!mounted) return;
+      Navigator.pop(context, true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.success,
+          content: Text(successMsg),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red,
+          content: Text('❌ Gửi yêu cầu thất bại: $e'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   @override
@@ -420,20 +490,36 @@ class _ShiftActionFormScreenState extends State<ShiftActionFormScreen> {
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             isExpanded: true,
-            initialValue: _selectedColleague,
+            initialValue: _colleagues
+                    .map((c) => c.displayName)
+                    .contains(_selectedColleague)
+                ? _selectedColleague
+                : null,
+            hint: Text(
+              _loadingRefs
+                  ? 'Đang tải danh sách nhân sự...'
+                  : _colleagues.isEmpty
+                      ? 'Chưa có dữ liệu nhân sự'
+                      : 'Chọn đồng nghiệp',
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+            ),
             decoration: InputDecoration(
               prefixIcon: const Icon(Icons.person_outline_rounded, color: Colors.orange, size: 22),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             ),
-            items: _availableColleagues.map((name) {
+            items: _colleagues.map((c) {
               return DropdownMenuItem(
-                value: name,
-                child: Text(name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                value: c.displayName,
+                child: Text(c.displayName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
               );
             }).toList(),
             onChanged: (val) {
               if (val != null) setState(() => _selectedColleague = val);
+            },
+            validator: (val) {
+              if (val == null || val.isEmpty) return 'Vui lòng chọn đồng nghiệp';
+              return null;
             },
           ),
           const SizedBox(height: 20),

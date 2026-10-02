@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/widgets/branch_selector.dart';
+import '../../profile/data/employee_repository.dart';
 import '../data/approval_repository.dart';
 
 // ─── Models ──────────────────────────────────────────────────────────────────
@@ -50,78 +51,22 @@ class _ShiftRequestScreenState extends State<ShiftRequestScreen>
     with SingleTickerProviderStateMixin {
   final ApprovalRepository _approvalRepo = ApprovalRepository();
   late TabController _tabController;
-  late List<ShiftRequest> _requests;
+  List<ShiftRequest> _requests = [];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this, initialIndex: 0);
-    _requests = [
-      ShiftRequest(
-        id: '1',
-        staffName: 'Nguyễn Thu Hà',
-        staffRole: 'Nhân viên kinh doanh',
-        staffAvatar: 'H',
-        type: ShiftRequestType.swap,
-        currentShift: 'Ca Chiều T5, 21/08 (14:00 - 22:00)',
-        targetShift: 'Ca Tối T5, 21/08 (18:00 - 22:30)',
-        swapWithName: 'Phạm Quỳnh Trang',
-        reason: 'Đổi ca chiều sang ca tối do có việc cá nhân buổi chiều',
-        submittedAt: 'Hôm nay, 08:30',
-        status: ShiftRequestStatus.pending,
-      ),
-      ShiftRequest(
-        id: '2',
-        staffName: 'Phạm Quỳnh Trang',
-        staffRole: 'Kế toán nội bộ',
-        staffAvatar: 'T',
-        type: ShiftRequestType.leave,
-        currentShift: 'Cả ngày T6, 22/08',
-        reason: 'Xin nghỉ phép năm đi khám sức khỏe định kỳ',
-        submittedAt: 'Hôm qua, 15:45',
-        status: ShiftRequestStatus.pending,
-      ),
-      ShiftRequest(
-        id: '3',
-        staffName: 'Hoàng Minh Đức',
-        staffRole: 'Nhân sự',
-        staffAvatar: 'Đ',
-        type: ShiftRequestType.adjustment,
-        currentShift: 'Ca Sáng T3, 19/08 (08:00 - 17:00)',
-        reason: 'Quên check-in do Wi-Fi tầng 2 mất kết nối lúc vào ca',
-        submittedAt: '19/08, 17:30',
-        status: ShiftRequestStatus.pending,
-      ),
-      ShiftRequest(
-        id: '4',
-        staffName: 'Nguyễn Thu Hà',
-        staffRole: 'Nhân viên kinh doanh',
-        staffAvatar: 'H',
-        type: ShiftRequestType.advance,
-        currentShift: 'Hạn mức: 3.400.000 đ',
-        reason: 'Xin tạm ứng 2.000.000 đ chi phí phát sinh',
-        submittedAt: '16/08, 09:15',
-        status: ShiftRequestStatus.approved,
-      ),
-      ShiftRequest(
-        id: '5',
-        staffName: 'Lê Văn An',
-        staffRole: 'Quản lý Chi nhánh HN-2',
-        staffAvatar: 'A',
-        type: ShiftRequestType.leave,
-        currentShift: '2 ngày: 22/08 - 23/08',
-        reason: 'Việc gia đình tại quê có hiếu hỷ',
-        submittedAt: '14/08, 10:00',
-        status: ShiftRequestStatus.approved,
-      ),
-    ];
     _fetchPendingRequests();
   }
 
   Future<void> _fetchPendingRequests() async {
     try {
+      final employees = await EmployeeRepository().getEmployees().catchError((_) => <Map<String, dynamic>>[]);
+      final empMap = {for (final e in employees) e['id']?.toString() ?? '': e};
+
       final list = await _approvalRepo.getPending();
-      if (list.isNotEmpty && mounted) {
+      if (mounted) {
         final apiRequests = list.map((m) {
           ShiftRequestType t = ShiftRequestType.leave;
           if (m.type == 'advance') {
@@ -129,11 +74,16 @@ class _ShiftRequestScreenState extends State<ShiftRequestScreen>
           } else if (m.type == 'overtime') {
             t = ShiftRequestType.coverMe;
           }
+          final emp = empMap[m.employeeId];
+          final name = emp?['name']?.toString() ?? 'Nhân sự #${m.employeeId}';
+          final role = emp?['role']?.toString() ?? (m.branchSlug ?? 'Nhân viên');
+          final avatar = name.trim().split(' ').where((s) => s.isNotEmpty).map((s) => s[0]).take(2).join().toUpperCase();
+
           return ShiftRequest(
             id: m.id,
-            staffName: 'Nhân sự #${m.employeeId}',
-            staffRole: m.branchSlug ?? 'Nhân viên',
-            staffAvatar: m.employeeId.isNotEmpty ? m.employeeId[0].toUpperCase() : 'N',
+            staffName: name,
+            staffRole: role,
+            staffAvatar: avatar.isNotEmpty ? avatar : 'N',
             type: t,
             currentShift: m.title,
             reason: m.content,
@@ -141,13 +91,15 @@ class _ShiftRequestScreenState extends State<ShiftRequestScreen>
             status: ShiftRequestStatus.pending,
           );
         }).toList();
+
         setState(() {
-          final nonPending = _requests.where((r) => r.status != ShiftRequestStatus.pending).toList();
-          _requests = [...apiRequests, ...nonPending];
+          // Chỉ dùng dữ liệu API thật; API rỗng thì thay toàn bộ bằng rỗng
+          // để hiện empty state, không trộn/giữ mock.
+          _requests = apiRequests;
         });
       }
     } catch (_) {
-      // Giữ mock khi offline
+      // API lỗi thì giữ nguyên danh sách hiện tại (rỗng) để hiện empty state.
     }
   }
 
@@ -237,26 +189,32 @@ class _ShiftRequestScreenState extends State<ShiftRequestScreen>
   }
 
   Widget _buildRequestList(List<ShiftRequest> requests, {required bool showActions}) {
-    if (requests.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            FaIcon(FontAwesomeIcons.inbox, size: 52, color: AppColors.textSecondary),
-            SizedBox(height: 10),
-            Text('Không có yêu cầu nào', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
-          ],
-        ),
-      );
-    }
     return RefreshIndicator(
       onRefresh: _fetchPendingRequests,
-      child: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: requests.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) => _buildRequestCard(requests[index], showActions: showActions),
-      ),
+      color: AppColors.primary,
+      child: requests.isEmpty
+          ? ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: const [
+                SizedBox(height: 120),
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      FaIcon(FontAwesomeIcons.inbox, size: 52, color: AppColors.textSecondary),
+                      SizedBox(height: 10),
+                      Text('Không có yêu cầu nào', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: requests.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, index) => _buildRequestCard(requests[index], showActions: showActions),
+            ),
     );
   }
 

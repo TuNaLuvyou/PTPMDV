@@ -4,6 +4,7 @@ import '../../../core/constants/colors.dart';
 import '../../../core/models/user.dart';
 import '../../../core/state/branch_scope.dart';
 import '../../../core/state/user_scope.dart';
+import '../data/employee_repository.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
   final String name;
@@ -47,16 +48,17 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.name);
     _phoneCtrl = TextEditingController(text: widget.phone);
-    _birthDate = widget.user?.birthDate ?? '24/08/1999';
-    _gender = widget.user?.gender ?? 'Nữ';
-    _province = widget.user?.province ?? 'Hà Nội';
-    _ward = widget.user?.ward ?? 'Phường Hàng Bài';
-    _street = widget.user?.street ?? '15 Phố Hàng Bài, Q. Hoàn Kiếm';
-    _bankAcc = widget.user?.bankAccountNumber ?? '108876543210';
-    _bankName = widget.user?.bankName ?? 'VietinBank';
-    _cccd = widget.user?.cccd ?? '001199014567';
-    _issueDate = widget.user?.issueDate ?? '10/05/2021';
-    _issuePlace = widget.user?.issuePlace ?? 'Cục CS QLHC về TTXH';
+    // Không tự điền mẫu — thiếu dữ liệu thì để '' và hiện hint 'Chưa cập nhật'.
+    _birthDate = widget.user?.birthDate ?? '';
+    _gender = widget.user?.gender ?? '';
+    _province = widget.user?.province ?? '';
+    _ward = widget.user?.ward ?? '';
+    _street = widget.user?.street ?? '';
+    _bankAcc = widget.user?.bankAccountNumber ?? '';
+    _bankName = widget.user?.bankName ?? '';
+    _cccd = widget.user?.cccd ?? '';
+    _issueDate = widget.user?.issueDate ?? '';
+    _issuePlace = widget.user?.issuePlace ?? '';
     _cccdCtrl = TextEditingController(text: _cccd);
   }
 
@@ -95,14 +97,34 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     );
   }
 
-  void _toggleEdit() {
+  Future<void> _toggleEdit() async {
     if (_isEditing) {
-      // Lưu
+      // Lưu qua API thật với await/try-catch đàng hoàng.
+      final current = UserScope.currentUser(context);
+      final newPhone = _phoneCtrl.text.trim();
+      final newName = _nameCtrl.text.trim();
       setState(() {
         _cccd = _cccdCtrl.text.trim();
         _isEditing = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: AppColors.success, content: Text('✅ Đã lưu thông tin cá nhân')));
+      if (current != null) {
+        try {
+          await EmployeeRepository().updateEmployee(current.id, {
+            if (newName.isNotEmpty) 'name': newName,
+            if (newPhone.isNotEmpty) 'phone': newPhone,
+            'cccd': _cccd,
+          });
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: AppColors.success, content: Text('✅ Đã lưu thông tin cá nhân')));
+        } catch (_) {
+          if (!mounted) return;
+          setState(() => _isEditing = true);
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: AppColors.error, content: Text('❌ Lưu thất bại, vui lòng thử lại')));
+        }
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: AppColors.error, content: Text('❌ Không xác định được người dùng')));
+      }
     } else {
       setState(() => _isEditing = true);
     }
@@ -221,7 +243,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
             FaIcon(icon, size: 18, color: AppColors.textSecondary),
             const SizedBox(width: 10),
             SizedBox(width: 120, child: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600))),
-            Expanded(child: Text(value, textAlign: TextAlign.right, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary), overflow: TextOverflow.ellipsis)),
+            Expanded(
+                child: Text(value.isEmpty ? 'Chưa cập nhật' : value,
+                    textAlign: TextAlign.right,
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, fontStyle: value.isEmpty ? FontStyle.italic : FontStyle.normal, color: value.isEmpty ? Colors.grey.shade500 : AppColors.textPrimary),
+                    overflow: TextOverflow.ellipsis)),
             if (onTap != null) const Padding(padding: EdgeInsets.only(left: 6), child: FaIcon(FontAwesomeIcons.chevronRight, size: 16, color: AppColors.textSecondary)),
           ]),
         ),

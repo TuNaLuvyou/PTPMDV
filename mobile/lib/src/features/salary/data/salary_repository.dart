@@ -3,7 +3,7 @@ import '../../../core/models/payout.dart';
 import '../../../core/network/api_client.dart';
 
 /// Repository lương gọi qua api-gateway về payroll-service (4004).
-/// Lỗi mạng/service chưa sẵn sàng được ném [ApiException] để UI fallback mock.
+/// Lỗi mạng/service chưa sẵn sàng được ném [ApiException] để UI hiện empty state.
 class SalaryRepository {
   final ApiClient api;
   SalaryRepository({ApiClient? api}) : api = api ?? ApiClient();

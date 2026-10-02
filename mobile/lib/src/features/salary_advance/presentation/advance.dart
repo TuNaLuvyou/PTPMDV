@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../leave_request/data/leave_repository.dart';
+import '../../salary/data/salary_repository.dart';
 
 class AdvanceRecord {
   final String id;
@@ -28,17 +29,53 @@ class SalaryAdvanceScreen extends StatefulWidget {
 
 class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
   final LeaveRepository _leaveRepo = LeaveRepository();
+  final SalaryRepository _salaryRepo = SalaryRepository();
+  double? _estimatedSalary;
 
   @override
   void initState() {
     super.initState();
     _fetchAdvances();
+    _fetchSalary();
+  }
+
+  Future<void> _fetchSalary() async {
+    try {
+      final payslips = await _salaryRepo.getPayslips();
+      if (mounted) {
+        setState(() {
+          if (payslips.isEmpty) {
+            _estimatedSalary = null;
+          } else {
+            final p = payslips.first;
+            final net = p.netSalary > 0 ? p.netSalary : p.baseSalary;
+            _estimatedSalary = net > 0 ? net : null;
+          }
+        });
+      }
+    } catch (_) {
+      // Không có dữ liệu lương thì giữ null để hiển thị '—'.
+    }
+  }
+
+  String _formatCurrency(int amount) {
+    final str = amount.toString();
+    final buffer = StringBuffer();
+    int count = 0;
+    for (int i = str.length - 1; i >= 0; i--) {
+      buffer.write(str[i]);
+      count++;
+      if (count % 3 == 0 && i != 0) {
+        buffer.write('.');
+      }
+    }
+    return '${buffer.toString().split('').reversed.join('')} đ';
   }
 
   Future<void> _fetchAdvances() async {
     try {
       final list = await _leaveRepo.getRequests();
-      if (list.isNotEmpty && mounted) {
+      if (mounted) {
         final apiRecords = list.where((m) => m.type == 'advance').map((m) {
           final amt = m.title.replaceFirst('Tạm ứng lương: ', '');
           return AdvanceRecord(
@@ -49,33 +86,17 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
             status: m.status,
           );
         }).toList();
-        if (apiRecords.isNotEmpty) {
-          setState(() {
-            _records = apiRecords;
-          });
-        }
+
+        setState(() {
+          _records = apiRecords;
+        });
       }
     } catch (_) {
-      // Giữ mock khi offline
+      // API lỗi thì giữ nguyên danh sách hiện tại (rỗng) để hiện empty state.
     }
   }
 
-  List<AdvanceRecord> _records = [
-    const AdvanceRecord(
-      id: 'adv-1',
-      amount: '2.000.000 đ',
-      date: '16/08/2026',
-      reason: 'Chi trả tiền thuê nhà đầu tháng',
-      status: 'pending',
-    ),
-    const AdvanceRecord(
-      id: 'adv-2',
-      amount: '1.500.000 đ',
-      date: '15/07/2026',
-      reason: 'Chi phí y tế phát sinh',
-      status: 'approved',
-    ),
-  ];
+  List<AdvanceRecord> _records = [];
 
   void _showAdvanceModal() {
     final amountController = TextEditingController();
@@ -182,6 +203,10 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final String salaryText =
+        _estimatedSalary != null ? _formatCurrency(_estimatedSalary!.toInt()) : '—';
+    final String maxAdvanceText =
+        _estimatedSalary != null ? _formatCurrency((_estimatedSalary! / 2).round()) : '—';
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -197,7 +222,10 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
         label: const Text('Tạo yêu cầu', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
       body: RefreshIndicator(
-        onRefresh: _fetchAdvances,
+        onRefresh: () async {
+          await _fetchAdvances();
+          await _fetchSalary();
+        },
         child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -219,24 +247,24 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
                 ),
               ],
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Lương tạm tính tháng 08', style: TextStyle(color: Colors.white70, fontSize: 13)),
                     FaIcon(FontAwesomeIcons.wallet, color: Colors.white70, size: 20),
                   ],
                 ),
-                SizedBox(height: 4),
-                Text('6.800.000 đ', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-                Divider(color: Colors.white24, height: 20),
+                const SizedBox(height: 4),
+                Text(salaryText, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                const Divider(color: Colors.white24, height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Hạn mức được ứng tối đa (50%):', style: TextStyle(color: Colors.white, fontSize: 12.5)),
-                    Text('3.400.000 đ', style: TextStyle(color: Colors.amberAccent, fontSize: 14, fontWeight: FontWeight.bold)),
+                    const Text('Hạn mức được ứng tối đa (50%):', style: TextStyle(color: Colors.white, fontSize: 12.5)),
+                    Text(maxAdvanceText, style: const TextStyle(color: Colors.amberAccent, fontSize: 14, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ],
@@ -247,7 +275,20 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
           const Text('Lịch sử các đợt tạm ứng', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
           const SizedBox(height: 10),
 
-          ..._records.map((rec) => _buildRecordCard(rec)),
+          if (_records.isEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 36),
+              alignment: Alignment.center,
+              child: const Column(
+                children: [
+                  FaIcon(FontAwesomeIcons.handHoldingDollar, size: 36, color: Colors.grey),
+                  SizedBox(height: 10),
+                  Text('Chưa có yêu cầu tạm ứng nào', style: TextStyle(color: AppColors.textSecondary, fontSize: 13.5)),
+                ],
+              ),
+            )
+          else
+            ..._records.map((rec) => _buildRecordCard(rec)),
         ],
       ),
     ),

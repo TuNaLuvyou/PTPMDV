@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/widgets/branch_selector.dart';
 import '../../../core/models/user.dart';
+import '../../profile/data/employee_repository.dart';
 import '../data/service.dart';
 import '../data/task_repository.dart';
 
@@ -27,7 +28,8 @@ class TaskListScreen extends StatefulWidget {
 class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProviderStateMixin {
   final TaskRepository _taskRepo = TaskRepository();
   late TabController _tabController;
-  late List<TaskModel> _tasks;
+  List<TaskModel> _tasks = [];
+  List<Map<String, dynamic>> _employeeList = [];
 
   final List<String> _tabs = [
     'Tất cả',
@@ -39,6 +41,8 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
+    // Chỉ dùng API thật — khởi [] rỗng, _loadTasks gán kết quả API vô điều kiện.
+    _tasks = [];
     _tabController = TabController(length: _tabs.length, vsync: this);
 
     if (widget.initialFilter != null) {
@@ -49,7 +53,21 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
       }
     }
 
+    _loadEmployees();
     _loadTasks();
+  }
+
+  Future<void> _loadEmployees() async {
+    try {
+      final emps = await EmployeeRepository().getEmployees();
+      if (mounted) {
+        setState(() => _employeeList = emps);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _employeeList = []);
+      }
+    }
   }
 
   @override
@@ -59,19 +77,20 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
   }
 
   Future<void> _loadTasks() async {
-    setState(() {
-      _tasks = TaskService.getTasksForUser(userEmail: widget.currentUser.email);
-    });
-
     try {
       final remoteTasks = await _taskRepo.getTasks();
-      if (remoteTasks.isNotEmpty && mounted) {
+      if (mounted) {
         setState(() {
           _tasks = remoteTasks;
         });
       }
     } catch (_) {
-      // Giữ mock khi offline
+      // Không dùng mock — lỗi thì hiện empty state.
+      if (mounted) {
+        setState(() {
+          _tasks = [];
+        });
+      }
     }
   }
 
@@ -207,14 +226,17 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
               ),
               const SizedBox(height: 16),
 
-              // Khung xem trước ảnh / Nút chụp ảnh
+              // Chụp ảnh minh chứng: chưa có API upload + plugin camera,
+              // tạm thời báo đang phát triển thay vì gán ảnh giả.
               if (tempPhotoUrl == null)
                 InkWell(
                   onTap: () {
-                    // Giả lập mở camera và chụp ảnh minh chứng thực tế
-                    setSheetState(() {
-                      tempPhotoUrl = 'https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=600';
-                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('📷 Chụp ảnh minh chứng đang phát triển (chưa có API upload)'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
                   },
                   borderRadius: BorderRadius.circular(16),
                   child: Container(
@@ -330,17 +352,31 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                 ),
                 onPressed: tempPhotoUrl == null
                     ? null
-                    : () {
+                    : () async {
                         Navigator.pop(sheetCtx);
-                        TaskService.completeTask(task.id, proofPhotoUrl: tempPhotoUrl);
-                        _loadTasks();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('✓ Đã xác nhận ảnh và hoàn thành: ${task.title}'),
-                            backgroundColor: AppColors.success,
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
+                        try {
+                          await TaskRepository()
+                              .updateTaskStatus(task.id, 'completed');
+                          _loadTasks();
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                  '✓ Đã xác nhận ảnh và hoàn thành: ${task.title}'),
+                              backgroundColor: AppColors.success,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        } catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('❌ Hoàn thành thất bại: $e'),
+                              backgroundColor: Colors.red,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
                       },
                 icon: const Icon(Icons.check_rounded, size: 20),
                 label: Text(
@@ -609,7 +645,10 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
     TaskSourceType selectedSource = TaskSourceType.manager;
     TaskPriority selectedPriority = TaskPriority.normal;
     String selectedShift = 'Ca Sáng (07:00 - 14:00)';
-    String assignedPerson = 'Nguyễn Thu Hà';
+    final String? initialStaff = _employeeList.isNotEmpty
+        ? _employeeList.first['name']?.toString()
+        : null;
+    String? assignedPerson = initialStaff;
     bool requirePhoto = false; // Quản trị viên được phép yêu cầu chụp ảnh hoặc không
 
     showModalBottomSheet(
@@ -705,13 +744,18 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                     initialValue: assignedPerson,
                     decoration: InputDecoration(
                       labelText: 'Nhân sự thực hiện (Giao riêng)',
+                      hintText: _employeeList.isEmpty ? 'Chưa có dữ liệu nhân sự' : null,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    items: const [
-                      DropdownMenuItem(value: 'Nguyễn Thu Hà', child: Text('Nguyễn Thu Hà (Nhân viên)')),
-                      DropdownMenuItem(value: 'Phạm Quỳnh Trang', child: Text('Phạm Quỳnh Trang (Thu ngân)')),
-                      DropdownMenuItem(value: 'Hoàng Minh Đức', child: Text('Hoàng Minh Đức (Nhân viên pha chế)')),
-                    ],
+                    // Chỉ load từ getEmployees() — rỗng thì dropdown rỗng.
+                    items: _employeeList.map((e) {
+                            final name = e['name']?.toString() ?? 'Nhân viên';
+                            final role = e['role']?.toString() ?? 'Nhân viên';
+                            return DropdownMenuItem(
+                              value: name,
+                              child: Text('$name ($role)'),
+                            );
+                          }).toList(),
                     onChanged: (val) {
                       if (val != null) setDialogState(() => assignedPerson = val);
                     },
@@ -806,7 +850,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
 
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('✓ Đã giao việc thành công cho $assignedPerson!'),
+                        content: Text('✓ Đã giao việc thành công cho ${assignedPerson ?? 'nhân sự đã chọn'}!'),
                         backgroundColor: AppColors.success,
                       ),
                     );
@@ -826,7 +870,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    final stats = TaskService.getTaskStats();
+    final stats = TaskService.getTaskStats(tasks: _tasks);
     final bool canManage = widget.currentUser.canManage;
     final bool isAdmin = widget.currentUser.isAdmin;
 
@@ -878,27 +922,37 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
           final filtered = _filterTasks(tabIndex);
 
           if (filtered.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+            return RefreshIndicator(
+              onRefresh: _loadTasks,
+              color: AppColors.primary,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.08),
-                      shape: BoxShape.circle,
+                  const SizedBox(height: 120),
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.playlist_add_check_rounded, size: 48, color: AppColors.primary.withValues(alpha: 0.7)),
+                        ),
+                        const SizedBox(height: 14),
+                        const Text(
+                          'Không có công việc nào',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Mọi nhiệm vụ trong mục này đã được hoàn tất',
+                          style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                        ),
+                      ],
                     ),
-                    child: Icon(Icons.playlist_add_check_rounded, size: 48, color: AppColors.primary.withValues(alpha: 0.7)),
-                  ),
-                  const SizedBox(height: 14),
-                  const Text(
-                    'Không có công việc nào',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Mọi nhiệm vụ trong mục này đã được hoàn tất',
-                    style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
                   ),
                 ],
               ),

@@ -34,28 +34,7 @@ class AttendanceAdjustmentScreen extends StatefulWidget {
 
 class _AttendanceAdjustmentScreenState extends State<AttendanceAdjustmentScreen> {
   bool _isLoading = false;
-  final List<AdjustmentItem> _items = [
-    const AdjustmentItem(
-      id: 'adj-1',
-      date: '15/08/2026',
-      shiftName: 'Ca Sáng (08:00 - 12:00)',
-      checkIn: '08:02',
-      checkOut: '12:05',
-      reason: 'Wi-Fi tầng 2 mất kết nối lúc vào ca, đã báo với trưởng ca',
-      status: 'approved',
-      createdAt: '15/08 12:30',
-    ),
-    const AdjustmentItem(
-      id: 'adj-2',
-      date: '12/08/2026',
-      shiftName: 'Ca Chiều (12:00 - 18:00)',
-      checkIn: '11:58',
-      checkOut: '18:10',
-      reason: 'Quên bấm ra ca khi bàn giao tài sản cho ca tối',
-      status: 'approved',
-      createdAt: '12/08 19:00',
-    ),
-  ];
+  final List<AdjustmentItem> _items = [];
 
   @override
   void initState() {
@@ -68,7 +47,7 @@ class _AttendanceAdjustmentScreenState extends State<AttendanceAdjustmentScreen>
     try {
       final requests = await LeaveRepository().getRequests();
       final supps = requests.where((r) => r.type == 'work_supplement').toList();
-      if (supps.isNotEmpty && mounted) {
+      if (mounted) {
         setState(() {
           _items.clear();
           for (final r in supps) {
@@ -294,7 +273,20 @@ class _AttendanceAdjustmentScreenState extends State<AttendanceAdjustmentScreen>
             const SizedBox(height: 18),
             const Text('Danh sách yêu cầu bổ sung công', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
             const SizedBox(height: 10),
-            ..._items.map((item) => _buildItemCard(item)),
+            if (_items.isEmpty && !_isLoading)
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 36),
+                alignment: Alignment.center,
+                child: const Column(
+                  children: [
+                    FaIcon(FontAwesomeIcons.clockRotateLeft, size: 36, color: Colors.grey),
+                    SizedBox(height: 10),
+                    Text('Chưa có yêu cầu bổ sung công nào', style: TextStyle(color: AppColors.textSecondary, fontSize: 13.5)),
+                  ],
+                ),
+              )
+            else
+              ..._items.map((item) => _buildItemCard(item)),
           ],
         ),
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/models/user.dart';
+import 'shift_repository.dart';
 
 class ShiftDetail {
   final String id;
@@ -395,5 +396,167 @@ class ScheduleService {
         shifts: shifts,
       );
     });
+  }
+
+  static bool _matchesDate(String dateStr, DateTime target) {
+    try {
+      if (dateStr.contains('-')) {
+        final parts = dateStr.split('-');
+        if (parts[0].length == 4) {
+          final y = int.parse(parts[0]);
+          final m = int.parse(parts[1]);
+          final d = int.parse(parts[2]);
+          return y == target.year && m == target.month && d == target.day;
+        } else {
+          final d = int.parse(parts[0]);
+          final m = int.parse(parts[1]);
+          final y = int.parse(parts[2]);
+          return y == target.year && m == target.month && d == target.day;
+        }
+      } else if (dateStr.contains('/')) {
+        final parts = dateStr.split('/');
+        if (parts[0].length == 4) {
+          final y = int.parse(parts[0]);
+          final m = int.parse(parts[1]);
+          final d = int.parse(parts[2]);
+          return y == target.year && m == target.month && d == target.day;
+        } else {
+          final d = int.parse(parts[0]);
+          final m = int.parse(parts[1]);
+          final y = int.parse(parts[2]);
+          return y == target.year && m == target.month && d == target.day;
+        }
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  static double _calculateHours(String start, String end) {
+    try {
+      final sParts = start.split(':').map(int.parse).toList();
+      final eParts = end.split(':').map(int.parse).toList();
+      final sMin = sParts[0] * 60 + sParts[1];
+      final eMin = eParts[0] * 60 + eParts[1];
+      final diff = eMin >= sMin ? eMin - sMin : (eMin + 24 * 60) - sMin;
+      return double.parse((diff / 60.0).toStringAsFixed(1));
+    } catch (_) {
+      return 5.0;
+    }
+  }
+
+  /// Dựng khung tuần rỗng (7 ngày, mỗi ngày danh sách ca rỗng)
+  /// khi API không trả về ca nào. UI đã có empty-state riêng.
+  static List<DayScheduleModel> emptyWeek(int offset) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final monday = getMonday(today).add(Duration(days: offset * 7));
+    const dayNames = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'];
+    return List.generate(7, (i) {
+      final dayDate = monday.add(Duration(days: i));
+      final isToday = dayDate.year == today.year && dayDate.month == today.month && dayDate.day == today.day;
+      final dateStr = '${dayDate.day.toString().padLeft(2, '0')}/${dayDate.month.toString().padLeft(2, '0')}';
+      return DayScheduleModel(
+        dayOfWeek: dayNames[i],
+        date: dateStr,
+        isToday: isToday,
+        shifts: const [],
+      );
+    });
+  }
+
+  /// Lấy toàn bộ lịch 7 ngày trong tuần có tích hợp ca thật từ [apiShifts].
+  /// Chỉ dùng API thật: khi API rỗng thì trả về khung tuần rỗng, không fallback mock.
+  static List<DayScheduleModel> getWeekDataWithApi({
+    required int offset,
+    required List<ApiShiftModel> apiShifts,
+    UserModel? user,
+    String? branchName,
+    ShiftDetail? activeCheckedInShift,
+    Set<String>? completedShiftIds,
+  }) {
+    if (apiShifts.isEmpty) {
+      return emptyWeek(offset);
+    }
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final monday = getMonday(today).add(Duration(days: offset * 7));
+    final List<String> dayNames = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'];
+
+    return List.generate(7, (i) {
+      final dayDate = monday.add(Duration(days: i));
+      final isToday = dayDate.year == today.year && dayDate.month == today.month && dayDate.day == today.day;
+      final dateStr = '${dayDate.day.toString().padLeft(2, '0')}/${dayDate.month.toString().padLeft(2, '0')}';
+
+      final matchingShifts = apiShifts.where((s) => _matchesDate(s.date, dayDate)).toList();
+
+      List<ShiftDetail> shifts;
+      if (matchingShifts.isNotEmpty) {
+        shifts = matchingShifts.map((s) {
+          final hours = _calculateHours(s.scheduledStart, s.scheduledEnd);
+          final isCheckedIn = activeCheckedInShift != null &&
+              (activeCheckedInShift.id == s.id || activeCheckedInShift.shiftName == s.template);
+          final isCheckedOut = completedShiftIds != null && completedShiftIds.contains(s.id);
+          final status = (s.status == 'hoàn thành' || s.status == 'completed')
+              ? 'completed'
+              : calculateShiftStatus(
+                  date: dayDate,
+                  startTime: s.scheduledStart,
+                  endTime: s.scheduledEnd,
+                  isCheckedIn: isCheckedIn,
+                  isCheckedOut: isCheckedOut,
+                );
+
+          return ShiftDetail(
+            id: s.id,
+            shiftName: s.template,
+            startTime: s.scheduledStart,
+            endTime: s.scheduledEnd,
+            hours: hours,
+            branch: s.branchSlug ?? branchName ?? 'HN-1',
+            role: s.note ?? 'Nhân viên trực ca',
+            status: status,
+          );
+        }).toList();
+      } else {
+        shifts = [];
+      }
+
+      return DayScheduleModel(
+        dayOfWeek: dayNames[i],
+        date: dateStr,
+        isToday: isToday,
+        shifts: shifts,
+      );
+    });
+  }
+
+  static List<ShiftDetail> getTodayAssignedShiftsWithApi({
+    required List<ApiShiftModel> apiShifts,
+    UserModel? user,
+    String? branchName,
+    ShiftDetail? activeCheckedInShift,
+  }) {
+    // Chỉ dùng API thật: khi API rỗng thì trả về danh sách rỗng, không fallback mock.
+    if (apiShifts.isEmpty) {
+      return [];
+    }
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final matchingShifts = apiShifts.where((s) => _matchesDate(s.date, today)).toList();
+    if (matchingShifts.isEmpty) return [];
+    return matchingShifts.map((s) {
+      final hours = _calculateHours(s.scheduledStart, s.scheduledEnd);
+      return ShiftDetail(
+        id: s.id,
+        shiftName: s.template,
+        startTime: s.scheduledStart,
+        endTime: s.scheduledEnd,
+        hours: hours,
+        branch: s.branchSlug ?? branchName ?? 'HN-1',
+        role: s.note ?? 'Nhân viên',
+        status: s.status,
+      );
+    }).toList();
   }
 }
