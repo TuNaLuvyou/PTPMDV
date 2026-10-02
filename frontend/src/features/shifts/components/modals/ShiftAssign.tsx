@@ -91,7 +91,7 @@ export default function AssignShiftModal({
           {!isManager && isBranchLocked && <p className="text-[11px] text-gray-400 mt-1">Đã khóa theo chi nhánh đã chọn ở bộ lọc tổng</p>}
         </Field>
         <Field label="Ngày làm việc" required>
-          <Input type="text" placeholder="VD: 17/08/2026" value={date} onChange={(e) => onDateChange(e.target.value)} />
+          <Input type="text" placeholder="DD/MM/YYYY (VD: hôm nay)" value={date} onChange={(e) => onDateChange(e.target.value)} />
         </Field>
         <Field label="Khung ca áp dụng" required>
           <Select value={templateId} onChange={(e) => onTemplateChange(e.target.value)}>
