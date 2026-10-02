@@ -27,10 +27,25 @@ async function getBySlug(slug) {
   const prisma = database.getPrisma();
   if (prisma) {
     try {
-      return await prisma.branch.findUnique({ where: { slug } });
+      return await prisma.branch.findFirst({
+        where: {
+          OR: [
+            { slug },
+            { id: slug },
+            { slug: { equals: slug, mode: "insensitive" } },
+          ],
+        },
+      });
     } catch (_) {}
   }
-  return memory.find((b) => b.slug === slug) || null;
+  return (
+    memory.find(
+      (b) =>
+        b.slug === slug ||
+        b.id === slug ||
+        (b.slug && b.slug.toLowerCase() === slug.toLowerCase())
+    ) || null
+  );
 }
 
 async function create(payload) {
@@ -63,24 +78,67 @@ async function update(slug, payload) {
   const prisma = database.getPrisma();
   if (prisma) {
     try {
-      return await prisma.branch.update({ where: { slug }, data: payload });
+      const existing = await prisma.branch.findFirst({
+        where: {
+          OR: [
+            { slug },
+            { id: slug },
+            { slug: { equals: slug, mode: "insensitive" } },
+          ],
+        },
+      });
+      if (existing) {
+        return await prisma.branch.update({
+          where: { id: existing.id },
+          data: payload,
+        });
+      }
     } catch (_) {}
   }
-  const idx = memory.findIndex((b) => b.slug === slug);
+  const idx = memory.findIndex(
+    (b) =>
+      b.slug === slug ||
+      b.id === slug ||
+      (b.slug && b.slug.toLowerCase() === slug.toLowerCase())
+  );
   if (idx < 0) return null;
   memory[idx] = { ...memory[idx], ...payload };
   return memory[idx];
 }
 
-async function remove(slug) {
+async function remove(identifier) {
   const prisma = database.getPrisma();
   if (prisma) {
     try {
-      await prisma.branch.delete({ where: { slug } });
-      return true;
-    } catch (_) {}
+      const existing = await prisma.branch.findFirst({
+        where: {
+          OR: [
+            { slug: identifier },
+            { id: identifier },
+            { slug: { equals: identifier, mode: "insensitive" } },
+          ],
+        },
+      });
+      if (existing) {
+        await prisma.employee
+          .updateMany({
+            where: { branchSlug: existing.slug },
+            data: { branchSlug: null },
+          })
+          .catch(() => {});
+        await prisma.branch.delete({ where: { id: existing.id } });
+        return true;
+      }
+    } catch (e) {
+      console.warn("[BranchRepository] remove prisma error:", e.message);
+    }
   }
-  const idx = memory.findIndex((b) => b.slug === slug);
+  const idx = memory.findIndex(
+    (b) =>
+      b.slug === identifier ||
+      b.id === identifier ||
+      (b.slug && b.slug.toLowerCase() === identifier.toLowerCase())
+  );
   if (idx < 0) return false;
   memory.splice(idx, 1);
   return true;

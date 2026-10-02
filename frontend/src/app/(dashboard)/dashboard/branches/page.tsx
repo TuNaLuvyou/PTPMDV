@@ -184,9 +184,11 @@ export default function BranchesPage() {
     if (!deleteTarget) return;
     try {
       setActionInProgress(true);
-      await apiDelete(`/api/branches/${encodeURIComponent(deleteTarget.slug)}`);
-      setList((prev) => prev.filter((e) => e.slug !== deleteTarget.slug));
+      const targetSlug = deleteTarget.slug || deleteTarget.id;
+      await apiDelete(`/api/branches/${encodeURIComponent(targetSlug)}`);
+      setList((prev) => prev.filter((e) => e.slug !== deleteTarget.slug && e.id !== deleteTarget.id));
       showToast(`Đã xóa vĩnh viễn chi nhánh "${deleteTarget.name}"`, "success");
+      await fetchBranches();
     } catch (e: any) {
       const msg = e instanceof GatewayError ? e.message : e?.message || "Lỗi khi xóa chi nhánh";
       showToast(msg, "danger");
@@ -295,6 +297,7 @@ export default function BranchesPage() {
         }}
         branch={editing}
         onSave={handleSave}
+        onDelete={!isManager ? setDeleteTarget : undefined}
       />
 
       <ConfirmDialog
