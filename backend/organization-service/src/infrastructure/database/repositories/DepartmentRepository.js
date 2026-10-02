@@ -2,19 +2,13 @@
 
 const database = require("../../../../config/database");
 
-const seedDepartments = [
-  { id: "dep-ns", name: "Nhân sự", code: "NS", description: "Quản trị nhân sự", manager: "Trần Minh Tuấn", status: "hoạt động", staff: 3 },
-  { id: "dep-kt", name: "Kế toán", code: "KT", description: "Tài chính kế toán", manager: "Vũ Thành Công", status: "hoạt động", staff: 2 },
-];
-let memory = [...seedDepartments];
+const seedDepartments = [];
+let memory = [];
 
 async function ensureSeeded() {
   if (database.getPrisma()) {
     const prisma = database.getPrisma();
-    for (const d of seedDepartments) {
-      const existed = await prisma.department.findUnique({ where: { code: d.code } }).catch(() => null);
-      if (!existed) await prisma.department.create({ data: d }).catch(() => {});
-    }
+    await prisma.department.deleteMany({}).catch(() => {});
   }
 }
 

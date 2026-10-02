@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/models/user.dart';
+import '../../../core/services/upload_service.dart';
 import '../../../core/state/branch_scope.dart';
 import '../../../core/state/user_scope.dart';
 import '../../auth/data/auth_repository.dart';
@@ -43,6 +45,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   late String _cccd;
   late String _issueDate;
   late String _issuePlace;
+  String? _avatarUrl;
+  String? _cccdFrontUrl;
+  String? _cccdBackUrl;
 
   @override
   void initState() {
@@ -60,6 +65,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     _cccd = widget.user?.cccd ?? '';
     _issueDate = widget.user?.issueDate ?? '';
     _issuePlace = widget.user?.issuePlace ?? '';
+    _avatarUrl = widget.user?.avatarUrl;
+    _cccdFrontUrl = widget.user?.cccdFrontUrl;
+    _cccdBackUrl = widget.user?.cccdBackUrl;
     _cccdCtrl = TextEditingController(text: _cccd);
   }
 
@@ -86,6 +94,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
               Navigator.pop(ctx);
               final current = UserScope.currentUser(context);
               if (current != null) {
+                await EmployeeRepository().leaveJob(current.id).catchError((_) {});
+                if (!mounted) return;
                 UserScope.setUser(context, null);
               }
               await AuthRepository().logout().catchError((_) {});
@@ -116,6 +126,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
             if (newName.isNotEmpty) 'name': newName,
             if (newPhone.isNotEmpty) 'phone': newPhone,
             'cccd': _cccd,
+            if (_avatarUrl != null) 'avatarUrl': _avatarUrl,
+            if (_cccdFrontUrl != null) 'cccdFrontUrl': _cccdFrontUrl,
+            if (_cccdBackUrl != null) 'cccdBackUrl': _cccdBackUrl,
           });
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: AppColors.success, content: Text('✅ Đã lưu thông tin cá nhân')));
@@ -130,6 +143,90 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       }
     } else {
       setState(() => _isEditing = true);
+    }
+  }
+
+  Future<void> _pickAndUploadPhoto({
+    required String title,
+    required String folder,
+    required ValueChanged<String> onUploaded,
+  }) async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (modalCtx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined, color: AppColors.primary),
+                title: const Text('Chụp ảnh từ máy ảnh (Camera)'),
+                onTap: () => Navigator.pop(modalCtx, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined, color: AppColors.primary),
+                title: const Text('Chọn ảnh từ thư viện (Gallery)'),
+                onTap: () => Navigator.pop(modalCtx, ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (source == null) return;
+    try {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                SizedBox(width: 12),
+                Text('Đang tải ảnh lên Cloudinary...'),
+              ],
+            ),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+      final url = await UploadService().pickAndUploadImage(source: source, folder: folder);
+      if (url != null && mounted) {
+        onUploaded(url);
+        final current = UserScope.currentUser(context);
+        if (current != null) {
+          await EmployeeRepository().updateEmployee(current.id, {
+            if (_avatarUrl != null) 'avatarUrl': _avatarUrl,
+            if (_cccdFrontUrl != null) 'cccdFrontUrl': _cccdFrontUrl,
+            if (_cccdBackUrl != null) 'cccdBackUrl': _cccdBackUrl,
+          }).catchError((_) => <String, dynamic>{});
+        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: AppColors.success,
+            content: Text('✓ Tải ảnh lên Cloudinary thành công!'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi tải ảnh: $e')),
+        );
+      }
     }
   }
 
@@ -162,7 +259,36 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
             child: Row(children: [
-              CircleAvatar(radius: 32, backgroundColor: AppColors.primary.withValues(alpha: 0.12), child: FaIcon(widget.isManager ? FontAwesomeIcons.userShield : FontAwesomeIcons.person, color: AppColors.primary, size: 32)),
+              GestureDetector(
+                onTap: () => _pickAndUploadPhoto(
+                  title: 'Cập nhật ảnh đại diện',
+                  folder: 'hrm/avatars',
+                  onUploaded: (url) => setState(() => _avatarUrl = url),
+                ),
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 32,
+                      backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                      backgroundImage: (_avatarUrl != null && _avatarUrl!.isNotEmpty)
+                          ? NetworkImage(_avatarUrl!)
+                          : null,
+                      child: (_avatarUrl == null || _avatarUrl!.isEmpty)
+                          ? FaIcon(widget.isManager ? FontAwesomeIcons.userShield : FontAwesomeIcons.person, color: AppColors.primary, size: 32)
+                          : null,
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                        child: const Icon(Icons.camera_alt, size: 12, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(width: 14),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(_nameCtrl.text, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
@@ -218,9 +344,21 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                 const SizedBox(width: 10),
                 const Expanded(child: Text('Ảnh CCCD', style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600))),
                 const SizedBox(width: 10),
-                _cccdThumb('Mặt trước', true),
+                _cccdThumb('Mặt trước', _cccdFrontUrl, () {
+                  _pickAndUploadPhoto(
+                    title: 'Tải ảnh CCCD mặt trước',
+                    folder: 'hrm/cccd',
+                    onUploaded: (url) => setState(() => _cccdFrontUrl = url),
+                  );
+                }),
                 const SizedBox(width: 8),
-                _cccdThumb('Mặt sau', true),
+                _cccdThumb('Mặt sau', _cccdBackUrl, () {
+                  _pickAndUploadPhoto(
+                    title: 'Tải ảnh CCCD mặt sau',
+                    folder: 'hrm/cccd',
+                    onUploaded: (url) => setState(() => _cccdBackUrl = url),
+                  );
+                }),
               ]),
             ),
           ]),
@@ -268,10 +406,32 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
   Widget _divider() => Divider(height: 1, indent: 46, color: Colors.grey.shade200);
 
-  Widget _cccdThumb(String label, bool uploaded) => Container(
-        width: 64,
-        height: 44,
-        decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.green.shade200)),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const FaIcon(FontAwesomeIcons.circleCheck, size: 16, color: Colors.green), const SizedBox(height: 2), Text(label, style: const TextStyle(fontSize: 9, color: Colors.green, fontWeight: FontWeight.w600))]),
+  Widget _cccdThumb(String label, String? url, VoidCallback onTap) => InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: 70,
+          height: 48,
+          decoration: BoxDecoration(
+            color: (url != null && url.isNotEmpty) ? Colors.transparent : Colors.green.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: (url != null && url.isNotEmpty) ? AppColors.primary : Colors.green.shade200),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: (url != null && url.isNotEmpty)
+              ? Image.network(
+                  url,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image, size: 18, color: Colors.grey)),
+                )
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const FaIcon(FontAwesomeIcons.camera, size: 14, color: Colors.green),
+                    const SizedBox(height: 2),
+                    Text(label, style: const TextStyle(fontSize: 9, color: Colors.green, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+        ),
       );
 }

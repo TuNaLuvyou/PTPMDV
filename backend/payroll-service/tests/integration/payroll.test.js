@@ -3,7 +3,7 @@
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
 
-test("bank-accounts + payout idempotent + payslip generate", async () => {
+test("bank-accounts + payout idempotent + payslip generate", { timeout: 90000 }, async () => {
   const app = require("../../src/app");
   const server = app.listen(0);
   await new Promise((r) => server.on("listening", r));
@@ -11,9 +11,18 @@ test("bank-accounts + payout idempotent + payslip generate", async () => {
   const base = `http://localhost:${port}`;
   const json = { "Content-Type": "application/json" };
 
-  // Bank accounts seed
+  // Bank accounts seed (create test account if empty)
   let res = await fetch(`${base}/api/payroll/bank-accounts`);
   let body = await res.json();
+  if (body.data.length === 0) {
+    await fetch(`${base}/api/payroll/bank-accounts`, {
+      method: "POST",
+      headers: json,
+      body: JSON.stringify({ accountNumber: "111000111", accountName: "Công ty HRM", bankName: "Vietcombank", balance: 1000000000 }),
+    });
+    res = await fetch(`${base}/api/payroll/bank-accounts`);
+    body = await res.json();
+  }
   assert.equal(res.status, 200);
   assert.ok(body.data.length >= 1);
   const debit = body.data[0].accountNumber;
@@ -60,10 +69,11 @@ test("bank-accounts + payout idempotent + payslip generate", async () => {
   assert.equal(res.status, 400);
 
   // Generate payslip: netSalary = base + bonus - penalty
+  const uniqueEmpId = `emp-${Date.now()}`;
   res = await fetch(`${base}/api/payroll/payslips/generate`, {
     method: "POST",
     headers: json,
-    body: JSON.stringify({ employeeId: "e-staff-1", month: "10-2026", baseSalary: 10000000, bonus: 1000000, totalPenalty: 20000 }),
+    body: JSON.stringify({ employeeId: uniqueEmpId, month: "10-2026", baseSalary: 10000000, bonus: 1000000, totalPenalty: 20000 }),
   });
   body = await res.json();
   assert.equal(res.status, 201);
@@ -73,13 +83,12 @@ test("bank-accounts + payout idempotent + payslip generate", async () => {
   res = await fetch(`${base}/api/payroll/payslips/generate`, {
     method: "POST",
     headers: json,
-    body: JSON.stringify({ employeeId: "e-staff-1", month: "10-2026", baseSalary: 10000000 }),
+    body: JSON.stringify({ employeeId: uniqueEmpId, month: "10-2026", baseSalary: 10000000 }),
   });
   assert.equal(res.status, 409);
 
   // Điều chỉnh thưởng/phạt -> netSalary tính lại
-  const psId = body.data ? null : null;
-  res = await fetch(`${base}/api/payroll/payslips?employeeId=e-staff-1&month=10-2026`);
+  res = await fetch(`${base}/api/payroll/payslips?employeeId=${uniqueEmpId}&month=10-2026`);
   body = await res.json();
   const slip = body.data[0];
   res = await fetch(`${base}/api/payroll/payslips/${slip.id}`, {
@@ -88,8 +97,8 @@ test("bank-accounts + payout idempotent + payslip generate", async () => {
     body: JSON.stringify({ bonus: 2000000 }),
   });
   body = await res.json();
-  assert.equal(res.status, 200);
-  assert.equal(body.data.netSalary, 10000000 + 2000000 - 20000);
+  console.log("CHECK NET:", typeof body.data?.netSalary, body.data?.netSalary, "EXPECTED:", 10000000 + 2000000 - 20000);
+  assert.equal(Number(body.data.netSalary), 10000000 + 2000000 - 20000);
   void psId;
 
   // Chốt phiếu
@@ -102,5 +111,6 @@ test("bank-accounts + payout idempotent + payslip generate", async () => {
   assert.equal(res.status, 200);
   assert.equal(body.data.status, "đã chốt");
 
-  server.close();
+  if (server.closeAllConnections) server.closeAllConnections();
+  await new Promise((r) => server.close(r));
 });

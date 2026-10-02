@@ -161,6 +161,23 @@ async function deleteEmployee(req, res, next) {
   }
 }
 
+async function leaveEmployee(req, res, next) {
+  try {
+    const row = await OrgService.EmployeeRepository.update(req.params.id, {
+      status: "resigned",
+      resignedAt: new Date().toISOString(),
+    });
+    if (!row) {
+      const err = new NotFoundError("Không tìm thấy thông tin nhân sự trên hệ thống");
+      err.code = "EMPLOYEE_NOT_FOUND";
+      throw err;
+    }
+    return res.status(200).json({ data: row, message: "Nhân viên đã xác nhận thôi việc" });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 module.exports = {
   listBranches,
   getBranch,
@@ -177,4 +194,5 @@ module.exports = {
   createEmployee,
   updateEmployee,
   deleteEmployee,
+  leaveEmployee,
 };

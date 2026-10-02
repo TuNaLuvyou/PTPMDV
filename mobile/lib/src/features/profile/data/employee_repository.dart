@@ -58,4 +58,14 @@ class EmployeeRepository {
       return kBranches;
     }
   }
+
+  /// Yêu cầu thôi việc qua POST /api/employees/:id/leave
+  Future<void> leaveJob(String id) async {
+    try {
+      await api.postJson('/api/employees/$id/leave', {});
+    } catch (_) {
+      // Fallback PUT status
+      await api.putJson('/api/employees/$id', {'status': 'resigned'});
+    }
+  }
 }

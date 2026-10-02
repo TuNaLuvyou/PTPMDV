@@ -36,9 +36,33 @@ model Notification {
   title            String
   body             String
   isRead           Boolean  @default(false)
+  metadata         Json?
+  requestType      String?
+  shiftName        String?
+  shiftDate        String?
+  shiftTime        String?
+  shiftHours       String?
+  senderName       String?
+  senderRole       String?
+  senderPhone      String?
   createdAt        DateTime @default(now())
 
   @@map("notifications")
+}
+
+model SoapGatewayConfig {
+  id              String   @id @default("default")
+  endpointUrl     String
+  wsdlUrl         String
+  serviceName     String
+  port            Int      @default(8443)
+  securityMode    String
+  allowedIPs      String[]
+  status          String   @default("unknown")
+  lastPingTime    String?
+  avgResponseTime String?
+
+  @@map("soap_gateway_configs")
 }
 
 model News {

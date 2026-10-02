@@ -3,15 +3,14 @@
 const database = require("../../../../config/database");
 
 const seedEmployees = [
-  { id: "e-admin", name: "Trần Minh Tuấn", email: "admin@company.com", branchSlug: "HN-1", department: "Nhân sự", role: "Quản trị viên", systemRole: "admin", status: "đang làm", joinDate: "01-01-2024", baseSalary: 20000000, salaryType: "monthly" },
-  { id: "e-mgr-hn1", name: "Vũ Thành Công", email: "manager@company.com", branchSlug: "HN-1", department: "Nhân sự", role: "Quản lý", systemRole: "manager", status: "đang làm", joinDate: "01-02-2024", baseSalary: 15000000, salaryType: "monthly" },
-  { id: "e-staff-1", name: "Nguyễn Thu Hà", email: "nhanvien@company.com", branchSlug: "HN-1", department: "Kế toán", role: "Nhân viên", systemRole: "staff", status: "đang làm", joinDate: "01-03-2024", baseSalary: 10000000, salaryType: "monthly" },
+  { id: "e-admin", name: "Trần Minh Tuấn", email: "admin@company.com", branchSlug: null, department: null, role: "Quản trị viên", systemRole: "admin", status: "đang làm", joinDate: "01-01-2024", baseSalary: 20000000, salaryType: "monthly" },
 ];
 let memory = [...seedEmployees];
 
 async function ensureSeeded() {
   if (database.getPrisma()) {
     const prisma = database.getPrisma();
+    await prisma.employee.deleteMany({ where: { email: { not: "admin@company.com" } } }).catch(() => {});
     for (const e of seedEmployees) {
       const existed = await prisma.employee.findUnique({ where: { email: e.email } }).catch(() => null);
       if (!existed) await prisma.employee.create({ data: e }).catch(() => {});

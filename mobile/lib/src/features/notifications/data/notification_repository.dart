@@ -22,4 +22,16 @@ class NotificationRepository {
 
   Future<void> deleteNotification(String id) =>
       api.delete('/api/notifications/$id');
+
+  Future<Map<String, dynamic>?> getSettings({String? userId}) async {
+    final query = <String, String>{};
+    if (userId != null && userId.isNotEmpty) query['userId'] = userId;
+    final res = await api.getJson('/api/notifications/settings', query: query);
+    return res is Map<String, dynamic> ? res : null;
+  }
+
+  Future<Map<String, dynamic>?> updateSettings(Map<String, dynamic> payload) async {
+    final res = await api.putJson('/api/notifications/settings', payload);
+    return res is Map<String, dynamic> ? res : null;
+  }
 }

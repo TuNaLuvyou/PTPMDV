@@ -12,26 +12,21 @@ function bankRef() {
   return `BANK-${Math.floor(10000000 + Math.random() * 90000000)}`;
 }
 
-const seedAccounts = [
-  { id: "bank-corp-1", accountNumber: "111000111", accountName: "Công ty HRM", bankName: "Vietcombank", balance: 1000000000, status: "hoạt động" },
-];
-let memoryAccounts = [...seedAccounts];
+const seedAccounts = [];
+let memoryAccounts = [];
 let memoryPayouts = [];
 let memoryPayslips = [];
 
 async function ensureSeeded() {
   const prisma = database.getPrisma();
-  if (!prisma) return { mode: "memory" };
-  try {
-    for (const a of seedAccounts) {
-      await prisma.bankAccount.upsert({
-        where: { accountNumber: a.accountNumber },
-        update: {},
-        create: a,
-      });
-    }
-  } catch (_) {}
-  return { mode: "postgres" };
+  if (prisma) {
+    try {
+      await prisma.payslip.deleteMany({}).catch(() => {});
+      await prisma.payout.deleteMany({}).catch(() => {});
+      await prisma.bankAccount.deleteMany({}).catch(() => {});
+    } catch (_) {}
+  }
+  return { mode: prisma ? "postgres" : "memory" };
 }
 
 // --- Bank accounts ---
@@ -47,19 +42,58 @@ async function listBankAccounts() {
 
 async function updateBankAccount(id, payload) {
   const allowed = {};
-  for (const k of ["accountName", "bankName", "status", "balance"]) {
+  for (const k of ["accountName", "bankName", "status", "balance", "isPrimary"]) {
     if (payload[k] !== undefined) allowed[k] = payload[k];
   }
   const prisma = database.getPrisma();
   if (prisma) {
     try {
+      // Chỉ cho phép tối đa 1 tài khoản primary.
+      if (allowed.isPrimary === true) {
+        await prisma.bankAccount.updateMany({ where: {}, data: { isPrimary: false } });
+      }
       return await prisma.bankAccount.update({ where: { id }, data: allowed });
     } catch (_) {}
   }
   const idx = memoryAccounts.findIndex((a) => a.id === id);
   if (idx < 0) return null;
+  if (allowed.isPrimary === true) {
+    memoryAccounts = memoryAccounts.map((a) => ({ ...a, isPrimary: false }));
+  }
   memoryAccounts[idx] = { ...memoryAccounts[idx], ...allowed };
   return memoryAccounts[idx];
+}
+
+async function createBankAccount(payload) {
+  const prisma = database.getPrisma();
+  if (prisma) {
+    try {
+      if (payload.isPrimary === true) {
+        await prisma.bankAccount.updateMany({ where: {}, data: { isPrimary: false } });
+      }
+      return await prisma.bankAccount.create({ data: payload });
+    } catch (_) {}
+  }
+  const row = { id: uid("bank"), status: "hoạt động", ...payload };
+  if (row.isPrimary === true) {
+    memoryAccounts = memoryAccounts.map((a) => ({ ...a, isPrimary: false }));
+  }
+  memoryAccounts.push(row);
+  return row;
+}
+
+async function deleteBankAccount(id) {
+  const prisma = database.getPrisma();
+  if (prisma) {
+    try {
+      await prisma.bankAccount.delete({ where: { id } });
+      return true;
+    } catch (_) {}
+  }
+  const idx = memoryAccounts.findIndex((a) => a.id === id);
+  if (idx < 0) return false;
+  memoryAccounts.splice(idx, 1);
+  return true;
 }
 
 async function findAccount(accountNumber) {
@@ -253,7 +287,13 @@ async function updatePayslip(id, payload) {
       const current = await prisma.payslip.findUnique({ where: { id } });
       if (!current) return null;
       const next = applyNet(current);
-      return await prisma.payslip.update({ where: { id }, data: next });
+      return await prisma.payslip.update({
+        where: { id },
+        data: {
+          ...allowed,
+          netSalary: next.netSalary,
+        },
+      });
     } catch (_) {}
   }
   const idx = memoryPayslips.findIndex((p) => p.id === id);
@@ -285,6 +325,9 @@ module.exports = {
   ensureSeeded,
   listBankAccounts,
   updateBankAccount,
+  createBankAccount,
+  deleteBankAccount,
+  getPayslip: findPayslip,
   listPayouts,
   findByIdempotencyKey,
   createPayout,

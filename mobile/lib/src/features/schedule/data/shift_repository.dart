@@ -107,4 +107,23 @@ class ShiftRepository {
     final List list = data is List ? data : [];
     return list.whereType<Map<String, dynamic>>().toList();
   }
+
+  Future<List<Map<String, dynamic>>> getTemplates() async {
+    final data = await api.getJson('/api/shifts/templates');
+    final List list = data is List ? data : [];
+    return list.whereType<Map<String, dynamic>>().toList();
+  }
+
+  Future<Map<String, dynamic>> createTemplate(Map<String, dynamic> payload) async {
+    final res = await api.postJson('/api/shifts/templates', payload);
+    return res is Map<String, dynamic> ? res : {};
+  }
+
+  Future<void> updateTemplate(String id, Map<String, dynamic> payload) async {
+    await api.putJson('/api/shifts/templates/$id', payload);
+  }
+
+  Future<void> deleteTemplate(String id) async {
+    await api.delete('/api/shifts/templates/$id');
+  }
 }

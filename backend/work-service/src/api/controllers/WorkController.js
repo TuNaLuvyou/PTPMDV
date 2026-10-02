@@ -170,6 +170,71 @@ async function deleteTask(req, res, next) {
   }
 }
 
+async function getShift(req, res, next) {
+  try {
+    const row = await WorkRepository.getShiftById(req.params.id);
+    if (!row) throw new NotFoundError("Không tìm thấy ca làm việc");
+    return res.status(200).json({ data: row, message: "Thao tác thành công" });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function getTask(req, res, next) {
+  try {
+    const row = await WorkRepository.getTaskById(req.params.id);
+    if (!row) throw new NotFoundError("Không tìm thấy tác vụ");
+    return res.status(200).json({ data: row, message: "Thao tác thành công" });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function listTemplates(_req, res, next) {
+  try {
+    const rows = await WorkRepository.listTemplates();
+    return res.status(200).json({ data: rows, message: "Thao tác thành công" });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function createTemplate(req, res, next) {
+  try {
+    if (!req.body.name || !req.body.startTime || !req.body.endTime) {
+      throw new ValidationError("Thiếu name, startTime hoặc endTime");
+    }
+    const row = await WorkRepository.createTemplate({
+      name: req.body.name,
+      startTime: req.body.startTime,
+      endTime: req.body.endTime,
+    });
+    return res.status(201).json({ data: row, message: "Tạo khung ca thành công" });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function updateTemplate(req, res, next) {
+  try {
+    const row = await WorkRepository.updateTemplate(req.params.id, req.body);
+    if (!row) throw new NotFoundError("Không tìm thấy khung ca");
+    return res.status(200).json({ data: row, message: "Cập nhật khung ca thành công" });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function deleteTemplate(req, res, next) {
+  try {
+    const ok = await WorkRepository.deleteTemplate(req.params.id);
+    if (!ok) throw new NotFoundError("Không tìm thấy khung ca");
+    return res.status(200).json({ data: { ok: true }, message: "Xóa khung ca thành công" });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 module.exports = {
   listShifts,
   createShift,
@@ -178,6 +243,7 @@ module.exports = {
   assignShift,
   registerShift,
   listRegistrations,
+  getShift,
   checkin,
   checkout,
   listAttendance,
@@ -187,4 +253,9 @@ module.exports = {
   createTask,
   updateTask,
   deleteTask,
+  getTask,
+  listTemplates,
+  createTemplate,
+  updateTemplate,
+  deleteTemplate,
 };

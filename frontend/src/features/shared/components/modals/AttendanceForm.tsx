@@ -11,6 +11,13 @@ export interface AttendanceConfigState {
   shiftSwapMode: string;
   requireReasonSwap: boolean;
   allowDoubleCheckin: boolean;
+  latePenaltyPct: string;
+  earlyLeavePenaltyPct: string;
+  earlyCheckinMinutes: string;
+  maxPenaltiesPerMonth: string;
+  deductOnCheckout: boolean;
+  maxCheckinsPerDay: string;
+  maxSwapsPerMonth: string;
 }
 
 interface Props {
@@ -34,21 +41,21 @@ export default function AttendanceConfigModal({ open, onClose, config, setConfig
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Field label="Mức phạt đi trễ (% lương ca)" required hint="Tự trừ theo % tổng lương của ca làm việc">
-              <div className="relative"><Input type="number" min={0} max={100} defaultValue={10} className="pr-9" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span></div>
+              <div className="relative"><Input type="number" min={0} max={100} value={config.latePenaltyPct} onChange={(e) => setConfig((p) => ({ ...p, latePenaltyPct: e.target.value }))} className="pr-9" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span></div>
             </Field>
             <Field label="Mức phạt về sớm (% lương ca)" required hint="Tự trừ theo % tổng lương của ca làm việc">
-              <div className="relative"><Input type="number" min={0} max={100} defaultValue={10} className="pr-9" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span></div>
+              <div className="relative"><Input type="number" min={0} max={100} value={config.earlyLeavePenaltyPct} onChange={(e) => setConfig((p) => ({ ...p, earlyLeavePenaltyPct: e.target.value }))} className="pr-9" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span></div>
             </Field>
             <Field label="Cho phép chấm công trễ (phút)" required hint="Số phút tối đa chấp nhận check-in trễ trước khi tính phạt">
-              <Input type="number" min={0} defaultValue={config.gracePeriod.replace(" phút", "")} />
+              <Input type="number" min={0} value={config.gracePeriod} onChange={(e) => setConfig((p) => ({ ...p, gracePeriod: e.target.value }))} />
             </Field>
             <Field label="Cho phép chấm công trước giờ làm (phút)" required hint="Nhân viên có thể chấm công sớm trước giờ bắt đầu ca tối đa bao nhiêu phút">
-              <Input type="number" min={0} defaultValue={15} />
+              <Input type="number" min={0} value={config.earlyCheckinMinutes} onChange={(e) => setConfig((p) => ({ ...p, earlyCheckinMinutes: e.target.value }))} />
             </Field>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Field label="Giới hạn phạt tối đa / tháng" required>
-              <Select defaultValue="10"><option>5 lần</option><option>10 lần</option><option>20 lần</option><option>Không giới hạn</option></Select>
+              <Select value={config.maxPenaltiesPerMonth} onChange={(e) => setConfig((p) => ({ ...p, maxPenaltiesPerMonth: e.target.value }))}><option>5 lần</option><option>10 lần</option><option>20 lần</option><option>Không giới hạn</option></Select>
             </Field>
             <Field label="Thời điểm khấu trừ">
               <div className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
@@ -56,7 +63,7 @@ export default function AttendanceConfigModal({ open, onClose, config, setConfig
                   <span className="text-sm font-medium text-gray-800 block">Khấu trừ ngay khi kết thúc ca (Check-out)</span>
                   <span className="text-[11px] text-gray-400 block mt-0.5">Tính theo giờ làm thực tế × lương cơ bản và trừ thẳng vào ca</span>
                 </div>
-                <input type="checkbox" defaultChecked className="w-4 h-4 accent-primary shrink-0 ml-2" />
+                <input type="checkbox" checked={config.deductOnCheckout} onChange={(e) => setConfig((p) => ({ ...p, deductOnCheckout: e.target.checked }))} className="w-4 h-4 accent-primary shrink-0 ml-2" />
               </div>
             </Field>
           </div>
@@ -67,7 +74,7 @@ export default function AttendanceConfigModal({ open, onClose, config, setConfig
             <p className="text-xs text-gray-400 mt-1.5">Nhân viên làm nhiều ca / gác trong ngày có thể chấm công vào – ra nhiều lần.</p>
             {config.allowDoubleCheckin && (
               <Field label="Số lần chấm công tối đa / ngày" required className="mt-3">
-                <Select defaultValue="3"><option>2 lần</option><option>3 lần</option><option>4 lần</option><option>Không giới hạn</option></Select>
+                <Select value={config.maxCheckinsPerDay} onChange={(e) => setConfig((p) => ({ ...p, maxCheckinsPerDay: e.target.value }))}><option>2 lần</option><option>3 lần</option><option>4 lần</option><option>Không giới hạn</option></Select>
               </Field>
             )}
           </div>
@@ -80,13 +87,13 @@ export default function AttendanceConfigModal({ open, onClose, config, setConfig
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Field label="Chế độ duyệt đổi ca" required>
-              <Select defaultValue={config.shiftSwapMode}>
+              <Select value={config.shiftSwapMode} onChange={(e) => setConfig((p) => ({ ...p, shiftSwapMode: e.target.value }))}>
                 <option>Nhân viên tự xác nhận</option>
                 <option>Quản lý chi nhánh duyệt trực tiếp</option>
               </Select>
             </Field>
             <Field label="Số lần đổi ca tối đa / tháng" required>
-              <Select defaultValue="3"><option>1 lần</option><option>3 lần</option><option>5 lần</option><option>Không giới hạn</option></Select>
+              <Select value={config.maxSwapsPerMonth} onChange={(e) => setConfig((p) => ({ ...p, maxSwapsPerMonth: e.target.value }))}><option>1 lần</option><option>3 lần</option><option>5 lần</option><option>Không giới hạn</option></Select>
             </Field>
           </div>
           <p className="text-[11px] text-gray-500 mt-2 mb-3">

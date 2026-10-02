@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/services/upload_service.dart';
 import '../../../core/state/branch_scope.dart';
 import '../../../core/widgets/branch_selector.dart';
 import '../../../core/models/user.dart';
@@ -146,6 +148,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
   /// Màn hình chụp ảnh minh chứng bắt buộc khi quản trị viên yêu cầu
   void _showPhotoProofSheet(TaskModel task) {
     String? tempPhotoUrl;
+    bool isUploading = false;
 
     showModalBottomSheet(
       context: context,
@@ -227,18 +230,65 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
               ),
               const SizedBox(height: 16),
 
-              // Chụp ảnh minh chứng: chưa có API upload + plugin camera,
-              // tạm thời báo đang phát triển thay vì gán ảnh giả.
+              // Chụp ảnh minh chứng tải lên Cloudinary
               if (tempPhotoUrl == null)
                 InkWell(
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('📷 Chụp ảnh minh chứng đang phát triển (chưa có API upload)'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  },
+                  onTap: isUploading
+                      ? null
+                      : () async {
+                          final source = await showModalBottomSheet<ImageSource>(
+                            context: context,
+                            backgroundColor: Colors.white,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                            ),
+                            builder: (modalCtx) => SafeArea(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text(
+                                      'Chọn nguồn ảnh minh chứng',
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    ListTile(
+                                      leading: const Icon(Icons.camera_alt_outlined, color: AppColors.primary),
+                                      title: const Text('Chụp ảnh từ máy ảnh (Camera)'),
+                                      onTap: () => Navigator.pop(modalCtx, ImageSource.camera),
+                                    ),
+                                    ListTile(
+                                      leading: const Icon(Icons.photo_library_outlined, color: AppColors.primary),
+                                      title: const Text('Chọn ảnh từ thư viện (Gallery)'),
+                                      onTap: () => Navigator.pop(modalCtx, ImageSource.gallery),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                          if (source == null) return;
+                          setSheetState(() => isUploading = true);
+                          try {
+                            final url = await UploadService().pickAndUploadImage(source: source, folder: 'hrm/tasks');
+                            if (url != null) {
+                              setSheetState(() {
+                                tempPhotoUrl = url;
+                                isUploading = false;
+                              });
+                            } else {
+                              setSheetState(() => isUploading = false);
+                            }
+                          } catch (e) {
+                            setSheetState(() => isUploading = false);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Lỗi tải ảnh lên Cloudinary: $e')),
+                              );
+                            }
+                          }
+                        },
                   borderRadius: BorderRadius.circular(16),
                   child: Container(
                     height: 160,
@@ -247,28 +297,42 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: const Color(0xFFFCA5A5), style: BorderStyle.solid, width: 1.5),
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.photo_camera_rounded, color: Color(0xFFDC2626), size: 32),
-                        ),
-                        const SizedBox(height: 10),
-                        const Text(
-                          'Bấm vào đây để chụp ảnh minh chứng',
-                          style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, color: Color(0xFF991B1B)),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          '(Bắt buộc phải có ảnh để hoàn thành nhiệm vụ)',
-                          style: TextStyle(fontSize: 11.5, color: Color(0xFFDC2626)),
-                        ),
-                      ],
+                    child: Center(
+                      child: isUploading
+                          ? const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CircularProgressIndicator(color: AppColors.primary),
+                                SizedBox(height: 12),
+                                Text(
+                                  'Đang tải ảnh lên Cloudinary...',
+                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+                                ),
+                              ],
+                            )
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.photo_camera_rounded, color: Color(0xFFDC2626), size: 32),
+                                ),
+                                const SizedBox(height: 10),
+                                const Text(
+                                  'Bấm vào đây để chụp ảnh minh chứng',
+                                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, color: Color(0xFF991B1B)),
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  '(Bắt buộc phải có ảnh để hoàn thành nhiệm vụ)',
+                                  style: TextStyle(fontSize: 11.5, color: Color(0xFFDC2626)),
+                                ),
+                              ],
+                            ),
                     ),
                   ),
                 )
@@ -356,8 +420,11 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                     : () async {
                         Navigator.pop(sheetCtx);
                         try {
-                          await TaskRepository()
-                              .updateTaskStatus(task.id, 'completed');
+                          await TaskRepository().updateTaskStatus(
+                            task.id,
+                            'completed',
+                            proofUrl: tempPhotoUrl,
+                          );
                           _loadTasks();
                           if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(

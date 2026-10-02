@@ -13,6 +13,26 @@ async function listNotifications(req, res, next) {
   }
 }
 
+async function getSettings(req, res, next) {
+  try {
+    const userId = req.headers["x-user-id"] || req.query.userId || "default";
+    const settings = await NotificationRepository.getSettings(userId);
+    return res.status(200).json({ data: settings, message: "Thao tác thành công" });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function updateSettings(req, res, next) {
+  try {
+    const userId = req.headers["x-user-id"] || req.query.userId || "default";
+    const updated = await NotificationRepository.updateSettings(userId, req.body || {});
+    return res.status(200).json({ data: updated, message: "Cập nhật cài đặt thông báo thành công" });
+  } catch (error) {
+    return next(error);
+  }
+}
+
 async function createNotification(req, res, next) {
   try {
     const errors = validateCreateNotification(req.body);
@@ -26,6 +46,15 @@ async function createNotification(req, res, next) {
       branchSlug: req.body.branchSlug,
       title: req.body.title.trim(),
       body: req.body.body.trim(),
+      metadata: req.body.metadata || null,
+      requestType: req.body.requestType || null,
+      shiftName: req.body.shiftName || null,
+      shiftDate: req.body.shiftDate || null,
+      shiftTime: req.body.shiftTime || null,
+      shiftHours: req.body.shiftHours || null,
+      senderName: req.body.senderName || null,
+      senderRole: req.body.senderRole || null,
+      senderPhone: req.body.senderPhone || null,
     });
     return res.status(201).json({ data: created, message: "Gửi thông báo thành công" });
   } catch (error) {
@@ -67,4 +96,6 @@ module.exports = {
   createNotification,
   markAsRead,
   deleteNotification,
+  getSettings,
+  updateSettings,
 };

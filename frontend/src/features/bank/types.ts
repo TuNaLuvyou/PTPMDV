@@ -37,7 +37,7 @@ export interface SoapGatewayConfig {
   port: number;
   securityMode: string;
   allowedIPs: string[];
-  status: "healthy" | "degraded" | "down";
+  status: "healthy" | "degraded" | "down" | "unknown";
   lastPingTime: string;
   avgResponseTime: string;
 }

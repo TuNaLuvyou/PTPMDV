@@ -14,8 +14,11 @@ describe("Integration Service Health Endpoint Test", () => {
     baseUrl = `http://localhost:${server.address().port}`;
   });
 
-  after(() => {
-    if (server) server.close();
+  after(async () => {
+    if (server) {
+      if (server.closeAllConnections) server.closeAllConnections();
+      await new Promise((r) => server.close(r));
+    }
   });
 
   test("GET /health trả status 200 và envelope chuẩn", async () => {

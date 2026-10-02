@@ -21,6 +21,7 @@ router.get("/employees", OrgController.listEmployees);
 router.get("/employees/:id", OrgController.getEmployee);
 router.post("/employees", OrgController.createEmployee);
 router.put("/employees/:id", OrgController.updateEmployee);
+router.post("/employees/:id/leave", OrgController.leaveEmployee);
 router.delete("/employees/:id", OrgController.deleteEmployee);
 
 module.exports = router;
