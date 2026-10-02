@@ -3,7 +3,6 @@
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { Field, Input, Select, Checkbox } from "@/components/ui/Form";
-import { employees as mockEmployees } from "@/mock-data/portal";
 import type { ShiftTemplate } from "@/features/shifts/types";
 import type { Employee } from "@/types";
 
@@ -52,7 +51,7 @@ export default function AssignShiftModal({
   onRecurringChange,
   onSave,
 }: Props) {
-  const empList = (employeesProp && employeesProp.length > 0) ? employeesProp : mockEmployees;
+  const empList = employeesProp ?? [];
   const isBranchLocked = isManager || (lockedBranch !== undefined && lockedBranch !== "all" && lockedBranch !== "");
   const branchDisplay = isManager ? (managerBranch ?? branch) : (lockedBranch && lockedBranch !== "all" ? lockedBranch : branch);
   return (

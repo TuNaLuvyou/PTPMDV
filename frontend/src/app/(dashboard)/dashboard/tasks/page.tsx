@@ -11,10 +11,8 @@ import {
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
 import { apiGet, apiPost, GatewayError, GATEWAY_URL } from "@/lib/api";
-import { employees as initialEmployees } from "@/mock-data/portal";
 import type { Employee } from "@/types";
 import type { TaskItem, TaskSourceType, TaskStatus } from "@/features/tasks/types";
-import { initialTasks } from "@/features/tasks/mock";
 import TaskFilterBar from "@/features/tasks/components/TaskFilter";
 import TaskTable from "@/features/tasks/components/TaskTable";
 import CreateTaskModal from "@/features/tasks/components/modals/TaskForm";
@@ -127,8 +125,8 @@ export default function TasksPage() {
   const { role, branchSlug } = useCurrentUser();
   const isAdmin = role === "admin";
 
-  const [tasks, setTasks] = useState<TaskItem[]>(initialTasks);
-  const [empList, setEmpList] = useState<Employee[]>(initialEmployees);
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [empList, setEmpList] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionInProgress, setActionInProgress] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -182,8 +180,8 @@ export default function TasksPage() {
       let employeesData: Employee[] = [];
       if (empRes.status === "fulfilled" && Array.isArray(empRes.value)) {
         employeesData = empRes.value;
-        setEmpList(employeesData);
       }
+      setEmpList(employeesData);
 
       const currentEmpMap = new Map<string, Employee>();
       for (const e of employeesData) {
@@ -192,7 +190,7 @@ export default function TasksPage() {
         currentEmpMap.set(e.email, e);
       }
 
-      if (tasksRes.status === "fulfilled" && Array.isArray(tasksRes.value) && tasksRes.value.length > 0) {
+      if (tasksRes.status === "fulfilled" && Array.isArray(tasksRes.value)) {
         setTasks(tasksRes.value.map((t) => mapBackendTaskToTaskItem(t, currentEmpMap)));
       }
     } catch (e: any) {
@@ -288,22 +286,8 @@ export default function TasksPage() {
       );
       showToast("Đã duyệt hoàn thành nhiệm vụ thành công", "success");
     } catch (e: any) {
-      // Fallback local state update
-      setTasks((prev) =>
-        prev.map((t) => {
-          if (t.id === taskId) {
-            return {
-              ...t,
-              status: "completed",
-              proofPhotoUrl: photoUrl || t.proofPhotoUrl,
-              completedAt,
-            };
-          }
-          return t;
-        })
-      );
-      const msg = e instanceof GatewayError ? e.message : e?.message || "Đã cập nhật trạng thái hoàn thành";
-      showToast(msg, "success");
+      const msg = e instanceof GatewayError ? e.message : e?.message || "Lỗi khi duyệt hoàn thành";
+      showToast(msg, "danger");
     } finally {
       setActionInProgress(false);
     }
@@ -317,9 +301,8 @@ export default function TasksPage() {
       setTasks((prev) => prev.filter((t) => t.id !== taskId));
       showToast("Đã xóa nhiệm vụ thành công", "success");
     } catch (e: any) {
-      setTasks((prev) => prev.filter((t) => t.id !== taskId));
-      const msg = e instanceof GatewayError ? e.message : e?.message || "Đã xóa nhiệm vụ khỏi danh sách";
-      showToast(msg, "success");
+      const msg = e instanceof GatewayError ? e.message : e?.message || "Lỗi khi xóa nhiệm vụ";
+      showToast(msg, "danger");
     } finally {
       setActionInProgress(false);
     }
@@ -352,9 +335,8 @@ export default function TasksPage() {
       setTasks((prev) => [mapped, ...prev]);
       showToast(`Đã giao nhiệm vụ "${newTask.title}" thành công`, "success");
     } catch (e: any) {
-      setTasks((prev) => [newTask, ...prev]);
-      const msg = e instanceof GatewayError ? e.message : e?.message || "Đã lưu nhiệm vụ mới";
-      showToast(msg, "success");
+      const msg = e instanceof GatewayError ? e.message : e?.message || "Lỗi khi giao nhiệm vụ";
+      showToast(msg, "danger");
     } finally {
       setActionInProgress(false);
     }

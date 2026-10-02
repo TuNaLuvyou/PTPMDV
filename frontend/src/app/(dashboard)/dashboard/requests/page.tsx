@@ -16,7 +16,6 @@ import {
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
 import { apiGet, apiPost, GatewayError, GATEWAY_URL } from "@/lib/api";
-import { shiftRequests as initialMockRequests, attendanceConfig as initialAttendanceConfig } from "@/mock-data/portal";
 import type { ShiftRequest, Employee } from "@/types";
 import ShiftRequestSection from "@/features/shift-requests/components/RequestList";
 import AttendanceConfigModal, { type AttendanceConfigState } from "@/features/shared/components/modals/AttendanceForm";
@@ -127,7 +126,7 @@ export default function RequestsPage() {
   const isManager = role === "manager";
   const managerBranch = branchSlug.toUpperCase();
 
-  const [requests, setRequests] = useState<ShiftRequest[]>(initialMockRequests);
+  const [requests, setRequests] = useState<ShiftRequest[]>([]);
   const [empList, setEmpList] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionInProgress, setActionInProgress] = useState(false);
@@ -141,8 +140,8 @@ export default function RequestsPage() {
 
   const [attendanceOpen, setAttendanceOpen] = useState(false);
   const [attConfig, setAttConfig] = useState<AttendanceConfigState>({
-    gracePeriod: initialAttendanceConfig.gracePeriod,
-    shiftSwapMode: initialAttendanceConfig.shiftSwapMode,
+    gracePeriod: "5",
+    shiftSwapMode: "manager",
     requireReasonSwap: true,
     allowDoubleCheckin: true,
   });
@@ -184,15 +183,15 @@ export default function RequestsPage() {
       let employeesData: Employee[] = [];
       if (employeesRes.status === "fulfilled" && Array.isArray(employeesRes.value)) {
         employeesData = employeesRes.value;
-        setEmpList(employeesData);
       }
+      setEmpList(employeesData);
 
       const currentEmpMap = new Map<string, string>();
       for (const e of employeesData) {
         currentEmpMap.set(e.id, e.name);
       }
 
-      if (requestsRes.status === "fulfilled" && Array.isArray(requestsRes.value) && requestsRes.value.length > 0) {
+      if (requestsRes.status === "fulfilled" && Array.isArray(requestsRes.value)) {
         setRequests(requestsRes.value.map((r) => mapBackendRequest(r, currentEmpMap)));
       }
 
@@ -272,11 +271,8 @@ export default function RequestsPage() {
       // Tải lại danh sách để đồng bộ trạng thái mới nhất từ backend
       fetchData();
     } catch (e: any) {
-      setRequests((prev) =>
-        prev.map((x) => (x.id === id ? { ...x, status: "đã duyệt" as const } : x))
-      );
-      const msg = e instanceof GatewayError ? e.message : e?.message || "Đã phê duyệt yêu cầu";
-      showToast(msg, "success");
+      const msg = e instanceof GatewayError ? e.message : e?.message || "Lỗi khi phê duyệt yêu cầu";
+      showToast(msg, "danger");
     } finally {
       setActionInProgress(false);
     }
@@ -296,11 +292,8 @@ export default function RequestsPage() {
       showToast("Đã từ chối yêu cầu. Thông báo tự động đã được gửi.", "success");
       fetchData();
     } catch (e: any) {
-      setRequests((prev) =>
-        prev.map((x) => (x.id === id ? { ...x, status: "từ chối" as const } : x))
-      );
-      const msg = e instanceof GatewayError ? e.message : e?.message || "Đã từ chối yêu cầu";
-      showToast(msg, "success");
+      const msg = e instanceof GatewayError ? e.message : e?.message || "Lỗi khi từ chối yêu cầu";
+      showToast(msg, "danger");
     } finally {
       setActionInProgress(false);
     }

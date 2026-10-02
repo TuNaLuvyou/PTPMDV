@@ -29,13 +29,14 @@ import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import { Field, Input, Select } from "@/components/ui/Form";
 import Badge, { StatusBadge } from "@/components/ui/Badge";
-import { branches, departments } from "@/mock-data/portal";
-import type { Employee, UserRole } from "@/types";
+import type { Employee, UserRole, Branch, Department } from "@/types";
 
 interface Props {
   open: boolean;
   onClose: () => void;
   employee: Employee | null;
+  branches?: Branch[];
+  departments?: Department[];
   onSave?: (updated: Employee) => void;
   isManager?: boolean;
   managerBranch?: string;
@@ -62,6 +63,8 @@ export default function EmployeeDetailModal({
   open,
   onClose,
   employee,
+  branches = [],
+  departments = [],
   onSave,
   isManager = false,
   managerBranch = "HN-1",

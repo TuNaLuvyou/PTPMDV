@@ -13,9 +13,8 @@ import Button from "@/components/ui/Button";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Modal from "@/components/ui/Modal";
 import { Field, Input, Select } from "@/components/ui/Form";
-import { branches, departments } from "@/mock-data/portal";
 import { apiGet, apiPost, GatewayError, GATEWAY_URL } from "@/lib/api";
-import type { Employee } from "@/types";
+import type { Employee, Branch, Department } from "@/types";
 import EmployeeSection from "@/features/employees/components/EmployeeList";
 import DisableEmployeeDialog from "@/features/employees/components/modals/EmployeeDisable";
 import EmployeeDetailModal from "@/features/employees/components/modals/EmployeeDetailModal";
@@ -81,6 +80,8 @@ interface CreateModalProps {
   onSubmit: (payload: Partial<Employee>) => Promise<void>;
   isManager: boolean;
   managerBranch: string;
+  branches: Branch[];
+  departments: Department[];
 }
 
 function CreateEmployeeDialog({
@@ -89,6 +90,8 @@ function CreateEmployeeDialog({
   onSubmit,
   isManager,
   managerBranch,
+  branches,
+  departments,
 }: CreateModalProps) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -314,6 +317,8 @@ export default function EmployeesPage() {
   const isManager = role === "manager";
 
   const [rawEmployees, setRawEmployees] = useState<Employee[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ text: string; tone: "success" | "danger" } | null>(null);
@@ -337,7 +342,13 @@ export default function EmployeesPage() {
       setLoading(true);
       setError(null);
       const queryParam = isManager && branchSlug ? `?branchSlug=${encodeURIComponent(branchSlug.toUpperCase())}` : "";
-      const data = await apiGet<Employee[]>(`/api/employees${queryParam}`);
+      const [data, branchesData, departmentsData] = await Promise.all([
+        apiGet<Employee[]>(`/api/employees${queryParam}`),
+        apiGet<Branch[]>("/api/branches").catch(() => [] as Branch[]),
+        apiGet<Department[]>("/api/departments").catch(() => [] as Department[]),
+      ]);
+      setBranches(branchesData || []);
+      setDepartments(departmentsData || []);
       const normalized = (data || []).map((e: any) => ({
         ...e,
         branch: e.branch || e.branchSlug || "HN-1",
@@ -515,6 +526,8 @@ export default function EmployeesPage() {
       ) : (
         <EmployeeSection
           employees={filteredEmployees}
+          branches={branches}
+          departments={departments}
           onOpenDetail={(e) => {
             setSelectedEmployee(e);
             setDetailOpen(true);
@@ -533,6 +546,8 @@ export default function EmployeesPage() {
           setSelectedEmployee(null);
         }}
         employee={selectedEmployee}
+        branches={branches}
+        departments={departments}
         onSave={handleSaveEmployee}
         isManager={isManager}
         managerBranch={branchSlug.toUpperCase()}
@@ -544,6 +559,8 @@ export default function EmployeesPage() {
         onSubmit={handleCreateEmployee}
         isManager={isManager}
         managerBranch={branchSlug.toUpperCase()}
+        branches={branches}
+        departments={departments}
       />
 
       <DisableEmployeeDialog

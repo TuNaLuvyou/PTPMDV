@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCalendar, faCalendarCheck, faCheck, faChevronDown, faChevronLeft, faChevronRight, faChevronUp, faClock, faCloudSun, faMoon, faPlus, faRepeat, faStore, faSun, faUser, faUserPlus, faXmark } from "@fortawesome/free-solid-svg-icons";
 import type { ShiftTemplate, WorkShift, WeeklyRegistration } from "../types";
-import { employees } from "@/mock-data/portal";
+import type { Employee } from "@/types";
 
 interface ShiftCardsGridProps {
   templates: ShiftTemplate[];
@@ -24,6 +24,7 @@ interface ShiftCardsGridProps {
   ) => void;
   weeklyRegistrations?: WeeklyRegistration[];
   onToggleRecurring?: (workShiftId: string) => void;
+  employees?: Employee[];
 }
 
 export default function ShiftCardsGrid({
@@ -38,6 +39,7 @@ export default function ShiftCardsGrid({
   onAddDirectShift,
   weeklyRegistrations = [],
   onToggleRecurring,
+  employees = [],
 }: ShiftCardsGridProps) {
   // Offset tuần (0: Tuần này, -1: Tuần trước, 1: Tuần sau)
   const [weekOffset, setWeekOffset] = useState(0);
@@ -117,7 +119,7 @@ export default function ShiftCardsGrid({
     }
   };
 
-  // Danh sách nhân viên theo chi nhánh đã chọn
+  // Danh sách nhân viên theo chi nhánh đã chọn (từ API, rỗng -> empty)
   const availableEmployees = useMemo(() => {
     if (selectedBranch === "all") return employees;
     return employees.filter(
