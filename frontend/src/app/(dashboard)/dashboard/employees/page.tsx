@@ -112,9 +112,15 @@ function CreateEmployeeDialog({
   useEffect(() => {
     if (open) {
       setBranch(managerBranch || "HN-1");
+      // Mặc định phòng ban đầu tiên từ API thay vì tên cứng.
+      setDepartment((prev) =>
+        departments.some((d) => d.name === prev)
+          ? prev
+          : departments[0]?.name || ""
+      );
       setErrorMsg("");
     }
-  }, [open, managerBranch]);
+  }, [open, managerBranch, departments]);
 
   const handleCreate = async () => {
     if (!name.trim()) {

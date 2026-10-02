@@ -77,12 +77,12 @@ export default function EmployeeDetailModal({
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [gender, setGender] = useState("Nam");
-  const [birthDate, setBirthDate] = useState("15/03/1998");
+  const [birthDate, setBirthDate] = useState("");
 
   // 2. Địa chỉ hiện tại
-  const [province, setProvince] = useState("Hà Nội");
-  const [ward, setWard] = useState("Phường Tràng Tiền");
-  const [street, setStreet] = useState("12 Tràng Thi");
+  const [province, setProvince] = useState("");
+  const [ward, setWard] = useState("");
+  const [street, setStreet] = useState("");
 
   // 3. Công tác & Phân quyền
   const [branch, setBranch] = useState("HN-1");
@@ -90,20 +90,20 @@ export default function EmployeeDetailModal({
   const [role, setRole] = useState("");
   const [systemRole, setSystemRole] = useState<UserRole>("staff");
   const [status, setStatus] = useState<"đang làm" | "vô hiệu hóa">("đang làm");
-  const [joinDate, setJoinDate] = useState("01/01/2024");
+  const [joinDate, setJoinDate] = useState("");
 
   // 4. Tiền lương & Ngân hàng
   const [salaryType, setSalaryType] = useState<"hourly" | "monthly">("monthly");
-  const [hourlySalary, setHourlySalary] = useState<number>(35_000);
-  const [baseSalary, setBaseSalary] = useState<number>(8_500_000);
-  const [bankName, setBankName] = useState("Vietcombank");
+  const [hourlySalary, setHourlySalary] = useState<number>(0);
+  const [baseSalary, setBaseSalary] = useState<number>(0);
+  const [bankName, setBankName] = useState("");
   const [bankAccountNumber, setBankAccountNumber] = useState("");
   const [bankAccountName, setBankAccountName] = useState("");
 
   // 5. Thông tin CCCD
-  const [cccd, setCccd] = useState("079098012345");
-  const [issueDate, setIssueDate] = useState("20/05/2021");
-  const [issuePlace, setIssuePlace] = useState("Cục CS QLHC về TTXH");
+  const [cccd, setCccd] = useState("");
+  const [issueDate, setIssueDate] = useState("");
+  const [issuePlace, setIssuePlace] = useState("");
 
   // Đồng bộ dữ liệu khi mở modal hoặc thay đổi employee
   useEffect(() => {
@@ -112,29 +112,29 @@ export default function EmployeeDetailModal({
       setPhone(employee.phone);
       setEmail(employee.email);
       setGender(employee.gender || "Nam");
-      setBirthDate(employee.birthDate || "15/03/1998");
+      setBirthDate(employee.birthDate || "");
 
-      setProvince(employee.province || "Hà Nội");
-      setWard(employee.ward || "Phường Tràng Tiền");
-      setStreet(employee.street || "12 Tràng Thi");
+      setProvince(employee.province || "");
+      setWard(employee.ward || "");
+      setStreet(employee.street || "");
 
       setBranch(employee.branch);
-      setDepartment(employee.department || departments[0]?.name || "Phòng Vận Hành");
+      setDepartment(employee.department || departments[0]?.name || "");
       setRole(employee.role);
       setSystemRole(employee.systemRole || "staff");
       setStatus(employee.status);
-      setJoinDate(employee.joinDate || "01/01/2024");
+      setJoinDate(employee.joinDate || "");
 
       setSalaryType(employee.salaryType || "monthly");
-      setHourlySalary(employee.hourlySalary ?? 35_000);
-      setBaseSalary(employee.baseSalary ?? 8_500_000);
-      setBankName(employee.bankName || "Vietcombank");
-      setBankAccountNumber(employee.bankAccountNumber || "108876543210");
+      setHourlySalary(employee.hourlySalary ?? 0);
+      setBaseSalary(employee.baseSalary ?? 0);
+      setBankName(employee.bankName || "");
+      setBankAccountNumber(employee.bankAccountNumber || "");
       setBankAccountName(employee.bankAccountName || employee.name.toUpperCase());
 
-      setCccd(employee.cccd || "079098012345");
-      setIssueDate(employee.issueDate || "20/05/2021");
-      setIssuePlace(employee.issuePlace || "Cục CS QLHC về TTXH");
+      setCccd(employee.cccd || "");
+      setIssueDate(employee.issueDate || "");
+      setIssuePlace(employee.issuePlace || "");
 
       setIsEditing(false);
       setActiveTab("profile");
@@ -149,29 +149,29 @@ export default function EmployeeDetailModal({
     setPhone(employee.phone);
     setEmail(employee.email);
     setGender(employee.gender || "Nam");
-    setBirthDate(employee.birthDate || "15/03/1998");
+    setBirthDate(employee.birthDate || "");
 
-    setProvince(employee.province || "Hà Nội");
-    setWard(employee.ward || "Phường Tràng Tiền");
-    setStreet(employee.street || "12 Tràng Thi");
+    setProvince(employee.province || "");
+    setWard(employee.ward || "");
+    setStreet(employee.street || "");
 
     setBranch(employee.branch);
-    setDepartment(employee.department || departments[0]?.name || "Phòng Vận Hành");
+    setDepartment(employee.department || departments[0]?.name || "");
     setRole(employee.role);
     setSystemRole(employee.systemRole || "staff");
     setStatus(employee.status);
-    setJoinDate(employee.joinDate || "01/01/2024");
+    setJoinDate(employee.joinDate || "");
 
     setSalaryType(employee.salaryType || "monthly");
-    setHourlySalary(employee.hourlySalary ?? 35_000);
-    setBaseSalary(employee.baseSalary ?? 8_500_000);
-    setBankName(employee.bankName || "Vietcombank");
-    setBankAccountNumber(employee.bankAccountNumber || "108876543210");
+    setHourlySalary(employee.hourlySalary ?? 0);
+    setBaseSalary(employee.baseSalary ?? 0);
+    setBankName(employee.bankName || "");
+    setBankAccountNumber(employee.bankAccountNumber || "");
     setBankAccountName(employee.bankAccountName || employee.name.toUpperCase());
 
-    setCccd(employee.cccd || "079098012345");
-    setIssueDate(employee.issueDate || "20/05/2021");
-    setIssuePlace(employee.issuePlace || "Cục CS QLHC về TTXH");
+    setCccd(employee.cccd || "");
+    setIssueDate(employee.issueDate || "");
+    setIssuePlace(employee.issuePlace || "");
 
     setIsEditing(false);
   };
@@ -415,13 +415,13 @@ export default function EmployeeDetailModal({
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Giới tính:</span>
                       <span className="font-semibold text-gray-800 text-xs">
-                        {employee.gender || "Nam"}
+                        {employee.gender || "—"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Ngày sinh:</span>
                       <span className="font-semibold text-gray-800 text-xs">
-                        {employee.birthDate || "15/03/1998"}
+                        {employee.birthDate || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
@@ -453,19 +453,19 @@ export default function EmployeeDetailModal({
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Tỉnh / Thành phố:</span>
                       <span className="font-semibold text-gray-800 text-xs">
-                        {employee.province || "Hà Nội"}
+                        {employee.province || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Xã / Phường / Quận:</span>
                       <span className="font-semibold text-gray-800 text-xs">
-                        {employee.ward || "Phường Tràng Tiền"}
+                        {employee.ward || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Số nhà / Tên đường:</span>
                       <span className="font-semibold text-gray-800 text-xs">
-                        {employee.street || "12 Tràng Thi"}
+                        {employee.street || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="pt-2">
@@ -623,7 +623,7 @@ export default function EmployeeDetailModal({
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Ngày vào làm việc:</span>
                       <span className="font-semibold text-gray-800 text-xs">
-                        {employee.joinDate || "01/01/2024"}
+                        {employee.joinDate || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="p-3.5 rounded-xl bg-purple-50/60 border border-purple-100 text-xs text-purple-900 space-y-1.5">
@@ -757,14 +757,14 @@ export default function EmployeeDetailModal({
                       <div className="flex justify-between items-center py-1.5">
                         <span className="text-gray-500 text-xs">Đơn giá giờ làm:</span>
                         <span className="font-bold text-amber-700 text-sm">
-                          {(employee.hourlySalary ?? 35_000).toLocaleString("vi-VN")} ₫ / giờ
+                          {(employee.hourlySalary ?? 0).toLocaleString("vi-VN")} ₫ / giờ
                         </span>
                       </div>
                     ) : (
                       <div className="flex justify-between items-center py-1.5">
                         <span className="text-gray-500 text-xs">Lương cơ bản tháng:</span>
                         <span className="font-bold text-emerald-700 text-sm">
-                          {(employee.baseSalary ?? 8_500_000).toLocaleString("vi-VN")} ₫ / tháng
+                          {(employee.baseSalary ?? 0).toLocaleString("vi-VN")} ₫ / tháng
                         </span>
                       </div>
                     )}
@@ -787,13 +787,13 @@ export default function EmployeeDetailModal({
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Ngân hàng:</span>
                       <span className="font-bold text-gray-900 text-xs">
-                        {employee.bankName || "Vietcombank"}
+                        {employee.bankName || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Số tài khoản (STK):</span>
                       <span className="font-mono font-bold text-primary text-sm tracking-wider">
-                        {employee.bankAccountNumber || "108876543210"}
+                        {employee.bankAccountNumber || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
@@ -908,19 +908,19 @@ export default function EmployeeDetailModal({
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Số CCCD (12 chữ số):</span>
                       <span className="font-mono font-bold text-gray-900 text-sm tracking-wider">
-                        {employee.cccd || "079098012345"}
+                            {employee.cccd || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Ngày cấp:</span>
                       <span className="font-semibold text-gray-800 text-xs">
-                        {employee.issueDate || "20/05/2021"}
+                        {employee.issueDate || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Nơi cấp:</span>
                       <span className="font-semibold text-gray-800 text-xs">
-                        {employee.issuePlace || "Cục CS QLHC về TTXH"}
+                        {employee.issuePlace || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
@@ -968,7 +968,7 @@ export default function EmployeeDetailModal({
                         </div>
                         <div className="min-w-0">
                           <p className="font-mono text-xs font-bold text-gray-900 truncate">
-                            {employee.cccd || "079098012345"}
+                        {employee.cccd || "Chưa cập nhật"}
                           </p>
                           <p className="text-[10px] text-gray-500 truncate">{employee.name}</p>
                         </div>
@@ -991,11 +991,11 @@ export default function EmployeeDetailModal({
                           |||| ||||| |||| |||||||| ||||
                         </div>
                         <p className="text-[9px] text-gray-500">
-                          Cục CS QLHC về TTXH • {employee.issueDate || "20/05/2021"}
+                          {employee.issuePlace || "Chưa cập nhật"} • {employee.issueDate || "—"}
                         </p>
                       </div>
                       <div className="text-[9px] font-mono text-gray-400 truncate">
-                        IDVNM079098012345&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;
+                        IDVNM{employee.cccd || "____________"}&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;
                       </div>
                     </div>
                   </div>
