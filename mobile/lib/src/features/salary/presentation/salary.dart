@@ -3,6 +3,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/models/payslip.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/state/user_scope.dart';
 import '../data/salary_repository.dart';
 
 class WorkLogItem {
@@ -91,17 +92,42 @@ class _SalaryScreenState extends State<SalaryScreen> {
 
   final SalaryRepository _salaryRepository = SalaryRepository();
   List<PayslipModel> _apiPayslips = const [];
+  String? _lastUserId;
 
   @override
-  void initState() {
-    super.initState();
-    _loadPayslips();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final uid = UserScope.currentUser(context)?.id;
+    if (_lastUserId != uid) {
+      _lastUserId = uid;
+      _loadPayslips();
+    }
+  }
+
+  String _monthQuery(String label) {
+    final m = RegExp(r'(\d{2})/(\d{4})').firstMatch(label);
+    if (m != null) {
+      return '${m.group(1)}-${m.group(2)}';
+    }
+    return '';
+  }
+
+  PayslipModel? get _currentPayslip {
+    final q = _monthQuery(_selectedMonth);
+    for (final p in _apiPayslips) {
+      if (p.month == q) return p;
+    }
+    return _apiPayslips.isNotEmpty ? _apiPayslips.first : null;
   }
 
   Future<void> _loadPayslips() async {
-    // Gọi API thật qua gateway; service chưa sẵn sàng thì giữ mock hiện có.
+    final uid = UserScope.currentUser(context)?.id;
+    final q = _monthQuery(_selectedMonth);
     try {
-      final items = await _salaryRepository.getPayslips();
+      final items = await _salaryRepository.getPayslips(
+        employeeId: uid,
+        month: q.isNotEmpty ? q : null,
+      );
       if (mounted) setState(() => _apiPayslips = items);
     } catch (_) {
       // Giữ danh sách mock hiện có khi API chưa sẵn sàng.
@@ -131,9 +157,12 @@ class _SalaryScreenState extends State<SalaryScreen> {
         centerTitle: true,
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Column(
+      body: RefreshIndicator(
+        onRefresh: _loadPayslips,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 1. Month Picker Dropdown
@@ -167,6 +196,7 @@ class _SalaryScreenState extends State<SalaryScreen> {
                       setState(() {
                         _selectedMonth = '${parts[0]} ${parts[1]}';
                       });
+                      _loadPayslips();
                     }
                   },
                 ),
@@ -239,7 +269,7 @@ class _SalaryScreenState extends State<SalaryScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _formatCurrency(6800000),
+                    _formatCurrency(_currentPayslip != null ? _currentPayslip!.netSalary.toInt() : 6800000),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 28,
@@ -247,11 +277,16 @@ class _SalaryScreenState extends State<SalaryScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Row(
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Đã làm: 160 giờ • 22 công', style: TextStyle(color: Colors.white, fontSize: 12)),
-                      Text('Ngày chốt: 31/08', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                      Text(
+                        _currentPayslip != null
+                            ? 'Trạng thái: ${_currentPayslip!.status}'
+                            : 'Đã làm: 160 giờ • 22 công',
+                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                      Text('Kỳ: ${_monthQuery(_selectedMonth)}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
                     ],
                   ),
                 ],
@@ -271,6 +306,8 @@ class _SalaryScreenState extends State<SalaryScreen> {
               ),
               child: Column(
                 children: [
+                  _buildSalaryRow('Lương cơ bản', _formatCurrency(_currentPayslip != null ? _currentPayslip!.baseSalary.toInt() : 6900000)),
+                  const Divider(height: 16),
                   _buildSalaryRow('Số giờ làm việc được phân công', '160 giờ'),
                   const Divider(height: 16),
                   _buildSalaryRow('Số ca làm việc được phân công', '28 ca'),
@@ -279,9 +316,7 @@ class _SalaryScreenState extends State<SalaryScreen> {
                   const Divider(height: 16),
                   _buildSalaryRow('Số ca làm việc tính lương', '27 ca'),
                   const Divider(height: 16),
-                  _buildSalaryRow('Số lần đi muộn', '2 lần'),
-                  const Divider(height: 16),
-                  _buildSalaryRow('Khấu trừ', '100.000 đ', isNegative: true),
+                  _buildSalaryRow('Khấu trừ', _formatCurrency(_currentPayslip != null ? _currentPayslip!.totalPenalty.toInt() : 100000), isNegative: true),
                 ],
               ),
             ),
@@ -391,7 +426,8 @@ class _SalaryScreenState extends State<SalaryScreen> {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildSectionHeader(String title) {

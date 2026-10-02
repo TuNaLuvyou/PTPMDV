@@ -49,11 +49,10 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
             status: m.status,
           );
         }).toList();
-        if (apiRecords.isNotEmpty) {
-          setState(() {
-            _records = apiRecords;
-          });
-        }
+
+        setState(() {
+          _records = apiRecords;
+        });
       }
     } catch (_) {
       // Giữ mock khi offline
@@ -247,7 +246,20 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
           const Text('Lịch sử các đợt tạm ứng', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
           const SizedBox(height: 10),
 
-          ..._records.map((rec) => _buildRecordCard(rec)),
+          if (_records.isEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 36),
+              alignment: Alignment.center,
+              child: const Column(
+                children: [
+                  FaIcon(FontAwesomeIcons.handHoldingDollar, size: 36, color: Colors.grey),
+                  SizedBox(height: 10),
+                  Text('Chưa có yêu cầu tạm ứng nào', style: TextStyle(color: AppColors.textSecondary, fontSize: 13.5)),
+                ],
+              ),
+            )
+          else
+            ..._records.map((rec) => _buildRecordCard(rec)),
         ],
       ),
     ),

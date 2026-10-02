@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/state/user_scope.dart';
 import '../../schedule/data/shift_repository.dart';
 
 class ShiftOption {
@@ -166,6 +167,36 @@ class _ScheduleRegistrationScreenState extends State<ScheduleRegistrationScreen>
     if (weekData.noteSent && weekData.note != null) {
       _noteController.text = weekData.note!;
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadRemoteRegistrations();
+    });
+  }
+
+  Future<void> _loadRemoteRegistrations() async {
+    try {
+      final user = UserScope.currentUser(context);
+      final empId = user?.id ?? '1';
+      final regs = await ShiftRepository().getRegistrations(employeeId: empId);
+      if (regs.isNotEmpty && mounted) {
+        final weekData = _getOrCreateWeekData(_weekOffset);
+        for (final r in regs) {
+          final pref = r['preference']?.toString() ?? '';
+          final shiftId = r['shiftId']?.toString() ?? '';
+          if (shiftId == 'preference_note' && pref.isNotEmpty) {
+            weekData.note = pref;
+            weekData.noteSent = true;
+            _noteController.text = pref;
+          } else {
+            for (final day in weekData.days) {
+              if (day.dateStr == pref || pref.contains(day.dateStr)) {
+                day.selectedShiftId = shiftId;
+              }
+            }
+          }
+        }
+        setState(() {});
+      }
+    } catch (_) {}
   }
 
   void _onWeekChanged(int newOffset) {
@@ -179,11 +210,14 @@ class _ScheduleRegistrationScreenState extends State<ScheduleRegistrationScreen>
         _noteController.text = weekData.note ?? '';
       }
     });
+    _loadRemoteRegistrations();
   }
 
   void _onSelectShift(DayShiftRegistration day, String shiftId) {
+    final user = UserScope.currentUser(context);
+    final empId = user?.id ?? '1';
     ShiftRepository().registerShift(
-      employeeId: '1',
+      employeeId: empId,
       shiftId: shiftId,
       preference: day.dateStr,
     ).catchError((_) {});
@@ -227,8 +261,10 @@ class _ScheduleRegistrationScreenState extends State<ScheduleRegistrationScreen>
       );
       return;
     }
+    final user = UserScope.currentUser(context);
+    final empId = user?.id ?? '1';
     ShiftRepository().registerShift(
-      employeeId: '1',
+      employeeId: empId,
       shiftId: 'preference_note',
       preference: note,
     ).catchError((_) {});

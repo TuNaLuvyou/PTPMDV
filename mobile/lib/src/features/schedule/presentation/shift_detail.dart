@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/state/user_scope.dart';
+import '../../attendance/data/attendance_repository.dart';
 import 'schedule.dart';
 import 'shift_form.dart';
 
@@ -22,6 +23,30 @@ class ShiftDetailScreen extends StatefulWidget {
 }
 
 class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
+  String? _realCheckIn;
+  String? _realCheckOut;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAttendance();
+  }
+
+  Future<void> _loadAttendance() async {
+    try {
+      final records = await AttendanceRepository().getAttendance();
+      if (records.isNotEmpty && mounted) {
+        final match = records.where((r) => r.shiftId == widget.shift.id || r.shiftId == widget.shift.shiftName).firstOrNull;
+        if (match != null) {
+          setState(() {
+            _realCheckIn = match.checkIn;
+            _realCheckOut = match.checkOut;
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
   void _navigateToForm(ShiftActionType type) {
     Navigator.push(
       context,
@@ -43,17 +68,17 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
     final Color statusColor = ScheduleService.getStatusColor(shift.status);
     final String statusText = ScheduleService.getStatusLabel(shift.status);
 
-    // Dữ liệu chấm công mock dựa theo trạng thái ca
-    final String checkIn = shift.status == 'completed'
+    // Dữ liệu chấm công từ API hoặc fallback theo trạng thái ca
+    final String checkIn = _realCheckIn ?? (shift.status == 'completed'
         ? '07:55'
         : (shift.status == 'active'
             ? '07:58'
-            : (shift.status == 'missed' ? 'Chưa chấm công' : '--:--'));
-    final String checkOut = shift.status == 'completed'
+            : (shift.status == 'missed' ? 'Chưa chấm công' : '--:--')));
+    final String checkOut = _realCheckOut ?? (shift.status == 'completed'
         ? '12:05'
         : (shift.status == 'active'
             ? 'Đang trong ca'
-            : (shift.status == 'missed' ? 'Chưa chấm công' : '--:--'));
+            : (shift.status == 'missed' ? 'Chưa chấm công' : '--:--')));
     final String tongGioTinhCong = shift.status == 'completed'
         ? '${shift.hours} giờ'
         : (shift.status == 'active'

@@ -59,11 +59,10 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
             createdAt: m.createdAt ?? 'Vừa xong',
           );
         }).toList();
-        if (apiItems.isNotEmpty) {
-          setState(() {
-            _requests = apiItems;
-          });
-        }
+
+        setState(() {
+          _requests = apiItems;
+        });
       }
     } catch (_) {
       // Giữ mock khi offline
@@ -296,7 +295,20 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
           const Text('Lịch sử đơn nghỉ phép', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
           const SizedBox(height: 10),
 
-          ..._requests.map((r) => _buildRequestCard(r)),
+          if (_requests.isEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 36),
+              alignment: Alignment.center,
+              child: const Column(
+                children: [
+                  FaIcon(FontAwesomeIcons.clipboardList, size: 36, color: Colors.grey),
+                  SizedBox(height: 10),
+                  Text('Chưa có đơn nghỉ phép nào', style: TextStyle(color: AppColors.textSecondary, fontSize: 13.5)),
+                ],
+              ),
+            )
+          else
+            ..._requests.map((r) => _buildRequestCard(r)),
         ],
       ),
     ),

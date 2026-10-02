@@ -68,7 +68,7 @@ class _AttendanceAdjustmentScreenState extends State<AttendanceAdjustmentScreen>
     try {
       final requests = await LeaveRepository().getRequests();
       final supps = requests.where((r) => r.type == 'work_supplement').toList();
-      if (supps.isNotEmpty && mounted) {
+      if (mounted) {
         setState(() {
           _items.clear();
           for (final r in supps) {
@@ -294,7 +294,20 @@ class _AttendanceAdjustmentScreenState extends State<AttendanceAdjustmentScreen>
             const SizedBox(height: 18),
             const Text('Danh sách yêu cầu bổ sung công', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
             const SizedBox(height: 10),
-            ..._items.map((item) => _buildItemCard(item)),
+            if (_items.isEmpty && !_isLoading)
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 36),
+                alignment: Alignment.center,
+                child: const Column(
+                  children: [
+                    FaIcon(FontAwesomeIcons.clockRotateLeft, size: 36, color: Colors.grey),
+                    SizedBox(height: 10),
+                    Text('Chưa có yêu cầu bổ sung công nào', style: TextStyle(color: AppColors.textSecondary, fontSize: 13.5)),
+                  ],
+                ),
+              )
+            else
+              ..._items.map((item) => _buildItemCard(item)),
           ],
         ),
       ),

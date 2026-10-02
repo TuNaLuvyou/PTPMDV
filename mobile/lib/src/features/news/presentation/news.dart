@@ -55,7 +55,7 @@ class _NewsScreenState extends State<NewsScreen> {
   Future<void> _fetchNews() async {
     try {
       final list = await _newsRepo.getNews();
-      if (list.isNotEmpty && mounted) {
+      if (mounted) {
         setState(() {
           _articles = list;
         });
@@ -312,11 +312,29 @@ class _NewsScreenState extends State<NewsScreen> {
           : null,
       body: RefreshIndicator(
         onRefresh: _fetchNews,
-        child: ListView.separated(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          itemCount: _articles.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (context, index) {
+        color: AppColors.primary,
+        child: _articles.isEmpty
+            ? ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const [
+                  SizedBox(height: 120),
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        FaIcon(FontAwesomeIcons.newspaper, size: 48, color: Colors.grey),
+                        SizedBox(height: 14),
+                        Text('Chưa có thông báo hoặc tin tức nào', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            : ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                itemCount: _articles.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
             final a = _articles[index];
             return Card(
               margin: EdgeInsets.zero,

@@ -27,13 +27,27 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   // Set lưu các ngày đang được mở rộng (expanded)
   final Set<String> _expandedDays = {};
+  List<ApiShiftModel> _apiShifts = [];
 
   @override
   void initState() {
     super.initState();
     final todayFormatted = '${_today.day.toString().padLeft(2, '0')}/${_today.month.toString().padLeft(2, '0')}';
     _expandedDays.add(todayFormatted);
-    ShiftRepository().getShifts().then((_) {}).catchError((_) {});
+    _loadShifts();
+  }
+
+  Future<void> _loadShifts() async {
+    try {
+      final shifts = await ShiftRepository().getShifts();
+      if (mounted) {
+        setState(() {
+          _apiShifts = shifts;
+        });
+      }
+    } catch (_) {
+      // Giữ mock khi offline
+    }
   }
 
   String _getWeekTitle(int offset) {
@@ -53,7 +67,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   List<DayScheduleModel> _getWeekData(int offset) {
-    return ScheduleService.getWeekData(offset);
+    return ScheduleService.getWeekDataWithApi(
+      offset: offset,
+      apiShifts: _apiShifts,
+    );
   }
 
   void _selectWeek(int offset) {
@@ -86,12 +103,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         ),
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          try {
-            await ShiftRepository().getShifts();
-          } catch (_) {}
-          if (mounted) setState(() {});
-        },
+        onRefresh: _loadShifts,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

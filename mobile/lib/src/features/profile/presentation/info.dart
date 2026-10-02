@@ -4,6 +4,7 @@ import '../../../core/constants/colors.dart';
 import '../../../core/models/user.dart';
 import '../../../core/state/branch_scope.dart';
 import '../../../core/state/user_scope.dart';
+import '../data/employee_repository.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
   final String name;
@@ -98,10 +99,20 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   void _toggleEdit() {
     if (_isEditing) {
       // Lưu
+      final current = UserScope.currentUser(context);
+      final newPhone = _phoneCtrl.text.trim();
+      final newName = _nameCtrl.text.trim();
       setState(() {
         _cccd = _cccdCtrl.text.trim();
         _isEditing = false;
       });
+      if (current != null) {
+        EmployeeRepository().updateEmployee(current.id, {
+          if (newName.isNotEmpty) 'name': newName,
+          if (newPhone.isNotEmpty) 'phone': newPhone,
+          'cccd': _cccd,
+        }).catchError((_) => <String, dynamic>{});
+      }
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: AppColors.success, content: Text('✅ Đã lưu thông tin cá nhân')));
     } else {
       setState(() => _isEditing = true);

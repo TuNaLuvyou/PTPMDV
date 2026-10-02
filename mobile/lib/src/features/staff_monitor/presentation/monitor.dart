@@ -4,6 +4,7 @@ import '../../../core/constants/colors.dart';
 import '../../../core/state/branch_scope.dart';
 import '../../../core/widgets/branch_selector.dart';
 import '../../attendance/data/attendance_repository.dart';
+import '../../profile/data/employee_repository.dart';
 
 // ─── Model ───────────────────────────────────────────────────────────────────
 
@@ -114,21 +115,28 @@ class _StaffMonitorScreenState extends State<StaffMonitorScreen>
 
   Future<void> _fetchStaffAttendance() async {
     try {
+      final emps = await EmployeeRepository().getEmployees();
       final list = await _attendanceRepo.getAttendance();
-      if (list.isNotEmpty && mounted) {
+      if (mounted) {
         final apiList = list.map((m) {
           StaffAttendanceStatus st = StaffAttendanceStatus.present;
           if (m.status == 'absent') st = StaffAttendanceStatus.absent;
           if (m.status == 'late') st = StaffAttendanceStatus.late;
+          final emp = emps.firstWhere(
+            (e) => (e['id']?.toString() == m.employeeId || e['email']?.toString() == m.employeeId || e['employeeCode']?.toString() == m.employeeId),
+            orElse: () => <String, dynamic>{'name': 'Nhân sự #${m.employeeId}', 'role': 'Nhân viên'},
+          );
+          final name = emp['name']?.toString() ?? 'Nhân sự #${m.employeeId}';
+          final role = emp['role']?.toString() ?? (emp['position']?.toString() ?? 'Nhân viên');
           return StaffMemberStatus(
             id: m.id,
-            name: 'Nhân sự #${m.employeeId}',
-            role: 'Nhân viên',
+            name: name,
+            role: role,
             shift: 'Ca #${m.shiftId}',
             checkInTime: m.checkIn ?? '--:--',
             checkOutTime: m.checkOut,
             status: st,
-            avatar: m.employeeId.isNotEmpty ? m.employeeId[0].toUpperCase() : 'N',
+            avatar: name.isNotEmpty ? name[0].toUpperCase() : 'N',
           );
         }).toList();
         setState(() {
@@ -285,13 +293,22 @@ class _StaffMonitorScreenState extends State<StaffMonitorScreen>
 
   Widget _buildStaffList(List<StaffMemberStatus> staffList) {
     if (staffList.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            FaIcon(FontAwesomeIcons.circleCheck, size: 48, color: AppColors.textSecondary),
-            SizedBox(height: 8),
-            Text('Không có nhân viên nào', style: TextStyle(color: AppColors.textSecondary)),
+      return RefreshIndicator(
+        onRefresh: _fetchStaffAttendance,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 80),
+          children: const [
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  FaIcon(FontAwesomeIcons.circleCheck, size: 48, color: AppColors.textSecondary),
+                  SizedBox(height: 12),
+                  Text('Không có nhân viên nào', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 15)),
+                ],
+              ),
+            ),
           ],
         ),
       );

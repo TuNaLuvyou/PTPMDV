@@ -11,6 +11,7 @@ import '../../schedule_registration/presentation/registration.dart';
 import '../../tasks/data/service.dart';
 import '../../tasks/presentation/tasks.dart';
 import '../../attendance/data/attendance_repository.dart';
+import '../../schedule/data/shift_repository.dart';
 
 class HomeScreen extends StatefulWidget {
   final UserModel currentUser;
@@ -34,8 +35,24 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   ShiftDetail? _checkedInShift;
   DateTime? _checkedInTime;
+  List<ApiShiftModel> _todayShifts = [];
 
   UserModel get currentUser => widget.currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTodayShifts();
+  }
+
+  Future<void> _fetchTodayShifts() async {
+    try {
+      final shifts = await ShiftRepository().getShifts();
+      if (shifts.isNotEmpty && mounted) {
+        setState(() => _todayShifts = shifts);
+      }
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -389,7 +406,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final String wifiSsid = '${CompanyConfig.brandCode}_${branch?.code ?? '01'}';
 
     // Lấy danh sách ca làm việc được phân công cho nhân viên trong hôm nay
-    final assignedShifts = ScheduleService.getTodayAssignedShifts(
+    final assignedShifts = ScheduleService.getTodayAssignedShiftsWithApi(
+      apiShifts: _todayShifts,
       user: currentUser,
       branchName: branch?.name,
       activeCheckedInShift: _checkedInShift,
@@ -561,7 +579,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           final targetShift = selectedShift!;
                           final now = DateTime.now();
                           AttendanceRepository().checkIn(
-                            employeeId: currentUser.email,
+                            employeeId: currentUser.id,
                             shiftId: targetShift.shiftName,
                             wifiSsid: wifiSsid,
                             checkinTime: '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
@@ -814,7 +832,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   final shiftOut = _checkedInShift;
                   final now = DateTime.now();
                   AttendanceRepository().checkOut(
-                    employeeId: currentUser.email,
+                    employeeId: currentUser.id,
                     shiftId: shiftOut?.shiftName,
                     checkoutTime: '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
                   ).then((_) {}).catchError((_) {});

@@ -194,7 +194,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _fetchNotifications() async {
     try {
       final list = await _repo.getNotifications();
-      if (list.isNotEmpty && mounted) {
+      if (mounted) {
         final remoteItems = list.map((m) {
           final isReq = m.title.toLowerCase().contains('ca') ||
               m.title.toLowerCase().contains('đổi') ||
@@ -526,20 +526,29 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       backgroundColor: AppColors.background,
       appBar: _isSelecting ? _buildSelectionAppBar() : _buildNormalAppBar(unreadCount),
       body: _notifications.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+          ? RefreshIndicator(
+              onRefresh: _fetchNotifications,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 80),
                 children: [
-                  FaIcon(FontAwesomeIcons.bellSlash, size: 64, color: Colors.grey.shade400),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Không có thông báo nào',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Tất cả thông báo đã được dọn sạch.',
-                    style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        FaIcon(FontAwesomeIcons.bellSlash, size: 64, color: Colors.grey.shade400),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Không có thông báo nào',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Tất cả thông báo đã được dọn sạch.',
+                          style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

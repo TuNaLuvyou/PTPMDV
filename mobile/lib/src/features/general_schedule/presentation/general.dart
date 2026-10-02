@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/state/branch_scope.dart';
 import '../../../core/state/user_scope.dart';
 import '../../../core/widgets/week_strip.dart';
+import '../../schedule/data/shift_repository.dart';
+import '../../profile/data/employee_repository.dart';
 import 'staff_detail.dart';
 
 class StaffInShift {
@@ -66,6 +69,13 @@ class GeneralScheduleScreen extends StatefulWidget {
 }
 
 class _GeneralScheduleScreenState extends State<GeneralScheduleScreen> {
+  final ShiftRepository _shiftRepo = ShiftRepository();
+  final EmployeeRepository _empRepo = EmployeeRepository();
+  List<ApiShiftModel> _apiShifts = [];
+  List<Map<String, dynamic>> _apiEmployees = [];
+  bool _hasLoadedApi = false;
+  String? _loadedBranchSlug;
+
   // Offset tuần so với tuần hiện tại (0: Tuần này, -1: Tuần trước, 1: Tuần sau, -2, 2, ...)
   int _weekOffset = 0;
   int _selectedDayIndex = 0;
@@ -84,6 +94,48 @@ class _GeneralScheduleScreenState extends State<GeneralScheduleScreen> {
   void initState() {
     super.initState();
     _selectedDayIndex = (_today.weekday - 1).clamp(0, 6);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final branch = BranchScope.selectedBranch(context);
+    if (_loadedBranchSlug != branch?.slug) {
+      _loadedBranchSlug = branch?.slug;
+      _loadGeneralData();
+    }
+  }
+
+  Future<void> _loadGeneralData() async {
+    try {
+      final branch = BranchScope.selectedBranch(context);
+      final emps = await _empRepo.getEmployees();
+      final shifts = await _shiftRepo.getShifts(branchSlug: branch?.slug);
+      if (mounted) {
+        setState(() {
+          _apiEmployees = emps;
+          _apiShifts = shifts;
+          _hasLoadedApi = true;
+        });
+      }
+    } catch (_) {
+      // Giữ mock khi offline
+    }
+  }
+
+  bool _matchesDate(String dateStr, DateTime target) {
+    if (dateStr.isEmpty) return false;
+    final clean = dateStr.trim();
+    if (RegExp(r'^\d{4}-\d{2}-\d{2}').hasMatch(clean)) {
+      final y = target.year.toString().padLeft(4, '0');
+      final m = target.month.toString().padLeft(2, '0');
+      final d = target.day.toString().padLeft(2, '0');
+      return clean.startsWith('$y-$m-$d');
+    }
+    final d = target.day.toString().padLeft(2, '0');
+    final m = target.month.toString().padLeft(2, '0');
+    final y = target.year.toString().padLeft(4, '0');
+    return clean.startsWith('$d/$m/$y') || clean.startsWith('$d-$m-$y') || clean.startsWith('$d/$m') || clean.startsWith('$d-$m');
   }
 
   DateTime _getMonday(DateTime date) {
@@ -109,6 +161,61 @@ class _GeneralScheduleScreenState extends State<GeneralScheduleScreen> {
   List<GeneralDayModel> _getGeneralWeekData(int offset) {
     final monday = _thisWeekMonday.add(Duration(days: offset * 7));
     final List<String> dayShortNames = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+
+    if (_hasLoadedApi && _apiShifts.isNotEmpty) {
+      return List.generate(7, (i) {
+        final dayDate = monday.add(Duration(days: i));
+        final isToday = dayDate.year == _today.year && dayDate.month == _today.month && dayDate.day == _today.day;
+        final isPast = dayDate.isBefore(_today);
+        final dateStr = '${dayDate.day.toString().padLeft(2, '0')}/${dayDate.month.toString().padLeft(2, '0')}';
+
+        final shiftsForDay = _apiShifts.where((s) => _matchesDate(s.date, dayDate)).toList();
+        final Map<String, List<ApiShiftModel>> grouped = {};
+        for (final s in shiftsForDay) {
+          final key = '${s.scheduledStart}-${s.scheduledEnd}-${s.template}';
+          grouped.putIfAbsent(key, () => []).add(s);
+        }
+
+        final dayShifts = <GeneralShiftModel>[];
+        for (final entry in grouped.entries) {
+          final first = entry.value.first;
+          final staffList = <StaffInShift>[];
+          for (final s in entry.value) {
+            if (s.employeeId != null && s.employeeId!.isNotEmpty) {
+              final emp = _apiEmployees.firstWhere(
+                (e) => (e['id']?.toString() == s.employeeId || e['email']?.toString() == s.employeeId || e['employeeCode']?.toString() == s.employeeId),
+                orElse: () => <String, dynamic>{'name': s.employeeId, 'role': 'Nhân viên'},
+              );
+              final name = emp['name']?.toString() ?? 'Nhân viên';
+              final role = emp['role']?.toString() ?? (emp['position']?.toString() ?? 'Nhân viên');
+              final phone = emp['phone']?.toString() ?? '0912 345 678';
+              staffList.add(StaffInShift(
+                name: name,
+                role: role,
+                checkInStatus: isPast || isToday ? 'checked_in' : 'not_yet',
+                checkInTime: first.scheduledStart,
+                phone: phone,
+              ));
+            }
+          }
+          dayShifts.add(GeneralShiftModel(
+            id: first.id,
+            shiftName: first.template,
+            startTime: first.scheduledStart,
+            endTime: first.scheduledEnd,
+            status: isPast ? 'completed' : (isToday ? 'in_progress' : 'upcoming'),
+            staffList: staffList,
+          ));
+        }
+
+        return GeneralDayModel(
+          dayOfWeek: dayShortNames[i],
+          date: dateStr,
+          isToday: isToday,
+          shifts: dayShifts,
+        );
+      });
+    }
 
     return List.generate(7, (i) {
       final dayDate = monday.add(Duration(days: i));
@@ -300,9 +407,12 @@ class _GeneralScheduleScreenState extends State<GeneralScheduleScreen> {
 
           // 2. Tiêu đề ngày được chọn & danh sách ca làm
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16.0),
-              children: [
+            child: RefreshIndicator(
+              onRefresh: _loadGeneralData,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16.0),
+                children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -345,6 +455,28 @@ class _GeneralScheduleScreenState extends State<GeneralScheduleScreen> {
                 ),
                 const SizedBox(height: 12),
 
+                // Empty state if no shifts
+                if (selectedDay.shifts.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
+                    child: Column(
+                      children: [
+                        FaIcon(FontAwesomeIcons.calendarXmark, size: 48, color: Colors.grey.shade400),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Không có ca làm việc nào',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Ngày này chưa có ca làm hoặc chưa được phân công nhân sự.',
+                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+
                 // 3. Danh sách các ca làm việc (Accordion xổ xuống nhân viên)
                 ...selectedDay.shifts.map((shift) {
                   final isExpanded = _expandedShiftIds.contains(shift.id);
@@ -353,6 +485,7 @@ class _GeneralScheduleScreenState extends State<GeneralScheduleScreen> {
                 const SizedBox(height: 20),
               ],
             ),
+          ),
           ),
         ],
       ),
