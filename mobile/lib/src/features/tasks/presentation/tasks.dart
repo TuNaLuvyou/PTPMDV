@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/state/branch_scope.dart';
 import '../../../core/widgets/branch_selector.dart';
 import '../../../core/models/user.dart';
 import '../../profile/data/employee_repository.dart';
@@ -818,7 +819,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  onPressed: () {
+                  onPressed: () async {
                     if (titleCtrl.text.trim().isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Vui lòng nhập tiêu đề công việc')),
@@ -827,33 +828,53 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                     }
 
                     final bool isShift = selectedSource == TaskSourceType.shift;
-                    final newTask = TaskModel(
-                      id: 'task-${DateTime.now().millisecondsSinceEpoch}',
-                      title: titleCtrl.text.trim(),
-                      description: descCtrl.text.trim().isEmpty
-                          ? 'Thực hiện theo chỉ đạo của quản lý.'
-                          : descCtrl.text.trim(),
-                      sourceType: selectedSource,
-                      assignedByName: '${widget.currentUser.name} (${widget.currentUser.roleTitle})',
-                      shiftName: isShift ? selectedShift : null,
-                      branch: 'HN-1',
-                      dueDate: DateTime.now().add(const Duration(hours: 4)),
-                      priority: selectedPriority,
-                      assignedToName: isShift ? 'Tất cả nhân sự trực ${selectedShift.split("(")[0].trim()}' : assignedPerson,
-                      assignedToEmail: isShift ? 'shift_all' : null,
-                      requirePhoto: requirePhoto,
-                    );
+                    final branch = BranchScope.selectedBranch(context);
+                    final branchSlug = branch?.slug ?? 'hn-1';
 
-                    TaskService.addTask(newTask);
-                    Navigator.pop(sheetCtx);
-                    _loadTasks();
+                    String? assigneeId;
+                    if (!isShift && assignedPerson != null) {
+                      final match = _employeeList.firstWhere(
+                        (e) => e['name']?.toString() == assignedPerson,
+                        orElse: () => <String, dynamic>{},
+                      );
+                      assigneeId = match['id']?.toString();
+                    }
 
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('✓ Đã giao việc thành công cho ${assignedPerson ?? 'nhân sự đã chọn'}!'),
-                        backgroundColor: AppColors.success,
-                      ),
-                    );
+                    final priStr = selectedPriority == TaskPriority.urgent
+                        ? 'urgent'
+                        : (selectedPriority == TaskPriority.high ? 'high' : 'normal');
+
+                    try {
+                      await _taskRepo.createTask(
+                        title: titleCtrl.text.trim(),
+                        description: descCtrl.text.trim().isEmpty
+                            ? 'Thực hiện theo chỉ đạo của quản lý.'
+                            : descCtrl.text.trim(),
+                        branchSlug: branchSlug,
+                        priority: priStr,
+                        assigneeId: assigneeId,
+                      );
+                      if (sheetCtx.mounted) {
+                        Navigator.pop(sheetCtx);
+                      }
+                      if (!mounted) return;
+                      _loadTasks();
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('✓ Đã giao việc thành công cho ${assignedPerson ?? 'nhân sự đã chọn'}!'),
+                          backgroundColor: AppColors.success,
+                        ),
+                      );
+                    } catch (e) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('❌ Giao việc thất bại: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   },
                   child: const Text(
                     'Phát hành & Giao việc ngay',

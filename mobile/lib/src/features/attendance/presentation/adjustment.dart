@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/state/user_scope.dart';
 import '../../leave_request/data/leave_repository.dart';
 
 class AdjustmentItem {
@@ -174,7 +175,7 @@ class _AttendanceAdjustmentScreenState extends State<AttendanceAdjustmentScreen>
             ),
             const SizedBox(height: 18),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 final reason = reasonController.text.trim();
                 if (reason.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -182,33 +183,35 @@ class _AttendanceAdjustmentScreenState extends State<AttendanceAdjustmentScreen>
                   );
                   return;
                 }
-                setState(() {
-                  _items.insert(
-                    0,
-                    AdjustmentItem(
-                      id: 'adj-${DateTime.now().millisecondsSinceEpoch}',
-                      date: 'Hôm nay',
-                      shiftName: selectedShift,
-                      checkIn: inController.text.trim(),
-                      checkOut: outController.text.trim(),
-                      reason: reason,
-                      status: 'pending',
-                      createdAt: 'Vừa xong',
+                final user = UserScope.currentUser(context);
+                final empId = user?.id ?? '1';
+                try {
+                  await LeaveRepository().createRequest({
+                    'type': 'work_supplement',
+                    'title': 'Bổ sung chấm công: $selectedShift',
+                    'content': 'Vào: ${inController.text.trim()}, Ra: ${outController.text.trim()}. Lý do: $reason',
+                    'employeeId': empId,
+                  });
+                  if (modalCtx.mounted) {
+                    Navigator.pop(modalCtx);
+                  }
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      backgroundColor: AppColors.success,
+                      content: Text('✅ Đã gửi đơn bổ sung công! Quản lý sẽ xem xét duyệt.'),
                     ),
                   );
-                });
-                LeaveRepository().createRequest({
-                  'type': 'work_supplement',
-                  'title': 'Bổ sung chấm công: $selectedShift',
-                  'content': 'Vào: ${inController.text.trim()}, Ra: ${outController.text.trim()}. Lý do: $reason',
-                }).then((_) {}).catchError((_) {});
-                Navigator.pop(modalCtx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    backgroundColor: AppColors.success,
-                    content: Text('✅ Đã gửi đơn bổ sung công! Quản lý sẽ xem xét duyệt.'),
-                  ),
-                );
+                  _loadData();
+                } catch (e) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: AppColors.error,
+                      content: Text('❌ Gửi yêu cầu thất bại: $e'),
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,

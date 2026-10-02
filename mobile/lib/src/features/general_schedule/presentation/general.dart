@@ -9,6 +9,7 @@ import '../../profile/data/employee_repository.dart';
 import 'staff_detail.dart';
 
 class StaffInShift {
+  final String id;
   final String name;
   final String role;
   final String avatarUrl;
@@ -17,6 +18,7 @@ class StaffInShift {
   final String phone;
 
   const StaffInShift({
+    this.id = '',
     required this.name,
     required this.role,
     this.avatarUrl = '',
@@ -195,6 +197,7 @@ class _GeneralScheduleScreenState extends State<GeneralScheduleScreen> {
             final role = emp['role']?.toString() ?? (emp['position']?.toString() ?? 'Nhân viên');
             final phone = emp['phone']?.toString() ?? '—';
             staffList.add(StaffInShift(
+              id: emp['id']?.toString() ?? (s.employeeId ?? ''),
               name: name,
               role: role,
               checkInStatus: isPast || isToday ? 'checked_in' : 'not_yet',

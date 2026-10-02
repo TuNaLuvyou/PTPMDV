@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/state/user_scope.dart';
 import '../../leave_request/data/leave_repository.dart';
 import '../../salary/data/salary_repository.dart';
 
@@ -151,7 +152,7 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
             ),
             const SizedBox(height: 18),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 final amount = amountController.text.trim();
                 final reason = reasonController.text.trim();
                 if (amount.isEmpty || reason.isEmpty) {
@@ -160,32 +161,36 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
                   );
                   return;
                 }
-                setState(() {
-                  _records.insert(
-                    0,
-                    AdvanceRecord(
-                      id: 'adv-${DateTime.now().millisecondsSinceEpoch}',
-                      amount: '$amount đ',
-                      date: 'Hôm nay',
-                      reason: reason,
-                      status: 'pending',
+                final user = UserScope.currentUser(context);
+                final empId = user?.id ?? '1';
+
+                try {
+                  await _leaveRepo.createRequest({
+                    'type': 'advance',
+                    'title': 'Tạm ứng lương: $amount đ',
+                    'content': reason,
+                    'employeeId': empId,
+                  });
+                  if (modalCtx.mounted) {
+                    Navigator.pop(modalCtx);
+                  }
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      backgroundColor: AppColors.success,
+                      content: Text('✅ Đã gửi yêu cầu tạm ứng lương thành công!'),
                     ),
                   );
-                });
-                _leaveRepo.createRequest({
-                  'type': 'advance',
-                  'title': 'Tạm ứng lương: $amount đ',
-                  'content': reason,
-                  'employeeId': '1',
-                }).then((_) => _fetchAdvances()).catchError((_) {});
-
-                Navigator.pop(modalCtx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    backgroundColor: AppColors.success,
-                    content: Text('✅ Đã gửi yêu cầu tạm ứng lương thành công!'),
-                  ),
-                );
+                  _fetchAdvances();
+                } catch (e) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: AppColors.error,
+                      content: Text('❌ Gửi yêu cầu tạm ứng thất bại: $e'),
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
@@ -250,11 +255,11 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Lương tạm tính tháng 08', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                    FaIcon(FontAwesomeIcons.wallet, color: Colors.white70, size: 20),
+                    Text('Lương tạm tính tháng ${DateTime.now().month.toString().padLeft(2, '0')}', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                    const FaIcon(FontAwesomeIcons.wallet, color: Colors.white70, size: 20),
                   ],
                 ),
                 const SizedBox(height: 4),

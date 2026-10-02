@@ -4,6 +4,7 @@ import '../../../core/constants/colors.dart';
 import '../../../core/models/branch.dart';
 import '../../../core/state/branch_scope.dart';
 import '../../../core/widgets/branch_selector.dart';
+import '../../profile/data/employee_repository.dart';
 import '../data/wifi_config_repository.dart';
 
 class WifiConfig {
@@ -171,7 +172,6 @@ class _WifiConfigScreenState extends State<WifiConfigScreen> {
 
   void _showBranchPicker() {
     final current = BranchScope.selectedBranch(context);
-    const branches = kBranches;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -179,55 +179,62 @@ class _WifiConfigScreenState extends State<WifiConfigScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 16, 20, 12),
-              child: Text(
-                'Chọn chi nhánh để cấu hình Wi-Fi',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-              ),
-            ),
-            for (final branch in branches)
-              InkWell(
-                onTap: () {
-                  BranchScope.select(context, branch);
-                  Navigator.pop(sheetContext);
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  child: Row(
-                    children: [
-                      FaIcon(
-                        FontAwesomeIcons.store,
-                        color: current?.id == branch.id ? AppColors.primary : AppColors.textSecondary,
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              branch.name,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: current?.id == branch.id ? AppColors.primary : AppColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(branch.address, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                          ],
-                        ),
-                      ),
-                      if (current?.id == branch.id) const FaIcon(FontAwesomeIcons.check, color: AppColors.primary),
-                    ],
+        child: FutureBuilder<List<Branch>>(
+          future: EmployeeRepository().getBranches(),
+          initialData: kBranches,
+          builder: (ctx, snap) {
+            final branches = (snap.data == null || snap.data!.isEmpty) ? kBranches : snap.data!;
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(20, 16, 20, 12),
+                  child: Text(
+                    'Chọn chi nhánh để cấu hình Wi-Fi',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                   ),
                 ),
-              ),
-            const SizedBox(height: 8),
-          ],
+                for (final branch in branches)
+                  InkWell(
+                    onTap: () {
+                      BranchScope.select(context, branch);
+                      Navigator.pop(sheetContext);
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      child: Row(
+                        children: [
+                          FaIcon(
+                            FontAwesomeIcons.store,
+                            color: current?.id == branch.id ? AppColors.primary : AppColors.textSecondary,
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  branch.name,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: current?.id == branch.id ? AppColors.primary : AppColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(branch.address, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                              ],
+                            ),
+                          ),
+                          if (current?.id == branch.id) const FaIcon(FontAwesomeIcons.check, color: AppColors.primary),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 8),
+              ],
+            );
+          },
         ),
       ),
     );
