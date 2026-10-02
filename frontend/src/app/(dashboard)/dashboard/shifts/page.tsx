@@ -13,7 +13,6 @@ import {
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
 import { apiGet, apiPost, GatewayError, GATEWAY_URL } from "@/lib/api";
-import { employees as initialEmployees } from "@/mock-data/portal";
 import type { Employee } from "@/types";
 import type { ShiftTemplate, WorkShift, WeeklyRegistration } from "@/features/shifts/types";
 import ShiftTemplateSection from "@/features/shifts/components/ShiftTemplates";
@@ -84,73 +83,6 @@ const initialTemplates: ShiftTemplate[] = [
   { id: "t1", name: "Ca Sáng", startTime: "07:00", endTime: "14:00" },
   { id: "t2", name: "Ca Chiều", startTime: "14:00", endTime: "22:00" },
   { id: "t3", name: "Ca Tối (Part-time)", startTime: "18:00", endTime: "23:00" },
-];
-
-const initialWorkShifts: WorkShift[] = [
-  { id: "ws1", employee: "Nguyễn Thu Hà", branch: "HN-1", date: "17/08/2026", templateName: "Ca Sáng", scheduled: "07:00-14:00", checkIn: "06:58", checkOut: "14:02", status: "Đúng giờ", isRecurring: true },
-  { id: "ws2", employee: "Phạm Quỳnh Trang", branch: "HN-1", date: "17/08/2026", templateName: "Ca Sáng", scheduled: "07:00-14:00", checkIn: "07:06", checkOut: "14:00", status: "Trễ", isRecurring: true },
-  { id: "ws3", employee: "Hoàng Minh Đức", branch: "HN-1", date: "17/08/2026", templateName: "Ca Chiều", scheduled: "14:00-22:00", checkIn: "13:55", checkOut: "—", status: "Đúng giờ", isRecurring: true },
-  { id: "ws4", employee: "Vũ Thành Công", branch: "HN-1", date: "17/08/2026", templateName: "Ca Chiều", scheduled: "14:00-22:00", checkIn: "14:01", checkOut: "—", status: "Đúng giờ", isRecurring: true },
-];
-
-const initialWeeklyRegistrations: WeeklyRegistration[] = [
-  {
-    id: "reg-1",
-    employeeName: "Nguyễn Thu Hà",
-    role: "Nhân viên phục vụ",
-    branch: "HN-1",
-    requestedCount: 5,
-    registeredAt: "15/08 08:30",
-    order: 1,
-    note: "Thứ Ba bận học ca tối, xin ưu tiên xếp ca sáng; T7 sẵn sàng làm thêm ca",
-    days: {
-      "T2": "Ca Sáng",
-      "T3": "Ca Sáng",
-      "T4": "Ca Chiều",
-      "T5": "Nghỉ",
-      "T6": "Ca Sáng",
-      "T7": "Ca Chiều",
-      "CN": "Nghỉ",
-    },
-  },
-  {
-    id: "reg-2",
-    employeeName: "Phạm Quỳnh Trang",
-    role: "Thu ngân",
-    branch: "HN-1",
-    requestedCount: 6,
-    registeredAt: "15/08 09:15",
-    order: 2,
-    note: "Xin ưu tiên xếp ca sáng để tiện đưa đón con nhỏ",
-    days: {
-      "T2": "Ca Chiều",
-      "T3": "Ca Chiều",
-      "T4": "Ca Sáng",
-      "T5": "Ca Sáng",
-      "T6": "Nghỉ",
-      "T7": "Ca Chiều",
-      "CN": "Ca Sáng",
-    },
-  },
-  {
-    id: "reg-3",
-    employeeName: "Hoàng Minh Đức",
-    role: "Nhân viên pha chế",
-    branch: "HN-1",
-    requestedCount: 5,
-    registeredAt: "15/08 11:45",
-    order: 3,
-    note: "Sẵn sàng đổi ca hỗ trợ chi nhánh khi thiếu người trực",
-    days: {
-      "T2": "Ca Sáng",
-      "T3": "Ca Sáng",
-      "T4": "Nghỉ",
-      "T5": "Ca Tối",
-      "T6": "Ca Chiều",
-      "T7": "Nghỉ",
-      "CN": "Ca Chiều",
-    },
-  },
 ];
 
 function mapBackendShiftToWorkShift(s: any, empMap?: Map<string, string>): WorkShift {
@@ -228,18 +160,31 @@ export default function ShiftsPage() {
   const [activeTab, setActiveTab] = useState<"scheduling" | "general_schedule" | "templates">("scheduling");
 
   const [templates, setTemplates] = useState<ShiftTemplate[]>(initialTemplates);
-  const [workShiftList, setWorkShiftList] = useState<WorkShift[]>(initialWorkShifts);
-  const [weeklyRegistrations, setWeeklyRegistrations] = useState<WeeklyRegistration[]>(initialWeeklyRegistrations);
-  const [empList, setEmpList] = useState<Employee[]>(initialEmployees);
+  // Khung ca mẫu chưa có API backend -> giữ local state (xử lý sau).
+  // Ca làm việc & nguyện vọng: khởi rỗng, chỉ nhận từ API; DB rỗng -> empty state.
+  const [workShiftList, setWorkShiftList] = useState<WorkShift[]>([]);
+  const [weeklyRegistrations, setWeeklyRegistrations] = useState<WeeklyRegistration[]>([]);
+  const [empList, setEmpList] = useState<Employee[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [actionInProgress, setActionInProgress] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ text: string; tone: "success" | "danger" } | null>(null);
 
-  // Bộ chọn ngày & chi nhánh cho khối Xếp ca
-  const [schedulerDate, setSchedulerDate] = useState("17/08/2026");
+  // Bộ chọn ngày & chi nhánh cho khối Xếp ca (mặc định hôm nay)
+  const todayStr = (() => {
+    const n = new Date();
+    return `${String(n.getDate()).padStart(2, "0")}/${String(n.getMonth() + 1).padStart(2, "0")}/${n.getFullYear()}`;
+  })();
+  const [schedulerDate, setSchedulerDate] = useState(todayStr);
   const [schedulerBranch, setSchedulerBranch] = useState(isManager ? managerBranch : "HN-1");
+
+  const [assignEmployee, setAssignEmployee] = useState("");
+  const [assignBranch, setAssignBranch] = useState("HN-1");
+  const [assignDate, setAssignDate] = useState(todayStr);
+  const [assignTemplateId, setAssignTemplateId] = useState("");
+  const [assignNote, setAssignNote] = useState("");
+  const [assignIsRecurring, setAssignIsRecurring] = useState(true);
 
   const showToast = (text: string, tone: "success" | "danger" = "success") => {
     setToast({ text, tone });
@@ -276,19 +221,20 @@ export default function ShiftsPage() {
       let employeesData: Employee[] = [];
       if (employeesRes.status === "fulfilled" && Array.isArray(employeesRes.value)) {
         employeesData = employeesRes.value;
-        setEmpList(employeesData);
       }
+      // Luôn đồng bộ (kể cả mảng rỗng) để hiện empty state thật thay vì mock.
+      setEmpList(employeesData);
 
       const currentEmpMap = new Map<string, string>();
       for (const e of employeesData) {
         currentEmpMap.set(e.id, e.name);
       }
 
-      if (shiftsRes.status === "fulfilled" && Array.isArray(shiftsRes.value) && shiftsRes.value.length > 0) {
+      if (shiftsRes.status === "fulfilled" && Array.isArray(shiftsRes.value)) {
         setWorkShiftList(shiftsRes.value.map((s) => mapBackendShiftToWorkShift(s, currentEmpMap)));
       }
 
-      if (regRes.status === "fulfilled" && Array.isArray(regRes.value) && regRes.value.length > 0) {
+      if (regRes.status === "fulfilled" && Array.isArray(regRes.value)) {
         setWeeklyRegistrations(regRes.value.map((r) => mapBackendRegistration(r, currentEmpMap)));
       }
     } catch (e: any) {
@@ -302,6 +248,20 @@ export default function ShiftsPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Tự chọn nhân viên đầu tiên khi danh sách API về
+  useEffect(() => {
+    if (!assignEmployee && empList.length > 0) {
+      setAssignEmployee(empList[0].name);
+    }
+  }, [empList, assignEmployee]);
+
+  // Mặc định khung ca đầu tiên cho modal phân ca
+  useEffect(() => {
+    if (!assignTemplateId && templates.length > 0) {
+      setAssignTemplateId(templates[0].id);
+    }
+  }, [templates, assignTemplateId]);
 
   // Manager chỉ thấy dữ liệu chi nhánh mình
   const displayedWorkShifts = isManager
@@ -319,13 +279,6 @@ export default function ShiftsPage() {
   const [newTemplateName, setNewTemplateName] = useState("");
   const [newTemplateStart, setNewTemplateStart] = useState("07:00");
   const [newTemplateEnd, setNewTemplateEnd] = useState("14:00");
-
-  const [assignEmployee, setAssignEmployee] = useState(empList[0]?.name ?? "Nguyễn Thu Hà");
-  const [assignBranch, setAssignBranch] = useState("HN-1");
-  const [assignDate, setAssignDate] = useState("17/08/2026");
-  const [assignTemplateId, setAssignTemplateId] = useState(templates[0]?.id ?? "");
-  const [assignNote, setAssignNote] = useState("");
-  const [assignIsRecurring, setAssignIsRecurring] = useState(true);
 
   const openAddTemplate = () => {
     setEditingTemplate(null);
@@ -374,10 +327,8 @@ export default function ShiftsPage() {
       setWorkShiftList((prev) => prev.filter((s) => s.id !== workShiftId));
       showToast("Đã xóa phân công ca làm việc", "success");
     } catch (e: any) {
-      // Fallback local update
-      setWorkShiftList((prev) => prev.filter((s) => s.id !== workShiftId));
-      const msg = e instanceof GatewayError ? e.message : e?.message || "Đã xóa khỏi danh sách ca làm việc";
-      showToast(msg, "success");
+      const msg = e instanceof GatewayError ? e.message : e?.message || "Lỗi khi xóa ca làm việc";
+      showToast(msg, "danger");
     } finally {
       setActionInProgress(false);
     }
@@ -432,8 +383,9 @@ export default function ShiftsPage() {
   // Tạo & phân ca mới (POST /api/shifts)
   const handleAssignShift = async () => {
     const template = templates.find((t) => t.id === assignTemplateId) || templates[0];
+    const matchedEmp = empList.find((e) => e.name === assignEmployee);
     const payload = {
-      employeeId: assignEmployee,
+      employeeId: matchedEmp?.id || assignEmployee,
       branchSlug: assignBranch,
       date: assignDate,
       template: template.name,
@@ -455,26 +407,8 @@ export default function ShiftsPage() {
       setAssignNote("");
       setAssignIsRecurring(true);
     } catch (e: any) {
-      // Fallback local creation
-      const created: WorkShift = {
-        id: `ws-${Date.now()}`,
-        employee: assignEmployee,
-        branch: assignBranch,
-        date: assignDate,
-        templateName: template.name,
-        scheduled: `${template.startTime}-${template.endTime}`,
-        checkIn: "—",
-        checkOut: "—",
-        status: "Chưa làm",
-        note: assignNote,
-        isRecurring: assignIsRecurring,
-      };
-      setWorkShiftList((prev) => [created, ...prev]);
-      setAssignShiftOpen(false);
-      setAssignNote("");
-      setAssignIsRecurring(true);
-      const msg = e instanceof GatewayError ? e.message : e?.message || "Đã lưu phân công ca làm việc";
-      showToast(msg, "success");
+      const msg = e instanceof GatewayError ? e.message : e?.message || "Lỗi khi phân công ca làm việc";
+      showToast(msg, "danger");
     } finally {
       setActionInProgress(false);
     }

@@ -5,7 +5,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGear, faRotateRight } from "@fortawesome/free-solid-svg-icons";
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
-import { attendanceConfig } from "@/mock-data/portal";
 import type { Payslip } from "@/types";
 import PayslipSection from "@/features/payslips/components/PayslipList";
 import BulkClosePayslipModal from "@/features/payslips/components/modals/PayslipClose";
@@ -91,11 +90,26 @@ export default function PayslipsPage() {
   const [confirmCloseSlipTarget, setConfirmCloseSlipTarget] = useState<Payslip | null>(null);
   const [closingOne, setClosingOne] = useState(false);
   const [attConfig, setAttConfig] = useState<AttendanceConfigState>({
-    gracePeriod: attendanceConfig.gracePeriod,
-    shiftSwapMode: attendanceConfig.shiftSwapMode,
+    gracePeriod: "5",
+    shiftSwapMode: "manager",
     requireReasonSwap: true,
     allowDoubleCheckin: true,
   });
+
+  const fetchConfig = useCallback(async () => {
+    try {
+      const c = await apiGet<any>("/api/attendance/config");
+      if (c) {
+        setAttConfig((prev) => ({
+          ...prev,
+          gracePeriod: String(c.gracePeriodMinutes ?? c.gracePeriod ?? prev.gracePeriod),
+          shiftSwapMode: c.shiftSwapMode || prev.shiftSwapMode,
+        }));
+      }
+    } catch {
+      // giữ mặc định, hiện lỗi qua toast của fetchData nếu cần
+    }
+  }, []);
 
   const fetchData = useCallback(async (month: string) => {
     try {
@@ -135,6 +149,10 @@ export default function PayslipsPage() {
   useEffect(() => {
     fetchData(selectedMonth);
   }, [fetchData, selectedMonth]);
+
+  useEffect(() => {
+    fetchConfig();
+  }, [fetchConfig]);
 
   // Manager chỉ thấy phiếu của chi nhánh mình (lọc theo branch của employee).
   const visibleSlips = useMemo(() => {
@@ -324,7 +342,17 @@ export default function PayslipsPage() {
         error={generateError}
         onConfirm={handleGenerate}
       />
-      <AttendanceConfigModal open={attendanceOpen} onClose={() => setAttendanceOpen(false)} config={attConfig} setConfig={setAttConfig} />
+      <AttendanceConfigModal open={attendanceOpen} onClose={async () => {
+        setAttendanceOpen(false);
+        try {
+          await apiPut("/api/attendance/config", {
+            gracePeriodMinutes: parseInt(attConfig.gracePeriod, 10) || 5,
+            shiftSwapMode: attConfig.shiftSwapMode,
+          });
+        } catch {
+          // ignore — giữ config local nếu API lỗi
+        }
+      }} config={attConfig} setConfig={setAttConfig} />
 
       <EditPayslipModal
         payslip={editSlipTarget}

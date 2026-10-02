@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCalendar, faChevronLeft, faChevronRight, faCloudSun, faMoon, faSun, faUsers } from "@fortawesome/free-solid-svg-icons";
 import Badge from "@/components/ui/Badge";
+import { apiGet } from "@/lib/api";
+import type { Branch } from "@/types";
 import type { WeeklyRegistration } from "../types";
 
 interface Props {
@@ -21,18 +23,32 @@ interface RegistrationShiftGroup {
   staffList: { id: string; name: string; role: string; branch: string; note?: string }[];
 }
 
+function getMondayOfCurrentWeek(): Date {
+  const now = new Date();
+  const day = (now.getDay() + 6) % 7;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - day);
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+
 export default function RegistrationTimetableSection({ registrations, defaultBranch = "all", isManager = false, managerBranch }: Props) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
   const effectiveDefaultBranch = isManager && managerBranch ? managerBranch : defaultBranch;
   const [selectedBranch, setSelectedBranch] = useState(effectiveDefaultBranch);
+  const [branches, setBranches] = useState<Branch[]>([]);
+
+  useEffect(() => {
+    apiGet<Branch[]>("/api/branches").then((d) => setBranches(d || [])).catch(() => {});
+  }, []);
 
   const weekDays = useMemo(() => {
-    const baseMonday = new Date(2026, 7, 17);
-    const monday = new Date(baseMonday);
-    monday.setDate(baseMonday.getDate() + weekOffset * 7);
+    const monday = getMondayOfCurrentWeek();
+    monday.setDate(monday.getDate() + weekOffset * 7);
     const dayKeys = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
     const dayNames = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"];
+    const today = new Date();
     return dayKeys.map((key, idx) => {
       const d = new Date(monday);
       d.setDate(monday.getDate() + idx);
@@ -41,7 +57,10 @@ export default function RegistrationTimetableSection({ registrations, defaultBra
       const yearNum = d.getFullYear();
       const dateStr = `${dayNum}/${monthNum}`;
       const fullDate = `${dayNum}/${monthNum}/${yearNum}`;
-      const isToday = weekOffset === 0 && idx === 0;
+      const isToday =
+        d.getDate() === today.getDate() &&
+        d.getMonth() === today.getMonth() &&
+        d.getFullYear() === today.getFullYear();
       return { key, name: dayNames[idx], date: dateStr, fullDate, isToday };
     });
   }, [weekOffset]);
@@ -58,7 +77,8 @@ export default function RegistrationTimetableSection({ registrations, defaultBra
 
   const getWeekRange = () => {
     if (weekDays.length < 7) return "";
-    return `${weekDays[0].date} - ${weekDays[6].date}/2026`;
+    const year = weekDays[6].fullDate.split("/")[2] || "";
+    return `${weekDays[0].date} - ${weekDays[6].date}/${year}`;
   };
 
   const filteredRegs = useMemo(() => {
@@ -137,9 +157,11 @@ export default function RegistrationTimetableSection({ registrations, defaultBra
               className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs bg-gray-50 font-bold text-gray-800 focus:outline-none cursor-pointer"
             >
               <option value="all">Tất cả chi nhánh</option>
-              <option value="HN-1">HN-1</option>
-              <option value="HN-2">HN-2</option>
-              <option value="ĐN-1">ĐN-1</option>
+              {branches.map((b) => (
+                <option key={b.id || b.slug} value={b.slug.toUpperCase()}>
+                  {b.slug.toUpperCase()}
+                </option>
+              ))}
             </select>
           )}
         </div>

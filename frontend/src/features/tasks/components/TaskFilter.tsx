@@ -1,7 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFilter, faMagnifyingGlass, faStore } from "@fortawesome/free-solid-svg-icons";
+import { apiGet } from "@/lib/api";
+import type { Branch } from "@/types";
 import type { TaskSourceType, TaskStatus } from "../types";
 
 interface TaskFilterBarProps {
@@ -37,6 +40,14 @@ export default function TaskFilterBar({
   managerBranch,
   statusCounts,
 }: TaskFilterBarProps) {
+  const [branches, setBranches] = useState<Branch[]>([]);
+
+  useEffect(() => {
+    if (!isManager) {
+      apiGet<Branch[]>("/api/branches").then((d) => setBranches(d || [])).catch(() => {});
+    }
+  }, [isManager]);
+
   const tabs: { key: TaskStatus | "all"; label: string; count: number; colorClass: string }[] = [
     { key: "all", label: "Tất cả", count: statusCounts.all, colorClass: "bg-gray-100 text-gray-700" },
     { key: "pending", label: "Cần làm", count: statusCounts.pending, colorClass: "bg-blue-50 text-blue-700" },
@@ -112,9 +123,11 @@ export default function TaskFilterBar({
                 className="px-3 py-2 border border-gray-300 rounded-lg text-xs md:text-sm bg-white focus:outline-hidden focus:ring-2 focus:ring-primary"
               >
                 <option value="all">Tất cả chi nhánh</option>
-                <option value="HN-1">HN-1 (Hoàn Kiếm)</option>
-                <option value="HN-2">HN-2 (Cầu Giấy)</option>
-                <option value="ĐN-1">ĐN-1 (Đà Nẵng)</option>
+                {branches.map((b) => (
+                  <option key={b.id || b.slug} value={b.slug.toUpperCase()}>
+                    {b.slug.toUpperCase()} ({b.name})
+                  </option>
+                ))}
               </select>
             </div>
           )}

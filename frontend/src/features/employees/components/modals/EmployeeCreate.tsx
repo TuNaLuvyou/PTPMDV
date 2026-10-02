@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { Field, Input, Select } from "@/components/ui/Form";
-import { branches, departments } from "@/mock-data/portal";
+import { apiGet } from "@/lib/api";
+import type { Branch, Department } from "@/types";
 
 interface Props {
   open: boolean;
@@ -20,6 +22,15 @@ export default function CreateEmployeeModal({
   managerBranch = "hn-1",
   defaultBranch,
 }: Props) {
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    apiGet<Branch[]>("/api/branches").then((d) => setBranches(d || [])).catch(() => {});
+    apiGet<Department[]>("/api/departments").then((d) => setDepartments(d || [])).catch(() => {});
+  }, [open ]);
+
   const fixedBranch = isManager ? managerBranch : defaultBranch ?? branches[0]?.slug ?? "hn-1";
 
   return (

@@ -13,11 +13,12 @@ import Badge, { StatusBadge } from "@/components/ui/Badge";
 import Table, { Column } from "@/components/ui/Table";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Form";
-import type { Employee } from "@/types";
-import { departments } from "@/mock-data/portal";
+import type { Employee, Branch, Department } from "@/types";
 
 interface Props {
   employees: Employee[];
+  branches?: Branch[];
+  departments?: Department[];
   onOpenDetail?: (e: Employee) => void;
   onSelect?: (e: Employee) => void;
   onLock?: (e: Employee) => void;
@@ -28,6 +29,8 @@ interface Props {
 
 export default function EmployeeSection({
   employees,
+  branches = [],
+  departments = [],
   onOpenDetail,
   onSelect,
   onLock,
@@ -154,9 +157,11 @@ export default function EmployeeSection({
                 className="bg-transparent border-none text-xs font-bold text-gray-800 focus:outline-hidden cursor-pointer"
               >
                 <option value="all">Tất cả chi nhánh</option>
-                <option value="HN-1">HN-1</option>
-                <option value="HN-2">HN-2</option>
-                <option value="ĐN-1">ĐN-1</option>
+                {branches.map((b) => (
+                  <option key={b.id || b.slug} value={b.slug.toUpperCase()}>
+                    {b.slug.toUpperCase()}
+                  </option>
+                ))}
               </select>
             </div>
           )}
