@@ -463,6 +463,9 @@ export default function ShiftsPage() {
             <Button variant="white" size="sm" onClick={fetchData} disabled={loading || actionInProgress}>
               <FontAwesomeIcon icon={faRotateRight} className={loading ? "animate-spin" : ""} /> Tải lại
             </Button>
+            <Button variant="white" size="sm" onClick={() => setExportOpen(true)}>
+              Xuất báo cáo
+            </Button>
             <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl border border-gray-200">
               <button
                 type="button"
