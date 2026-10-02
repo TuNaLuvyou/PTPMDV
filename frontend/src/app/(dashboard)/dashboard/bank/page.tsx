@@ -54,7 +54,7 @@ function accountToPartner(row: BankAccountRow, index: number): BankPartner {
     branch: "Chi nhánh mở tài khoản",
     balance: Number(row.balance) || 0,
     isPrimary: row.isPrimary === true,
-    status: "active",
+    status: row.status === "vô hiệu hóa" ? "maintenance" : "active",
     soapProtocol: "SOAP 1.2 / HTTPS (qua Gateway :4000)",
     mTLSStatus: "valid",
     certExpiry: "—",
