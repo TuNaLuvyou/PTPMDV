@@ -321,7 +321,7 @@ class _GeneralScheduleScreenState extends State<GeneralScheduleScreen> {
                     Row(
                       children: [
                         Text(
-                          '${selectedDay.dayOfWeek}, Ngày ${selectedDay.date}/2026',
+                          '${selectedDay.dayOfWeek}, Ngày ${selectedDay.date}/${DateTime.now().year}',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

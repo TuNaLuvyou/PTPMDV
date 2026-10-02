@@ -443,7 +443,7 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
                   Row(
                     children: [
                       Text(
-                        '$dayFullName, $dateFormatted/2026',
+                        '$dayFullName, $dateFormatted/${DateTime.now().year}',
                         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                       ),
                       if (isToday) ...[

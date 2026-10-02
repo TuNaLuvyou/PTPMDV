@@ -3,6 +3,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/config/company.dart';
 import '../../../core/state/branch_scope.dart';
+import '../../../core/state/user_scope.dart';
 import '../../../core/models/user.dart';
 import '../../schedule/presentation/schedule.dart';
 import '../../salary/presentation/salary.dart';
@@ -45,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _loadedWifiBranchKey;
   String? _loadedTaskBranchKey;
 
-  UserModel get currentUser => widget.currentUser;
+  UserModel get currentUser => (mounted ? UserScope.currentUser(context) : null) ?? widget.currentUser;
 
   @override
   void initState() {
@@ -659,7 +660,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           try {
                             await AttendanceRepository().checkIn(
                               employeeId: currentUser.id,
-                              shiftId: targetShift.shiftName,
+                              shiftId: targetShift.id.isNotEmpty ? targetShift.id : targetShift.shiftName,
                               wifiSsid: wifiSsid,
                               checkinTime: '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
                             );
@@ -924,7 +925,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   try {
                     await AttendanceRepository().checkOut(
                       employeeId: currentUser.id,
-                      shiftId: shiftOut?.shiftName,
+                      shiftId: shiftOut != null && shiftOut.id.isNotEmpty ? shiftOut.id : shiftOut?.shiftName,
                       checkoutTime: '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
                     );
                     if (!context.mounted) return;

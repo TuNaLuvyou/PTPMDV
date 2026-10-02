@@ -248,20 +248,20 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 ),
               ],
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Phép năm còn lại', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                    SizedBox(height: 4),
-                    Text('10 / 12 ngày', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 2),
-                    Text('Đã dùng 2 ngày • Hạn đến 31/12/2026', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                    const Text('Phép năm còn lại', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    const Text('10 / 12 ngày', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 2),
+                    Text('Đã dùng 2 ngày • Hạn đến 31/12/${DateTime.now().year}', style: const TextStyle(color: Colors.white70, fontSize: 11)),
                   ],
                 ),
-                CircleAvatar(
+                const CircleAvatar(
                   radius: 26,
                   backgroundColor: Colors.white24,
                   child: FaIcon(FontAwesomeIcons.umbrellaBeach, color: Colors.white, size: 28),

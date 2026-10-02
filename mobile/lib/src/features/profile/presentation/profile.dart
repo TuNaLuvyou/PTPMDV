@@ -28,8 +28,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  static const String _phone = '0901 234 567';
-
   late final TextEditingController _nameController;
   late final TextEditingController _phoneController;
 
@@ -37,7 +35,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.currentUser.name);
-    _phoneController = TextEditingController(text: _phone);
+    _phoneController = TextEditingController(
+      text: widget.currentUser.phone.isNotEmpty ? widget.currentUser.phone : '—',
+    );
   }
 
   @override

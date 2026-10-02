@@ -142,7 +142,7 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${widget.dayOfWeek}, ${widget.date}/2026 • ${shift.timeRange}',
+                          '${widget.dayOfWeek}, ${widget.date}/${DateTime.now().year} • ${shift.timeRange}',
                           style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                         ),
                       ],
