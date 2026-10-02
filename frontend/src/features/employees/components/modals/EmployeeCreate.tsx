@@ -107,8 +107,8 @@ export default function CreateEmployeeModal({
         </Field>
         <Field label="Hình thức tính lương" required>
           <Select defaultValue="hourly">
-            <option value="hourly">Lương theo giờ (Checkout cộng theo giờ)</option>
-            <option value="monthly">Lương cơ bản tháng (Cố định, chỉ trừ khi phạt)</option>
+            <option value="hourly">Lương theo giờ</option>
+            <option value="monthly">Lương cơ bản tháng</option>
           </Select>
         </Field>
         <Field label="Mức lương (VNĐ/giờ hoặc VNĐ/tháng)" required>

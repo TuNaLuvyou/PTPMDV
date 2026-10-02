@@ -748,8 +748,8 @@ export default function EmployeeDetailModal({
                       <span className="text-gray-500 text-xs">Hình thức tính lương:</span>
                       <span className="font-bold text-gray-900 text-xs">
                         {employee.salaryType === "hourly"
-                          ? "Lương theo giờ làm (Ca kíp)"
-                          : "Lương cơ bản cố định (Theo tháng)"}
+                          ? "Lương theo giờ"
+                          : "Lương cơ bản tháng"}
                       </span>
                     </div>
 
@@ -823,8 +823,8 @@ export default function EmployeeDetailModal({
                       value={salaryType}
                       onChange={(e) => setSalaryType(e.target.value as "hourly" | "monthly")}
                     >
-                      <option value="hourly">Lương theo giờ (Cộng theo giờ khi checkout ca)</option>
-                      <option value="monthly">Lương cơ bản tháng (Cố định, chỉ trừ khi phạt)</option>
+                      <option value="hourly">Lương theo giờ</option>
+                      <option value="monthly">Lương cơ bản tháng</option>
                     </Select>
                   </Field>
 

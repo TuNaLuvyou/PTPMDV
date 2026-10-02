@@ -6,7 +6,6 @@ import {
   faCalendarDay,
   faCalendarWeek,
   faGear,
-  faRotateRight,
   faTriangleExclamation,
   faCircleCheck,
 } from "@fortawesome/free-solid-svg-icons";
@@ -107,7 +106,7 @@ function mapBackendShiftToWorkShift(s: any, empMap?: Map<string, string>): WorkS
     employee: empName,
     branch: s.branchSlug || s.branch || "—",
     date: s.date || "—",
-    templateName: s.template || s.templateName || "Ca Sáng",
+    templateName: s.template || s.templateName || "—",
     scheduled,
     checkIn: s.checkIn || "—",
     checkOut: s.checkOut || "—",
@@ -124,25 +123,15 @@ function mapBackendRegistration(r: any, empMap?: Map<string, string>): WeeklyReg
     r.employeeId ||
     "Nhân sự";
 
-  const defaultDays: Record<string, string> = {
-    "T2": "Ca Sáng",
-    "T3": "Ca Sáng",
-    "T4": "Ca Chiều",
-    "T5": "Nghỉ",
-    "T6": "Ca Sáng",
-    "T7": "Ca Chiều",
-    "CN": "Nghỉ",
-  };
-
   return {
     id: r.id || `reg-${Date.now()}`,
     employeeName: empName,
     role: r.role || "Nhân viên",
     branch: r.branchSlug || r.branch || "HN-1",
-    requestedCount: r.requestedCount || (r.days ? Object.values(r.days).filter((v) => v !== "Nghỉ").length : 5),
+    requestedCount: r.requestedCount || (r.days ? Object.values(r.days).filter((v) => v !== "Nghỉ").length : 0),
     registeredAt: r.registeredAt || (r.createdAt ? new Date(r.createdAt).toLocaleDateString("vi-VN") : "—"),
     order: r.order || 1,
-    days: r.days || defaultDays,
+    days: r.days || {},
     note: r.note || r.wish || "",
   };
 }
@@ -456,13 +445,10 @@ export default function ShiftsPage() {
       )}
 
       <PageHeader
-        title={isManager ? "Lịch làm việc & Phân ca Chi nhánh" : "Quản lý Lịch Ca"}
+        title={isManager ? "Lịch làm việc & Phân ca Chi nhánh" : "Quản lý Lịch ca"}
         breadcrumb={[{ label: "HRM", href: "#" }, { label: "Lịch ca" }]}
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="white" size="sm" onClick={fetchData} disabled={loading || actionInProgress}>
-              <FontAwesomeIcon icon={faRotateRight} className={loading ? "animate-spin" : ""} /> Tải lại
-            </Button>
             <Button variant="white" size="sm" onClick={() => setExportOpen(true)}>
               Xuất báo cáo
             </Button>

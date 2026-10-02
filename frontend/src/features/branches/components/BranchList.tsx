@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTrashCan, faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
+import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import Badge, { StatusBadge } from "@/components/ui/Badge";
 import Table, { Column } from "@/components/ui/Table";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -51,26 +51,13 @@ export default function BranchSection({ branches, onEdit, onLock, onDelete }: Pr
       key: "actions",
       header: "Thao tác",
       render: (b) => (
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => onEdit(b)}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-primary hover:text-white transition-all cursor-pointer shadow-2xs"
-          >
-            Chi tiết
-          </button>
-          {onDelete && (
-            <button
-              type="button"
-              onClick={() => onDelete(b)}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all cursor-pointer shadow-2xs flex items-center gap-1"
-              title={`Xóa chi nhánh ${b.name}`}
-            >
-              <FontAwesomeIcon icon={faTrashCan} fontSize={12} />
-              <span>Xóa</span>
-            </button>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={() => onEdit(b)}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-primary hover:text-white transition-all cursor-pointer shadow-2xs"
+        >
+          Chi tiết
+        </button>
       ),
     },
   ];

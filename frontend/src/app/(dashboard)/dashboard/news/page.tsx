@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faRotateRight } from "@fortawesome/free-solid-svg-icons";
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
 import type { NewsItem } from "@/features/news/types";
@@ -141,9 +141,6 @@ export default function NewsPage() {
         breadcrumb={[{ label: "HR & Quản trị", href: "#" }, { label: "Bảng tin & Thông báo" }]}
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="white" onClick={fetchData} className="text-xs">
-              <FontAwesomeIcon icon={faRotateRight} fontSize={14} /> Tải lại
-            </Button>
             <Button onClick={handleOpenCreate}>
               <FontAwesomeIcon icon={faPlus} fontSize={18} /> Đăng thông báo mới
             </Button>

@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPlus,
-  faRotateRight,
   faTriangleExclamation,
   faCircleCheck,
 } from "@fortawesome/free-solid-svg-icons";
@@ -278,8 +277,8 @@ function CreateEmployeeDialog({
             value={salaryType}
             onChange={(e) => setSalaryType(e.target.value as "hourly" | "monthly")}
           >
-            <option value="hourly">Lương theo giờ (Checkout cộng theo giờ)</option>
-            <option value="monthly">Lương cơ bản tháng (Cố định, chỉ trừ khi phạt)</option>
+            <option value="hourly">Lương theo giờ</option>
+            <option value="monthly">Lương cơ bản tháng</option>
           </Select>
         </Field>
         <Field label="Mức lương (VNĐ/giờ hoặc VNĐ/tháng)" required>
@@ -493,9 +492,6 @@ export default function EmployeesPage() {
         breadcrumb={[{ label: "HRM", href: "#" }, { label: "Nhân sự" }]}
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="white" onClick={fetchEmployees} disabled={loading || actionInProgress}>
-              <FontAwesomeIcon icon={faRotateRight} className={loading ? "animate-spin" : ""} /> Tải lại
-            </Button>
             <Button onClick={() => setCreateOpen(true)} disabled={actionInProgress}>
               <FontAwesomeIcon icon={faPlus} fontSize={18} /> Thêm nhân viên mới
             </Button>

@@ -157,10 +157,24 @@ export default function GeneralScheduleSection({
     };
 
     // Mỗi khung ca mẫu -> 1 nhóm; nhân sự lọc theo templateName khớp ngày.
-    const groups = (templates.length > 0
-      ? templates
-      : [{ id: "t-fallback", name: "Ca làm việc", startTime: "07:00", endTime: "14:00" }]
-    ).map((t, ti) => {
+    // Chưa cấu hình ca mẫu nào thì gom nhóm theo chính các ca đã xếp của ngày,
+    // không tạo ca mẫu giả.
+    const effectiveTemplates: ShiftTemplate[] =
+      templates.length > 0
+        ? templates
+        : (() => {
+            const seen = new Map<string, ShiftTemplate>();
+            for (const ws of shiftsOfDay) {
+              const name = ws.templateName && ws.templateName !== "—" ? ws.templateName : "Ca làm việc";
+              const [start, end] = (ws.scheduled || "07:00-14:00").split("-");
+              if (!seen.has(name)) {
+                seen.set(name, { id: `dyn-${name}`, name, startTime: start || "07:00", endTime: end || "14:00" });
+              }
+            }
+            return Array.from(seen.values());
+          })();
+
+    const groups = effectiveTemplates.map((t, ti) => {
       const staff = shiftsOfDay
         .filter((ws) => !ws.templateName || ws.templateName === t.name || templates.length === 0)
         .map(toStaff);

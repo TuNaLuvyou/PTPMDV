@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faRotateRight } from "@fortawesome/free-solid-svg-icons";
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
 import type { Regulation } from "@/types";
@@ -192,9 +192,6 @@ export default function RegulationsManagementPage() {
         title="Quản lý Nội quy & Quy định"
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="white" onClick={fetchData} className="flex items-center gap-1.5 text-xs">
-              <FontAwesomeIcon icon={faRotateRight} fontSize={14} /> Tải lại
-            </Button>
             <Button
               variant="primary"
               onClick={handleOpenCreateModal}

@@ -4,7 +4,6 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPlus,
-  faRotateRight,
   faTriangleExclamation,
   faCircleCheck,
 } from "@fortawesome/free-solid-svg-icons";
@@ -379,9 +378,6 @@ export default function TasksPage() {
         breadcrumb={[{ label: "HRM", href: "#" }, { label: "Nhiệm vụ" }]}
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="white" onClick={fetchData} disabled={loading || actionInProgress}>
-              <FontAwesomeIcon icon={faRotateRight} className={loading ? "animate-spin" : ""} /> Tải lại
-            </Button>
             <Button variant="primary" onClick={() => setCreateModalOpen(true)} disabled={actionInProgress}>
               <FontAwesomeIcon icon={faPlus} fontSize={18} className="mr-1 inline" />
               Giao việc mới
