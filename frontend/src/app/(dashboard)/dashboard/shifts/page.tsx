@@ -456,7 +456,7 @@ export default function ShiftsPage() {
       )}
 
       <PageHeader
-        title={isManager ? "Lịch làm việc & Phân ca Chi nhánh" : "Quản lý Lịch ca & Xếp ca Doanh nghiệp"}
+        title={isManager ? "Lịch làm việc & Phân ca Chi nhánh" : "Quản lý Lịch Ca"}
         breadcrumb={[{ label: "HRM", href: "#" }, { label: "Lịch ca" }]}
         actions={
           <div className="flex items-center gap-2">
