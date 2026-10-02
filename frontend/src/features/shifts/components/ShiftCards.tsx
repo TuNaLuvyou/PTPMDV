@@ -125,7 +125,7 @@ export default function ShiftCardsGrid({
     return employees.filter(
       (e) => e.branch.toLowerCase().replace("-", "") === selectedBranch.toLowerCase().replace("-", "")
     );
-  }, [selectedBranch]);
+  }, [selectedBranch, employees]);
 
   // Danh sách đăng ký nguyện vọng theo chi nhánh đã chọn
   const filteredRegistrations = useMemo(() => {

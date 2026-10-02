@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faClock, faUser, faBuilding, faCalendarDay, faTrashCan } from "@fortawesome/free-solid-svg-icons";
+import { faClock, faBuilding, faCalendarDay, faTrashCan } from "@fortawesome/free-solid-svg-icons";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import Badge, { StatusBadge } from "@/components/ui/Badge";
 import Table, { Column } from "@/components/ui/Table";
 import { Input, Select } from "@/components/ui/Form";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
+import { apiGet } from "@/lib/api";
+import type { Branch } from "@/types";
 import type { WorkShift } from "@/features/shifts/types";
 
 interface Props {
@@ -18,6 +20,30 @@ interface Props {
 
 export default function WorkShiftSection({ workShifts, onDelete }: Props) {
   const [selectedShift, setSelectedShift] = useState<WorkShift | null>(null);
+  const [branchFilter, setBranchFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("");
+  const [branches, setBranches] = useState<Branch[]>([]);
+
+  useEffect(() => {
+    apiGet<Branch[]>("/api/branches").then((d) => setBranches(d || [])).catch(() => {});
+  }, []);
+
+  const filteredShifts = useMemo(() => {
+    return workShifts.filter((s) => {
+      if (
+        branchFilter !== "all" &&
+        s.branch.toLowerCase().replace("-", "") !== branchFilter.toLowerCase().replace("-", "")
+      ) {
+        return false;
+      }
+      if (dateFilter) {
+        const [y, m, d] = dateFilter.split("-");
+        const formatted = `${d}/${m}/${y}`;
+        if (s.date !== formatted && !s.date.includes(formatted)) return false;
+      }
+      return true;
+    });
+  }, [workShifts, branchFilter, dateFilter]);
 
   const columns: Column<WorkShift>[] = [
     { key: "employee", header: "Nhân viên", render: (s) => <span className="font-semibold text-gray-800">{s.employee}</span> },
@@ -52,17 +78,38 @@ export default function WorkShiftSection({ workShifts, onDelete }: Props) {
       <Card>
         <CardHeader>
           <CardTitle>Lịch phân công nhân viên (Xếp ca)</CardTitle>
-          <div className="flex gap-2">
-            <Select className="w-auto py-1.5 text-sm" defaultValue="hn-1">
-              <option value="hn-1">HN-1</option>
-              <option value="hn-2">HN-2</option>
-              <option value="dn-1">ĐN-1</option>
+          <div className="flex items-center gap-2">
+            <Select
+              className="w-auto py-1.5 text-sm"
+              value={branchFilter}
+              onChange={(e) => setBranchFilter(e.target.value)}
+            >
+              <option value="all">Tất cả chi nhánh</option>
+              {branches.map((b) => (
+                <option key={b.id || b.slug} value={b.slug.toUpperCase()}>
+                  {b.slug.toUpperCase()}
+                </option>
+              ))}
             </Select>
-            <Input type="date" className="w-auto py-1.5 text-sm" defaultValue="2026-08-17" />
+            <Input
+              type="date"
+              className="w-auto py-1.5 text-sm"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+            />
+            {dateFilter && (
+              <button
+                type="button"
+                onClick={() => setDateFilter("")}
+                className="text-xs text-gray-500 hover:text-gray-800 underline"
+              >
+                Xóa lọc ngày
+              </button>
+            )}
           </div>
         </CardHeader>
         <CardBody className="pt-2">
-          <Table columns={columns} data={workShifts} rowKey={(s) => s.id} emptyMessage="Chưa có nhân viên nào được phân công" />
+          <Table columns={columns} data={filteredShifts} rowKey={(s) => s.id} emptyMessage="Chưa có nhân viên nào được phân công" />
         </CardBody>
       </Card>
 

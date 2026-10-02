@@ -16,7 +16,7 @@ import {
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
 import { apiGet, apiPost, GatewayError, GATEWAY_URL } from "@/lib/api";
-import type { ShiftRequest, Employee } from "@/types";
+import type { ShiftRequest, Employee, Branch } from "@/types";
 import ShiftRequestSection from "@/features/shift-requests/components/RequestList";
 import AttendanceConfigModal, { type AttendanceConfigState } from "@/features/shared/components/modals/AttendanceForm";
 import { useCurrentUser } from "@/context/AuthContext";
@@ -128,6 +128,7 @@ export default function RequestsPage() {
 
   const [requests, setRequests] = useState<ShiftRequest[]>([]);
   const [empList, setEmpList] = useState<Employee[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionInProgress, setActionInProgress] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -174,11 +175,16 @@ export default function RequestsPage() {
 
       const queryString = queryParams.toString() ? `?${queryParams.toString()}` : "";
 
-      const [requestsRes, employeesRes, configRes] = await Promise.allSettled([
+      const [requestsRes, employeesRes, configRes, branchesRes] = await Promise.allSettled([
         apiGet<any[]>(`/api/requests${queryString}`),
         apiGet<Employee[]>("/api/employees"),
         apiGet<any>("/api/attendance/config"),
+        apiGet<Branch[]>("/api/branches"),
       ]);
+
+      if (branchesRes.status === "fulfilled" && Array.isArray(branchesRes.value)) {
+        setBranches(branchesRes.value);
+      }
 
       let employeesData: Employee[] = [];
       if (employeesRes.status === "fulfilled" && Array.isArray(employeesRes.value)) {
@@ -440,9 +446,11 @@ export default function RequestsPage() {
                 className="text-xs font-medium border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:border-primary"
               >
                 <option value="all">Tất cả chi nhánh</option>
-                <option value="HN-1">Hoàn Kiếm (HN-1)</option>
-                <option value="HN-2">Ba Đình (HN-2)</option>
-                <option value="ĐN-1">Đà Nẵng (ĐN-1)</option>
+                {branches.map((b) => (
+                  <option key={b.id || b.slug} value={b.slug.toUpperCase()}>
+                    {b.name} ({b.slug.toUpperCase()})
+                  </option>
+                ))}
               </select>
             </div>
           )}
