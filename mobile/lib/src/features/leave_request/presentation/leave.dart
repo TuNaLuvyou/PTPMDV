@@ -40,7 +40,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   Future<void> _fetchRequests() async {
     try {
       final list = await _leaveRepo.getRequests();
-      if (list.isNotEmpty && mounted) {
+      if (mounted) {
         final apiItems = list.where((m) => m.type == 'leave').map((m) {
           final title = m.title.replaceFirst('Đơn xin nghỉ: ', '');
           String d = 'Hôm nay (Cả ngày)';
@@ -65,36 +65,11 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         });
       }
     } catch (_) {
-      // Giữ mock khi offline
+      // API lỗi thì giữ nguyên danh sách hiện tại (rỗng) để hiện empty state.
     }
   }
 
-  List<LeaveRequestItem> _requests = [
-    const LeaveRequestItem(
-      id: 'lr-1',
-      leaveType: 'Nghỉ phép năm',
-      dates: '19/08/2026 (Cả ngày)',
-      reason: 'Khám sức khỏe tổng quát định kỳ',
-      status: 'pending',
-      createdAt: 'Hôm nay 09:15',
-    ),
-    const LeaveRequestItem(
-      id: 'lr-2',
-      leaveType: 'Nghỉ ốm',
-      dates: '02/08/2026 (Ca Sáng)',
-      reason: 'Sốt xuất huyết theo chỉ định bác sĩ',
-      status: 'approved',
-      createdAt: '01/08/2026',
-    ),
-    const LeaveRequestItem(
-      id: 'lr-3',
-      leaveType: 'Việc riêng không lương',
-      dates: '15/07/2026 (Cả ngày)',
-      reason: 'Việc gia đình tại quê',
-      status: 'approved',
-      createdAt: '10/07/2026',
-    ),
-  ];
+  List<LeaveRequestItem> _requests = [];
 
   void _showCreateModal() {
     String selectedType = 'Nghỉ phép năm';

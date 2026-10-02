@@ -61,49 +61,11 @@ class _NewsScreenState extends State<NewsScreen> {
         });
       }
     } catch (_) {
-      // Fallback danh sách tĩnh khi mất mạng/service chưa sẵn sàng
+      // API lỗi thì giữ nguyên danh sách hiện tại (rỗng) để hiện empty state.
     }
   }
 
-  List<NewsArticle> _articles = [
-    const NewsArticle(
-      id: 'n-1',
-      title: 'Thông báo lịch nghỉ lễ Quốc khánh 02/09',
-      summary: 'Toàn thể cán bộ nhân viên được nghỉ lễ từ ngày 01/09 đến hết ngày 03/09/2026.',
-      content: 'Ban Giám đốc thông báo lịch nghỉ lễ Quốc khánh 02/09/2026:\n\n'
-          '1. Toàn thể CBNV được nghỉ từ 01/09 đến hết ngày 03/09.\n'
-          '2. Các bộ phận vận hành trực ca sẽ hưởng chế độ lương x300% theo quy định luật lao động.\n'
-          '3. Nhân viên đăng ký lịch trực ca với Quản lý chi nhánh trước ngày 25/08.',
-      author: 'Phòng Nhân sự & Hành chính',
-      date: '12/08/2026',
-      tag: 'Nghỉ lễ',
-      tagColor: Colors.red,
-    ),
-    const NewsArticle(
-      id: 'n-2',
-      title: 'Cập nhật chuẩn Wi-Fi chấm công mới tại toàn bộ chi nhánh',
-      summary: 'Hệ thống đã nâng cấp mạng Wi-Fi và cập nhật danh sách SSID xác thực chấm công.',
-      content: 'Nhằm nâng cao tính ổn định khi nhân viên chấm công vào/ra ca:\n\n'
-          '• Mạng Wi-Fi tại các chi nhánh đã được nâng cấp băng thông.\n'
-          '• Tên Wi-Fi chuẩn hóa dạng: HRM_[MÃ_CHI_NHÁNH]_OFFICE.\n'
-          '• Trường hợp quên check-in do sự cố mạng, nhân viên sử dụng tính năng "Bổ sung / sửa chấm công" trên app.',
-      author: 'Ban Quản trị Hệ thống',
-      date: '10/08/2026',
-      tag: 'Vận hành',
-      tagColor: Colors.teal,
-    ),
-    const NewsArticle(
-      id: 'n-3',
-      title: 'Vinh danh Nhân viên xuất sắc tháng 07/2026',
-      summary: 'Chúc mừng bạn Nguyễn Thu Hà (Chi nhánh Hoàn Kiếm) đạt giải Best Employee.',
-      content: 'Ban Giám đốc xin nhiệt liệt chúc mừng bạn Nguyễn Thu Hà (Chi nhánh Hoàn Kiếm) đã xuất sắc đạt thành tích Best Employee tháng 07/2026 với 100% ngày công đúng giờ và vượt 125% chỉ tiêu KPIs.\n\n'
-          'Phần thưởng trị giá 2.000.000 đ đã được cộng vào phiếu lương tháng 07.',
-      author: 'Ban Giám đốc',
-      date: '05/08/2026',
-      tag: 'Khen thưởng',
-      tagColor: Colors.amber,
-    ),
-  ];
+  List<NewsArticle> _articles = [];
 
   void _showDetail(BuildContext context, NewsArticle article) {
     showModalBottomSheet(

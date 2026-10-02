@@ -444,8 +444,28 @@ class ScheduleService {
     }
   }
 
+  /// Dựng khung tuần rỗng (7 ngày, mỗi ngày danh sách ca rỗng)
+  /// khi API không trả về ca nào. UI đã có empty-state riêng.
+  static List<DayScheduleModel> emptyWeek(int offset) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final monday = getMonday(today).add(Duration(days: offset * 7));
+    const dayNames = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'];
+    return List.generate(7, (i) {
+      final dayDate = monday.add(Duration(days: i));
+      final isToday = dayDate.year == today.year && dayDate.month == today.month && dayDate.day == today.day;
+      final dateStr = '${dayDate.day.toString().padLeft(2, '0')}/${dayDate.month.toString().padLeft(2, '0')}';
+      return DayScheduleModel(
+        dayOfWeek: dayNames[i],
+        date: dateStr,
+        isToday: isToday,
+        shifts: const [],
+      );
+    });
+  }
+
   /// Lấy toàn bộ lịch 7 ngày trong tuần có tích hợp ca thật từ [apiShifts].
-  /// Nếu API có ca trả về thì hiển thị ca từ backend, nếu API rỗng/chưa có thì fallback mock.
+  /// Chỉ dùng API thật: khi API rỗng thì trả về khung tuần rỗng, không fallback mock.
   static List<DayScheduleModel> getWeekDataWithApi({
     required int offset,
     required List<ApiShiftModel> apiShifts,
@@ -455,13 +475,7 @@ class ScheduleService {
     Set<String>? completedShiftIds,
   }) {
     if (apiShifts.isEmpty) {
-      return getWeekData(
-        offset,
-        user: user,
-        branchName: branchName,
-        activeCheckedInShift: activeCheckedInShift,
-        completedShiftIds: completedShiftIds,
-      );
+      return emptyWeek(offset);
     }
 
     final now = DateTime.now();
@@ -523,12 +537,9 @@ class ScheduleService {
     String? branchName,
     ShiftDetail? activeCheckedInShift,
   }) {
+    // Chỉ dùng API thật: khi API rỗng thì trả về danh sách rỗng, không fallback mock.
     if (apiShifts.isEmpty) {
-      return getTodayAssignedShifts(
-        user: user,
-        branchName: branchName,
-        activeCheckedInShift: activeCheckedInShift,
-      );
+      return [];
     }
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);

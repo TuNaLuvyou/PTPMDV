@@ -51,71 +51,12 @@ class _ShiftRequestScreenState extends State<ShiftRequestScreen>
     with SingleTickerProviderStateMixin {
   final ApprovalRepository _approvalRepo = ApprovalRepository();
   late TabController _tabController;
-  late List<ShiftRequest> _requests;
+  List<ShiftRequest> _requests = [];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this, initialIndex: 0);
-    _requests = [
-      ShiftRequest(
-        id: '1',
-        staffName: 'Nguyễn Thu Hà',
-        staffRole: 'Nhân viên kinh doanh',
-        staffAvatar: 'H',
-        type: ShiftRequestType.swap,
-        currentShift: 'Ca Chiều T5, 21/08 (14:00 - 22:00)',
-        targetShift: 'Ca Tối T5, 21/08 (18:00 - 22:30)',
-        swapWithName: 'Phạm Quỳnh Trang',
-        reason: 'Đổi ca chiều sang ca tối do có việc cá nhân buổi chiều',
-        submittedAt: 'Hôm nay, 08:30',
-        status: ShiftRequestStatus.pending,
-      ),
-      ShiftRequest(
-        id: '2',
-        staffName: 'Phạm Quỳnh Trang',
-        staffRole: 'Kế toán nội bộ',
-        staffAvatar: 'T',
-        type: ShiftRequestType.leave,
-        currentShift: 'Cả ngày T6, 22/08',
-        reason: 'Xin nghỉ phép năm đi khám sức khỏe định kỳ',
-        submittedAt: 'Hôm qua, 15:45',
-        status: ShiftRequestStatus.pending,
-      ),
-      ShiftRequest(
-        id: '3',
-        staffName: 'Hoàng Minh Đức',
-        staffRole: 'Nhân sự',
-        staffAvatar: 'Đ',
-        type: ShiftRequestType.adjustment,
-        currentShift: 'Ca Sáng T3, 19/08 (08:00 - 17:00)',
-        reason: 'Quên check-in do Wi-Fi tầng 2 mất kết nối lúc vào ca',
-        submittedAt: '19/08, 17:30',
-        status: ShiftRequestStatus.pending,
-      ),
-      ShiftRequest(
-        id: '4',
-        staffName: 'Nguyễn Thu Hà',
-        staffRole: 'Nhân viên kinh doanh',
-        staffAvatar: 'H',
-        type: ShiftRequestType.advance,
-        currentShift: 'Hạn mức: 3.400.000 đ',
-        reason: 'Xin tạm ứng 2.000.000 đ chi phí phát sinh',
-        submittedAt: '16/08, 09:15',
-        status: ShiftRequestStatus.approved,
-      ),
-      ShiftRequest(
-        id: '5',
-        staffName: 'Lê Văn An',
-        staffRole: 'Quản lý Chi nhánh HN-2',
-        staffAvatar: 'A',
-        type: ShiftRequestType.leave,
-        currentShift: '2 ngày: 22/08 - 23/08',
-        reason: 'Việc gia đình tại quê có hiếu hỷ',
-        submittedAt: '14/08, 10:00',
-        status: ShiftRequestStatus.approved,
-      ),
-    ];
     _fetchPendingRequests();
   }
 
@@ -152,12 +93,13 @@ class _ShiftRequestScreenState extends State<ShiftRequestScreen>
         }).toList();
 
         setState(() {
-          final nonPending = _requests.where((r) => r.status != ShiftRequestStatus.pending).toList();
-          _requests = [...apiRequests, ...nonPending];
+          // Chỉ dùng dữ liệu API thật; API rỗng thì thay toàn bộ bằng rỗng
+          // để hiện empty state, không trộn/giữ mock.
+          _requests = apiRequests;
         });
       }
     } catch (_) {
-      // Giữ mock khi offline
+      // API lỗi thì giữ nguyên danh sách hiện tại (rỗng) để hiện empty state.
     }
   }
 

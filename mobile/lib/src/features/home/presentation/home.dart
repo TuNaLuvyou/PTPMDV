@@ -9,9 +9,11 @@ import '../../salary/presentation/salary.dart';
 import '../../leave_request/presentation/leave.dart';
 import '../../schedule_registration/presentation/registration.dart';
 import '../../tasks/data/service.dart';
+import '../../tasks/data/task_repository.dart';
 import '../../tasks/presentation/tasks.dart';
 import '../../attendance/data/attendance_repository.dart';
 import '../../schedule/data/shift_repository.dart';
+import '../../wifi_config/data/wifi_config_repository.dart';
 
 class HomeScreen extends StatefulWidget {
   final UserModel currentUser;
@@ -36,22 +38,96 @@ class _HomeScreenState extends State<HomeScreen> {
   ShiftDetail? _checkedInShift;
   DateTime? _checkedInTime;
   List<ApiShiftModel> _todayShifts = [];
+  final WifiConfigRepository _wifiRepo = WifiConfigRepository();
+  final TaskRepository _taskRepo = TaskRepository();
+  List<WifiConfigModel> _wifiConfigs = [];
+  List<TaskModel> _homeTasks = [];
+  String? _loadedWifiBranchKey;
+  String? _loadedTaskBranchKey;
 
   UserModel get currentUser => widget.currentUser;
 
   @override
   void initState() {
     super.initState();
+    _todayShifts = [];
     _fetchTodayShifts();
+    _loadHomeTasks();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final branch = BranchScope.selectedBranch(context);
+    final key = branch?.code ?? '__all__';
+    if (_loadedWifiBranchKey != key) {
+      _loadedWifiBranchKey = key;
+      _fetchWifiConfigs(branchCode: branch?.code);
+    }
+    if (_loadedTaskBranchKey != key) {
+      _loadedTaskBranchKey = key;
+      _loadHomeTasks(branchSlug: branch?.slug);
+    }
   }
 
   Future<void> _fetchTodayShifts() async {
     try {
       final shifts = await ShiftRepository().getShifts();
-      if (shifts.isNotEmpty && mounted) {
+      // Gán vô điều kiện kể cả rỗng để hiện empty-state, không giữ mock.
+      if (mounted) {
         setState(() => _todayShifts = shifts);
       }
-    } catch (_) {}
+    } catch (_) {
+      // Chỉ dùng API thật: khi lỗi/offline giữ danh sách rỗng để hiện empty-state.
+      if (mounted) {
+        setState(() => _todayShifts = []);
+      }
+    }
+  }
+
+  Future<void> _fetchWifiConfigs({String? branchCode}) async {
+    try {
+      final configs = await _wifiRepo.getWifiConfigs(branch: branchCode ?? '');
+      // Gán vô điều kiện kể cả rỗng (fallback hiển thị '—'), không dùng mock.
+      if (mounted) {
+        setState(() => _wifiConfigs = configs);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _wifiConfigs = []);
+      }
+    }
+  }
+
+  Future<void> _loadHomeTasks({String? branchSlug}) async {
+    try {
+      final tasks = await _taskRepo.getTasks(branchSlug: branchSlug);
+      // Gán vô điều kiện kể cả rỗng để hiện empty-state, không dùng mock.
+      if (mounted) {
+        setState(() => _homeTasks = tasks);
+      }
+    } catch (_) {
+      // Lỗi thì list rỗng + empty-state, không dùng mock.
+      if (mounted) {
+        setState(() => _homeTasks = []);
+      }
+    }
+  }
+
+  /// SSID Wi-Fi chấm công lấy từ API wifi-configs theo chi nhánh, fallback '—'.
+  String _wifiSsidOrDash() {
+    if (_wifiConfigs.isNotEmpty && _wifiConfigs.first.ssid.isNotEmpty) {
+      return _wifiConfigs.first.ssid;
+    }
+    return '—';
+  }
+
+  /// Nhãn BSSID từ config Wi-Fi thực tế, fallback '—' nếu không có.
+  String _wifiBssidLabel() {
+    if (_wifiConfigs.isNotEmpty && _wifiConfigs.first.bssid.isNotEmpty) {
+      return 'BSSID: ${_wifiConfigs.first.bssid} (Hợp lệ)';
+    }
+    return 'BSSID: —';
   }
 
   @override
@@ -403,7 +479,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showCheckInSheet(BuildContext context) {
     final branch = BranchScope.selectedBranch(context);
-    final String wifiSsid = '${CompanyConfig.brandCode}_${branch?.code ?? '01'}';
+    // SSID lấy từ API wifi-configs theo chi nhánh, fallback '—' nếu không có.
+    final String wifiSsid = _wifiSsidOrDash();
+    final String wifiBssidLabel = _wifiBssidLabel();
 
     // Lấy danh sách ca làm việc được phân công cho nhân viên trong hôm nay
     final assignedShifts = ScheduleService.getTodayAssignedShiftsWithApi(
@@ -560,9 +638,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                               ),
                               const SizedBox(height: 4),
-                              const Text(
-                                'BSSID: 00:11:22:33:44:55 (Hợp lệ)',
-                                style: TextStyle(color: AppColors.success, fontSize: 12),
+                              Text(
+                                wifiBssidLabel,
+                                style: const TextStyle(color: AppColors.success, fontSize: 12),
                               ),
                             ],
                           ),
@@ -575,26 +653,37 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: hasAssignedShifts && selectedShift != null
-                      ? () {
+                      ? () async {
                           final targetShift = selectedShift!;
                           final now = DateTime.now();
-                          AttendanceRepository().checkIn(
-                            employeeId: currentUser.id,
-                            shiftId: targetShift.shiftName,
-                            wifiSsid: wifiSsid,
-                            checkinTime: '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
-                          ).then((_) {}).catchError((_) {});
-                          Navigator.pop(context);
-                          setState(() {
-                            _checkedInShift = targetShift;
-                            _checkedInTime = now;
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              backgroundColor: AppColors.success,
-                              content: Text('✅ Chấm công vào ${targetShift.shiftName} (${targetShift.timeRange}) thành công!'),
-                            ),
-                          );
+                          try {
+                            await AttendanceRepository().checkIn(
+                              employeeId: currentUser.id,
+                              shiftId: targetShift.shiftName,
+                              wifiSsid: wifiSsid,
+                              checkinTime: '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+                            );
+                            if (!context.mounted) return;
+                            Navigator.pop(context);
+                            setState(() {
+                              _checkedInShift = targetShift;
+                              _checkedInTime = now;
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: AppColors.success,
+                                content: Text('✅ Chấm công vào ${targetShift.shiftName} (${targetShift.timeRange}) thành công!'),
+                              ),
+                            );
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: const Color(0xFFDC2626),
+                                content: Text('❌ Chấm công thất bại: $e'),
+                              ),
+                            );
+                          }
                         }
                       : null,
                   style: ElevatedButton.styleFrom(
@@ -626,12 +715,13 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showCheckOutSheet(BuildContext context) {
     if (_checkedInShift == null) return;
     final shift = _checkedInShift!;
-    final branch = BranchScope.selectedBranch(context);
-    final String wifiSsid = '${CompanyConfig.brandCode}_${branch?.code ?? '01'}';
+    // SSID lấy từ API wifi-configs theo chi nhánh, fallback '—' nếu không có.
+    final String wifiSsid = _wifiSsidOrDash();
+    final String wifiBssidLabel = _wifiBssidLabel();
 
     final String checkInTimeStr = _checkedInTime != null
         ? '${_checkedInTime!.hour.toString().padLeft(2, '0')}:${_checkedInTime!.minute.toString().padLeft(2, '0')}'
-        : '08:00';
+        : '—';
 
     final user = widget.currentUser;
     final bool isHourly = user.isHourlySalary;
@@ -745,9 +835,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                             ),
                             const SizedBox(height: 4),
-                            const Text(
-                              'BSSID: 00:11:22:33:44:55 (Hợp lệ)',
-                              style: TextStyle(color: AppColors.success, fontSize: 12),
+                            Text(
+                              wifiBssidLabel,
+                              style: const TextStyle(color: AppColors.success, fontSize: 12),
                             ),
                           ],
                         ),
@@ -828,27 +918,38 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   final shiftOut = _checkedInShift;
                   final now = DateTime.now();
-                  AttendanceRepository().checkOut(
-                    employeeId: currentUser.id,
-                    shiftId: shiftOut?.shiftName,
-                    checkoutTime: '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
-                  ).then((_) {}).catchError((_) {});
-                  Navigator.pop(context);
-                  setState(() {
-                    _checkedInShift = null;
-                    _checkedInTime = null;
-                  });
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      backgroundColor: AppColors.success,
-                      content: Text(isHourly
-                          ? '✅ Chấm công ra ca ${shiftOut?.shiftName ?? ''} thành công! Đã cộng công: +${_formatCurrency(earnedMoney)} ₫ (${hoursWorked}h)'
-                          : '✅ Chấm công ra ca ${shiftOut?.shiftName ?? ''} thành công! (Lương tháng cố định)'),
-                    ),
-                  );
+                  try {
+                    await AttendanceRepository().checkOut(
+                      employeeId: currentUser.id,
+                      shiftId: shiftOut?.shiftName,
+                      checkoutTime: '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+                    );
+                    if (!context.mounted) return;
+                    Navigator.pop(context);
+                    setState(() {
+                      _checkedInShift = null;
+                      _checkedInTime = null;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        backgroundColor: AppColors.success,
+                        content: Text(isHourly
+                            ? '✅ Chấm công ra ca ${shiftOut?.shiftName ?? ''} thành công! Đã cộng công: +${_formatCurrency(earnedMoney)} ₫ (${hoursWorked}h)'
+                            : '✅ Chấm công ra ca ${shiftOut?.shiftName ?? ''} thành công! (Lương tháng cố định)'),
+                      ),
+                    );
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        backgroundColor: const Color(0xFFDC2626),
+                        content: Text('❌ Chấm công ra ca thất bại: $e'),
+                      ),
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFD97706),
@@ -869,7 +970,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildTodoSection(BuildContext context) {
-    final tasks = TaskService.getTasksForUser(userEmail: currentUser.email);
+    // Chỉ dùng TaskRepository API. Khi lỗi thì list rỗng + empty-state, không dùng mock.
+    final tasks = _homeTasks;
     final activeTasks = tasks.where((t) => t.computedStatus != TaskStatus.completed).toList();
     final displayTasks = activeTasks.take(3).toList();
 
@@ -987,15 +1089,29 @@ class _HomeScreenState extends State<HomeScreen> {
                               );
                               setState(() {});
                             } else {
-                              TaskService.updateTaskStatus(task.id, TaskStatus.completed);
-                              setState(() {});
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('✓ Đã hoàn thành: ${task.title}'),
-                                  backgroundColor: AppColors.success,
-                                  duration: const Duration(seconds: 1),
-                                ),
-                              );
+                              try {
+                                await _taskRepo.updateTaskStatus(task.id, 'completed');
+                                if (!context.mounted) return;
+                                setState(() {
+                                  task.status = TaskStatus.completed;
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('✓ Đã hoàn thành: ${task.title}'),
+                                    backgroundColor: AppColors.success,
+                                    duration: const Duration(seconds: 1),
+                                  ),
+                                );
+                              } catch (e) {
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('❌ Cập nhật công việc thất bại: $e'),
+                                    backgroundColor: const Color(0xFFDC2626),
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                              }
                             }
                           },
                           child: Container(

@@ -39,56 +39,9 @@ class _SalaryScreenState extends State<SalaryScreen> {
     'Tháng 06/2026',
   ];
 
-  final List<WorkLogItem> _workLogs = const [
-    WorkLogItem(
-      date: '20/08/2026 (T5)',
-      checkIn: '07:55',
-      checkOut: 'Đang làm...',
-      hours: 4.0,
-      basePay: 100000,
-      status: 'Hợp lệ',
-    ),
-    WorkLogItem(
-      date: '19/08/2026 (T4)',
-      checkIn: '07:58',
-      checkOut: '16:05',
-      hours: 8.0,
-      basePay: 200000,
-      status: 'Hợp lệ',
-    ),
-    WorkLogItem(
-      date: '18/08/2026 (T3)',
-      checkIn: '11:50',
-      checkOut: '18:02',
-      hours: 6.0,
-      basePay: 150000,
-      status: 'Hợp lệ',
-    ),
-    WorkLogItem(
-      date: '17/08/2026 (T2)',
-      checkIn: '08:05',
-      checkOut: '12:00',
-      hours: 4.0,
-      basePay: 100000,
-      status: 'Trễ 5p',
-    ),
-    WorkLogItem(
-      date: '15/08/2026 (T7)',
-      checkIn: '13:55',
-      checkOut: '22:10',
-      hours: 8.0,
-      basePay: 200000,
-      status: 'Hợp lệ',
-    ),
-    WorkLogItem(
-      date: '14/08/2026 (T6)',
-      checkIn: '17:50',
-      checkOut: '23:05',
-      hours: 5.0,
-      basePay: 125000,
-      status: 'Hợp lệ',
-    ),
-  ];
+  // Chỉ dùng API thật — khởi [] rỗng, hiện empty state khi chưa có dữ liệu.
+  // TODO: nối API attendance/payslip detail khi backend hỗ trợ.
+  final List<WorkLogItem> _workLogs = [];
 
   final SalaryRepository _salaryRepository = SalaryRepository();
   List<PayslipModel> _apiPayslips = const [];
@@ -130,7 +83,8 @@ class _SalaryScreenState extends State<SalaryScreen> {
       );
       if (mounted) setState(() => _apiPayslips = items);
     } catch (_) {
-      // Giữ danh sách mock hiện có khi API chưa sẵn sàng.
+      // Không dùng mock — lỗi thì hiện empty state.
+      if (mounted) setState(() => _apiPayslips = []);
     }
   }
 
@@ -205,8 +159,32 @@ class _SalaryScreenState extends State<SalaryScreen> {
             const SizedBox(height: 16),
 
             // 1b. Phiếu lương từ API thật (gateway -> payroll-service).
-            // Ẩn khi API chưa sẵn sàng để giữ mock hiện có.
-            if (_apiPayslips.isNotEmpty)
+            if (_apiPayslips.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Phiếu lương từ máy chủ',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Chưa có dữ liệu phiếu lương',
+                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              )
+            else
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
@@ -269,7 +247,7 @@ class _SalaryScreenState extends State<SalaryScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _formatCurrency(_currentPayslip != null ? _currentPayslip!.netSalary.toInt() : 6800000),
+                    _currentPayslip != null ? _formatCurrency(_currentPayslip!.netSalary.toInt()) : '—',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 28,
@@ -283,7 +261,7 @@ class _SalaryScreenState extends State<SalaryScreen> {
                       Text(
                         _currentPayslip != null
                             ? 'Trạng thái: ${_currentPayslip!.status}'
-                            : 'Đã làm: 160 giờ • 22 công',
+                            : '—',
                         style: const TextStyle(color: Colors.white, fontSize: 12),
                       ),
                       Text('Kỳ: ${_monthQuery(_selectedMonth)}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
@@ -306,17 +284,18 @@ class _SalaryScreenState extends State<SalaryScreen> {
               ),
               child: Column(
                 children: [
-                  _buildSalaryRow('Lương cơ bản', _formatCurrency(_currentPayslip != null ? _currentPayslip!.baseSalary.toInt() : 6900000)),
+                  _buildSalaryRow('Lương cơ bản', _currentPayslip != null ? _formatCurrency(_currentPayslip!.baseSalary.toInt()) : '—'),
                   const Divider(height: 16),
-                  _buildSalaryRow('Số giờ làm việc được phân công', '160 giờ'),
+                  // Chưa có API giờ công/ca — hiện '—' thay vì số mock.
+                  _buildSalaryRow('Số giờ làm việc được phân công', '—'),
                   const Divider(height: 16),
-                  _buildSalaryRow('Số ca làm việc được phân công', '28 ca'),
+                  _buildSalaryRow('Số ca làm việc được phân công', '—'),
                   const Divider(height: 16),
-                  _buildSalaryRow('Số giờ làm việc tính lương', '158 giờ'),
+                  _buildSalaryRow('Số giờ làm việc tính lương', '—'),
                   const Divider(height: 16),
-                  _buildSalaryRow('Số ca làm việc tính lương', '27 ca'),
+                  _buildSalaryRow('Số ca làm việc tính lương', '—'),
                   const Divider(height: 16),
-                  _buildSalaryRow('Khấu trừ', _formatCurrency(_currentPayslip != null ? _currentPayslip!.totalPenalty.toInt() : 100000), isNegative: true),
+                  _buildSalaryRow('Khấu trừ', _currentPayslip != null ? _formatCurrency(_currentPayslip!.totalPenalty.toInt()) : '—', isNegative: true),
                 ],
               ),
             ),
@@ -340,7 +319,28 @@ class _SalaryScreenState extends State<SalaryScreen> {
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: Colors.grey.shade200),
               ),
-              child: ListView.separated(
+              child: _workLogs.isEmpty
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 28, horizontal: 14),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            Icon(Icons.event_note_outlined, size: 40, color: AppColors.textSecondary),
+                            SizedBox(height: 10),
+                            Text(
+                              'Chưa có dữ liệu chấm công',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Dữ liệu ca làm sẽ hiện khi API chấm công sẵn sàng',
+                              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: _workLogs.length,

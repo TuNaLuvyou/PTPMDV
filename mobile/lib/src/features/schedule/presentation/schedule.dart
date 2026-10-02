@@ -40,13 +40,19 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Future<void> _loadShifts() async {
     try {
       final shifts = await ShiftRepository().getShifts();
+      // Gán vô điều kiện kể cả rỗng để hiện empty-state, không giữ mock.
       if (mounted) {
         setState(() {
           _apiShifts = shifts;
         });
       }
     } catch (_) {
-      // Giữ mock khi offline
+      // Chỉ dùng API thật: khi lỗi/offline giữ danh sách rỗng để hiện empty-state.
+      if (mounted) {
+        setState(() {
+          _apiShifts = [];
+        });
+      }
     }
   }
 

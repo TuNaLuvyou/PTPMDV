@@ -76,7 +76,7 @@ class _ScheduleRegistrationScreenState extends State<ScheduleRegistrationScreen>
   final TextEditingController _noteController = TextEditingController();
   bool _isEditingNote = false;
 
-  // Mock dữ liệu theo tuần (mô phỏng lịch sử)
+  // Cache dữ liệu tuần — khởi rỗng, điền từ API (getRegistrations), không dùng mẫu cứng
   final Map<int, WeekRegistrationData> _weekDataCache = {};
 
   DateTime get _today {
@@ -117,13 +117,8 @@ class _ScheduleRegistrationScreenState extends State<ScheduleRegistrationScreen>
     final dayNames = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật'];
     final shortKeys = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
-    // Dữ liệu mẫu theo offset
-    final Map<int, List<String>> sampleData = {
-      1: ['t1', 't2', 't1', 't1', 't2', 't4', 'off'],   // Tuần sau
-      0: ['t2', 't1', 'off', 't1', 't2', 't2', 'off'],   // Tuần này
-      -1: ['t1', 't1', 't2', 'off', 't1', 'off', 'off'],  // Tuần trước
-    };
-    final defaultShifts = sampleData[offset] ?? List.generate(7, (i) => i < 5 ? 't1' : 'off');
+    // Khởi rỗng (chưa đăng ký = Nghỉ) — lịch sử đọc từ API, rỗng thì hiện empty state
+    final defaultShifts = List.generate(7, (_) => 'off');
 
     final days = List.generate(7, (i) {
       final dayDate = monday.add(Duration(days: i));
@@ -136,22 +131,12 @@ class _ScheduleRegistrationScreenState extends State<ScheduleRegistrationScreen>
       );
     });
 
-    // Mock note đã gửi cho các tuần quá khứ
-    String? mockNote;
-    bool mockSent = false;
-    if (offset == -1) {
-      mockNote = 'Tuần trước xin ưu tiên xếp ca sáng vì bận học ca tối.';
-      mockSent = true;
-    } else if (offset == 0) {
-      mockNote = 'Tuần này muốn đổi lịch linh hoạt nếu chi nhánh cần.';
-      mockSent = true;
-    }
-
+    // Không dùng note mẫu — note đọc từ API getRegistrations
     final weekData = WeekRegistrationData(
       weekLabel: _getWeekRange(offset),
       days: days,
-      note: mockNote,
-      noteSent: mockSent,
+      note: null,
+      noteSent: false,
     );
     _weekDataCache[offset] = weekData;
     return weekData;
@@ -177,8 +162,15 @@ class _ScheduleRegistrationScreenState extends State<ScheduleRegistrationScreen>
       final user = UserScope.currentUser(context);
       final empId = user?.id ?? '1';
       final regs = await ShiftRepository().getRegistrations(employeeId: empId);
-      if (regs.isNotEmpty && mounted) {
+      if (mounted) {
         final weekData = _getOrCreateWeekData(_weekOffset);
+        // Reset về rỗng trước khi điền API để rỗng hiện empty state
+        for (final day in weekData.days) {
+          day.selectedShiftId = 'off';
+        }
+        weekData.note = null;
+        weekData.noteSent = false;
+        _noteController.text = '';
         for (final r in regs) {
           final pref = r['preference']?.toString() ?? '';
           final shiftId = r['shiftId']?.toString() ?? '';

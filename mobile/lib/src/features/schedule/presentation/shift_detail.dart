@@ -68,17 +68,10 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
     final Color statusColor = ScheduleService.getStatusColor(shift.status);
     final String statusText = ScheduleService.getStatusLabel(shift.status);
 
-    // Dữ liệu chấm công từ API hoặc fallback theo trạng thái ca
-    final String checkIn = _realCheckIn ?? (shift.status == 'completed'
-        ? '07:55'
-        : (shift.status == 'active'
-            ? '07:58'
-            : (shift.status == 'missed' ? 'Chưa chấm công' : '--:--')));
-    final String checkOut = _realCheckOut ?? (shift.status == 'completed'
-        ? '12:05'
-        : (shift.status == 'active'
-            ? 'Đang trong ca'
-            : (shift.status == 'missed' ? 'Chưa chấm công' : '--:--')));
+    // Chỉ dùng dữ liệu chấm công thật từ API.
+    // Khi chưa có dữ liệu thật thì hiển thị '—' (chưa chấm công), không dùng giờ mẫu.
+    final String checkIn = _realCheckIn ?? '—';
+    final String checkOut = _realCheckOut ?? '—';
     final String tongGioTinhCong = shift.status == 'completed'
         ? '${shift.hours} giờ'
         : (shift.status == 'active'
@@ -190,7 +183,7 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
                       '${widget.date}/08/2026 (${widget.dayOfWeek})'),
                   _divider(),
                   _buildInfoRow(FontAwesomeIcons.user, 'Nhân viên',
-                      UserScope.currentUser(context)?.name ?? 'Nguyễn Văn A'),
+                      UserScope.currentUser(context)?.name ?? '—'),
                   _divider(),
                   _buildInfoRow(FontAwesomeIcons.briefcase, 'Ca làm việc', shift.shiftName),
                   _divider(),

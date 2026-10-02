@@ -3,7 +3,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/models/branch.dart';
 import '../../../core/state/branch_scope.dart';
-import '../../../core/config/company.dart';
 import '../../../core/widgets/branch_selector.dart';
 import '../data/wifi_config_repository.dart';
 
@@ -64,41 +63,28 @@ class _WifiConfigScreenState extends State<WifiConfigScreen> {
   Future<void> _loadBranch(Branch branch) async {
     _loadedBranchId = branch.id;
     _disposeEntries();
-    const String brandCode = CompanyConfig.brandCode;
-    final String key = branch.id;
-    final configs = _wifiConfigs[key] ??
-        [
-          WifiConfig(
-            ssid: '${brandCode.toUpperCase()}_${branch.code}',
-            password: '${brandCode.toLowerCase()}@${branch.code.toLowerCase()}',
-          ),
-        ];
-    for (final config in configs) {
-      _entries.add(_WifiEntry(
-        ssidController: TextEditingController(text: config.ssid),
-        passwordController: TextEditingController(text: config.password),
-        enforceCheckIn: config.enforceCheckIn,
-      ));
-    }
+    // Chỉ dùng config từ API thật; khởi rỗng để hiện empty state khi API rỗng.
     setState(() {});
 
     // Gọi API thật từ gateway/integration-service (4005)
     try {
       final remoteList = await _repo.getWifiConfigs(branch: branch.code);
-      if (remoteList.isNotEmpty && mounted && _loadedBranchId == branch.id) {
+      if (mounted && _loadedBranchId == branch.id) {
         _disposeEntries();
         for (final item in remoteList) {
           _entries.add(_WifiEntry(
             apiId: item.id,
             ssidController: TextEditingController(text: item.ssid),
-            passwordController: TextEditingController(text: item.bssid),
+            passwordController: TextEditingController(
+              text: item.bssid.isNotEmpty ? item.bssid : '—',
+            ),
             enforceCheckIn: item.status == 'hoạt động',
           ));
         }
         setState(() {});
       }
     } catch (_) {
-      // Giữ mock entries khi offline
+      // API lỗi thì giữ nguyên danh sách hiện tại (rỗng).
     }
   }
 
@@ -153,14 +139,14 @@ class _WifiConfigScreenState extends State<WifiConfigScreen> {
         if (entry.apiId != null) {
           await _repo.updateWifiConfig(entry.apiId!, {
             'ssid': ssid,
-            'bssid': bssid.isNotEmpty ? bssid : '00:11:22:33:44:55',
+            'bssid': bssid.isNotEmpty ? bssid : '—',
             'branch': branch.code,
             'status': entry.enforceCheckIn ? 'hoạt động' : 'tạm dừng',
           });
         } else {
           await _repo.createWifiConfig(
             ssid: ssid,
-            bssid: bssid.isNotEmpty ? bssid : '00:11:22:33:44:55',
+            bssid: bssid.isNotEmpty ? bssid : '—',
             branch: branch.code,
             status: entry.enforceCheckIn ? 'hoạt động' : 'tạm dừng',
           );

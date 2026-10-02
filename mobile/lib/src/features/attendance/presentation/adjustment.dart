@@ -34,28 +34,7 @@ class AttendanceAdjustmentScreen extends StatefulWidget {
 
 class _AttendanceAdjustmentScreenState extends State<AttendanceAdjustmentScreen> {
   bool _isLoading = false;
-  final List<AdjustmentItem> _items = [
-    const AdjustmentItem(
-      id: 'adj-1',
-      date: '15/08/2026',
-      shiftName: 'Ca Sáng (08:00 - 12:00)',
-      checkIn: '08:02',
-      checkOut: '12:05',
-      reason: 'Wi-Fi tầng 2 mất kết nối lúc vào ca, đã báo với trưởng ca',
-      status: 'approved',
-      createdAt: '15/08 12:30',
-    ),
-    const AdjustmentItem(
-      id: 'adj-2',
-      date: '12/08/2026',
-      shiftName: 'Ca Chiều (12:00 - 18:00)',
-      checkIn: '11:58',
-      checkOut: '18:10',
-      reason: 'Quên bấm ra ca khi bàn giao tài sản cho ca tối',
-      status: 'approved',
-      createdAt: '12/08 19:00',
-    ),
-  ];
+  final List<AdjustmentItem> _items = [];
 
   @override
   void initState() {

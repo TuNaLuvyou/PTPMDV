@@ -73,7 +73,6 @@ class _GeneralScheduleScreenState extends State<GeneralScheduleScreen> {
   final EmployeeRepository _empRepo = EmployeeRepository();
   List<ApiShiftModel> _apiShifts = [];
   List<Map<String, dynamic>> _apiEmployees = [];
-  bool _hasLoadedApi = false;
   String? _loadedBranchSlug;
 
   // Offset tuần so với tuần hiện tại (0: Tuần này, -1: Tuần trước, 1: Tuần sau, -2, 2, ...)
@@ -115,11 +114,16 @@ class _GeneralScheduleScreenState extends State<GeneralScheduleScreen> {
         setState(() {
           _apiEmployees = emps;
           _apiShifts = shifts;
-          _hasLoadedApi = true;
         });
       }
     } catch (_) {
-      // Giữ mock khi offline
+      // Chỉ dùng API thật: khi lỗi/offline giữ danh sách rỗng để hiện empty-state.
+      if (mounted) {
+        setState(() {
+          _apiEmployees = [];
+          _apiShifts = [];
+        });
+      }
     }
   }
 
@@ -162,163 +166,58 @@ class _GeneralScheduleScreenState extends State<GeneralScheduleScreen> {
     final monday = _thisWeekMonday.add(Duration(days: offset * 7));
     final List<String> dayShortNames = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
-    if (_hasLoadedApi && _apiShifts.isNotEmpty) {
-      return List.generate(7, (i) {
-        final dayDate = monday.add(Duration(days: i));
-        final isToday = dayDate.year == _today.year && dayDate.month == _today.month && dayDate.day == _today.day;
-        final isPast = dayDate.isBefore(_today);
-        final dateStr = '${dayDate.day.toString().padLeft(2, '0')}/${dayDate.month.toString().padLeft(2, '0')}';
-
-        final shiftsForDay = _apiShifts.where((s) => _matchesDate(s.date, dayDate)).toList();
-        final Map<String, List<ApiShiftModel>> grouped = {};
-        for (final s in shiftsForDay) {
-          final key = '${s.scheduledStart}-${s.scheduledEnd}-${s.template}';
-          grouped.putIfAbsent(key, () => []).add(s);
-        }
-
-        final dayShifts = <GeneralShiftModel>[];
-        for (final entry in grouped.entries) {
-          final first = entry.value.first;
-          final staffList = <StaffInShift>[];
-          for (final s in entry.value) {
-            if (s.employeeId != null && s.employeeId!.isNotEmpty) {
-              final emp = _apiEmployees.firstWhere(
-                (e) => (e['id']?.toString() == s.employeeId || e['email']?.toString() == s.employeeId || e['employeeCode']?.toString() == s.employeeId),
-                orElse: () => <String, dynamic>{'name': s.employeeId, 'role': 'Nhân viên'},
-              );
-              final name = emp['name']?.toString() ?? 'Nhân viên';
-              final role = emp['role']?.toString() ?? (emp['position']?.toString() ?? 'Nhân viên');
-              final phone = emp['phone']?.toString() ?? '0912 345 678';
-              staffList.add(StaffInShift(
-                name: name,
-                role: role,
-                checkInStatus: isPast || isToday ? 'checked_in' : 'not_yet',
-                checkInTime: first.scheduledStart,
-                phone: phone,
-              ));
-            }
-          }
-          dayShifts.add(GeneralShiftModel(
-            id: first.id,
-            shiftName: first.template,
-            startTime: first.scheduledStart,
-            endTime: first.scheduledEnd,
-            status: isPast ? 'completed' : (isToday ? 'in_progress' : 'upcoming'),
-            staffList: staffList,
-          ));
-        }
-
-        return GeneralDayModel(
-          dayOfWeek: dayShortNames[i],
-          date: dateStr,
-          isToday: isToday,
-          shifts: dayShifts,
-        );
-      });
-    }
-
+    // Chỉ dùng API thật. Khi API rỗng thì trả về tuần rỗng
+    // (danh sách ca rỗng cho 7 ngày, UI đã có empty-state 'Không có ca làm việc nào').
     return List.generate(7, (i) {
       final dayDate = monday.add(Duration(days: i));
       final isToday = dayDate.year == _today.year && dayDate.month == _today.month && dayDate.day == _today.day;
       final isPast = dayDate.isBefore(_today);
       final dateStr = '${dayDate.day.toString().padLeft(2, '0')}/${dayDate.month.toString().padLeft(2, '0')}';
 
+      final shiftsForDay = _apiShifts.where((s) => _matchesDate(s.date, dayDate)).toList();
+      final Map<String, List<ApiShiftModel>> grouped = {};
+      for (final s in shiftsForDay) {
+        final key = '${s.scheduledStart}-${s.scheduledEnd}-${s.template}';
+        grouped.putIfAbsent(key, () => []).add(s);
+      }
+
+      final dayShifts = <GeneralShiftModel>[];
+      for (final entry in grouped.entries) {
+        final first = entry.value.first;
+        final staffList = <StaffInShift>[];
+        for (final s in entry.value) {
+          if (s.employeeId != null && s.employeeId!.isNotEmpty) {
+            final emp = _apiEmployees.firstWhere(
+              (e) => (e['id']?.toString() == s.employeeId || e['email']?.toString() == s.employeeId || e['employeeCode']?.toString() == s.employeeId),
+              orElse: () => <String, dynamic>{'name': s.employeeId, 'role': 'Nhân viên'},
+            );
+            final name = emp['name']?.toString() ?? 'Nhân viên';
+            final role = emp['role']?.toString() ?? (emp['position']?.toString() ?? 'Nhân viên');
+            final phone = emp['phone']?.toString() ?? '—';
+            staffList.add(StaffInShift(
+              name: name,
+              role: role,
+              checkInStatus: isPast || isToday ? 'checked_in' : 'not_yet',
+              checkInTime: first.scheduledStart,
+              phone: phone,
+            ));
+          }
+        }
+        dayShifts.add(GeneralShiftModel(
+          id: first.id,
+          shiftName: first.template,
+          startTime: first.scheduledStart,
+          endTime: first.scheduledEnd,
+          status: isPast ? 'completed' : (isToday ? 'in_progress' : 'upcoming'),
+          staffList: staffList,
+        ));
+      }
+
       return GeneralDayModel(
         dayOfWeek: dayShortNames[i],
         date: dateStr,
         isToday: isToday,
-        shifts: [
-          GeneralShiftModel(
-            id: 'shift_w${offset}_d${i}_1',
-            shiftName: 'Ca Sáng (Mở cửa)',
-            startTime: '07:00',
-            endTime: '12:00',
-            status: isPast ? 'completed' : (isToday ? 'in_progress' : 'upcoming'),
-            staffList: [
-              StaffInShift(
-                name: 'Trần Minh Tuấn',
-                role: 'Admin',
-                checkInStatus: isPast || isToday ? 'checked_in' : 'not_yet',
-                checkInTime: '06:50',
-                phone: '0901 111 222',
-              ),
-              StaffInShift(
-                name: 'Nguyễn Văn A',
-                role: 'Phục vụ bàn',
-                checkInStatus: isPast || isToday ? 'checked_in' : 'not_yet',
-                checkInTime: '06:55',
-                phone: '0902 333 444',
-              ),
-              StaffInShift(
-                name: 'Lê Thị B',
-                role: 'Barista',
-                checkInStatus: isPast || isToday ? 'checked_in' : 'not_yet',
-                checkInTime: '06:52',
-                phone: '0903 555 666',
-              ),
-            ],
-          ),
-          GeneralShiftModel(
-            id: 'shift_w${offset}_d${i}_2',
-            shiftName: 'Ca Chiều',
-            startTime: '12:00',
-            endTime: '17:30',
-            status: isPast ? 'completed' : (isToday ? 'in_progress' : 'upcoming'),
-            staffList: [
-              StaffInShift(
-                name: 'Nguyễn Thu Hà',
-                role: 'Phục vụ bàn',
-                checkInStatus: isPast ? 'checked_in' : (isToday ? 'in_progress' : 'not_yet'),
-                checkInTime: '11:55',
-                phone: '0905 123 456',
-              ),
-              StaffInShift(
-                name: 'Đặng Văn E',
-                role: 'Barista',
-                checkInStatus: isPast ? 'checked_in' : (isToday ? 'in_progress' : 'not_yet'),
-                checkInTime: '11:50',
-                phone: '0906 234 567',
-              ),
-              StaffInShift(
-                name: 'Hoàng Văn C',
-                role: 'Thu ngân',
-                checkInStatus: isPast ? 'checked_in' : (isToday ? 'in_progress' : 'not_yet'),
-                checkInTime: '11:52',
-                phone: '0904 777 888',
-              ),
-            ],
-          ),
-          GeneralShiftModel(
-            id: 'shift_w${offset}_d${i}_3',
-            shiftName: 'Ca Tối (Đóng cửa)',
-            startTime: '17:30',
-            endTime: '23:00',
-            status: isPast ? 'completed' : 'upcoming',
-            staffList: [
-              StaffInShift(
-                name: 'Trần Minh Tuấn',
-                role: 'Admin',
-                checkInStatus: isPast ? 'checked_in' : 'not_yet',
-                checkInTime: '17:20',
-                phone: '0901 111 222',
-              ),
-              StaffInShift(
-                name: 'Bùi Văn G',
-                role: 'Pha chế',
-                checkInStatus: isPast ? 'checked_in' : 'not_yet',
-                checkInTime: '17:25',
-                phone: '0908 456 789',
-              ),
-              StaffInShift(
-                name: 'Vũ Thị Mai',
-                role: 'Phục vụ bàn',
-                checkInStatus: isPast ? 'checked_in' : 'not_yet',
-                checkInTime: '17:28',
-                phone: '0909 567 890',
-              ),
-            ],
-          ),
-        ],
+        shifts: dayShifts,
       );
     });
   }

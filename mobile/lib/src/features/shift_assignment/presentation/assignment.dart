@@ -123,76 +123,14 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
     ),
   ];
 
-  // Danh sách nhân sự của chi nhánh để thêm vào ca
-  List<AssignedStaff> _branchEmployees = [
-    AssignedStaff(id: 'emp_1', name: 'Nguyễn Thu Hà', role: 'Nhân viên phục vụ', avatarText: 'TH'),
-    AssignedStaff(id: 'emp_2', name: 'Phạm Quỳnh Trang', role: 'Thu ngân', avatarText: 'QT'),
-    AssignedStaff(id: 'emp_3', name: 'Hoàng Minh Đức', role: 'Nhân viên pha chế', avatarText: 'MĐ'),
-    AssignedStaff(id: 'emp_4', name: 'Lê Tuấn Khang', role: 'Trưởng ca', avatarText: 'TK'),
-    AssignedStaff(id: 'emp_5', name: 'Đỗ Mỹ Linh', role: 'Barista', avatarText: 'ML'),
-    AssignedStaff(id: 'emp_6', name: 'Trần Văn Bình', role: 'Phục vụ bàn', avatarText: 'VB'),
-  ];
+  // Danh sách nhân sự của chi nhánh — chỉ dùng API thật, khởi rỗng để hiện empty state
+  List<AssignedStaff> _branchEmployees = [];
 
   // Dữ liệu phân công ca: Map<Thứ (T2..CN), Map<Tên ca, List<Nhân sự>>>
   late Map<String, Map<String, List<AssignedStaff>>> _assignments;
 
-  // Dữ liệu nguyện vọng mẫu của nhân sự
-  List<EmployeeShiftRegistration> _registrations = [
-    EmployeeShiftRegistration(
-      employeeName: 'Nguyễn Thu Hà',
-      role: 'Nhân viên phục vụ',
-      avatarText: 'TH',
-      requestedShiftCount: 5,
-      registeredAt: DateTime(2026, 8, 15, 8, 30),
-      registrationOrder: 1,
-      days: {
-        'T2': 'Ca Sáng',
-        'T3': 'Ca Sáng',
-        'T4': 'Ca Chiều',
-        'T5': 'Nghỉ',
-        'T6': 'Ca Sáng',
-        'T7': 'Ca Chiều',
-        'CN': 'Nghỉ',
-      },
-      note: 'Thứ Ba bận học ca tối, xin ưu tiên xếp ca sáng; T7 sẵn sàng làm thêm',
-    ),
-    EmployeeShiftRegistration(
-      employeeName: 'Phạm Quỳnh Trang',
-      role: 'Thu ngân',
-      avatarText: 'QT',
-      requestedShiftCount: 6,
-      registeredAt: DateTime(2026, 8, 15, 9, 15),
-      registrationOrder: 2,
-      days: {
-        'T2': 'Ca Chiều',
-        'T3': 'Ca Chiều',
-        'T4': 'Ca Sáng',
-        'T5': 'Ca Sáng',
-        'T6': 'Nghỉ',
-        'T7': 'Ca Chiều',
-        'CN': 'Ca Sáng',
-      },
-      note: 'Xin ưu tiên xếp ca sáng để tiện đưa đón con nhỏ',
-    ),
-    EmployeeShiftRegistration(
-      employeeName: 'Hoàng Minh Đức',
-      role: 'Nhân viên pha chế',
-      avatarText: 'MĐ',
-      requestedShiftCount: 5,
-      registeredAt: DateTime(2026, 8, 15, 11, 45),
-      registrationOrder: 3,
-      days: {
-        'T2': 'Ca Sáng',
-        'T3': 'Ca Sáng',
-        'T4': 'Nghỉ',
-        'T5': 'Ca Tối',
-        'T6': 'Ca Chiều',
-        'T7': 'Nghỉ',
-        'CN': 'Ca Chiều',
-      },
-      note: 'Sẵn sàng đổi ca hỗ trợ chi nhánh khi thiếu người',
-    ),
-  ];
+  // Dữ liệu nguyện vọng — chỉ dùng API thật (getRegistrations), rỗng thì hiện empty state
+  List<EmployeeShiftRegistration> _registrations = [];
 
   final List<String> _weekDayKeys = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
   final List<String> _weekDayFullNames = [
@@ -242,94 +180,28 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
   }
 
   void _initAssignments() {
+    // Khởi rỗng — chỉ điền từ API thật trong _loadApiData, không sinh mẫu cứng.
     _assignments = {
-      'T2': {
-        'Ca Sáng': [
-          AssignedStaff(id: 'emp_1', name: 'Nguyễn Thu Hà', role: 'Nhân viên phục vụ', avatarText: 'TH', isRecurring: true),
-          AssignedStaff(id: 'emp_3', name: 'Hoàng Minh Đức', role: 'Nhân viên pha chế', avatarText: 'MĐ', isRecurring: true),
-        ],
-        'Ca Chiều': [
-          AssignedStaff(id: 'emp_2', name: 'Phạm Quỳnh Trang', role: 'Thu ngân', avatarText: 'QT', isRecurring: true),
-        ],
-        'Ca Tối': [],
-        'Ca Hành chính': [],
-      },
-      'T3': {
-        'Ca Sáng': [
-          AssignedStaff(id: 'emp_1', name: 'Nguyễn Thu Hà', role: 'Nhân viên phục vụ', avatarText: 'TH', isRecurring: true),
-          AssignedStaff(id: 'emp_3', name: 'Hoàng Minh Đức', role: 'Nhân viên pha chế', avatarText: 'MĐ', isRecurring: true),
-        ],
-        'Ca Chiều': [
-          AssignedStaff(id: 'emp_2', name: 'Phạm Quỳnh Trang', role: 'Thu ngân', avatarText: 'QT', isRecurring: true),
-        ],
-        'Ca Tối': [],
-        'Ca Hành chính': [],
-      },
-      'T4': {
-        'Ca Sáng': [
-          AssignedStaff(id: 'emp_2', name: 'Phạm Quỳnh Trang', role: 'Thu ngân', avatarText: 'QT', isRecurring: false),
-        ],
-        'Ca Chiều': [
-          AssignedStaff(id: 'emp_1', name: 'Nguyễn Thu Hà', role: 'Nhân viên phục vụ', avatarText: 'TH', isRecurring: true),
-        ],
-        'Ca Tối': [],
-        'Ca Hành chính': [],
-      },
-      'T5': {
-        'Ca Sáng': [
-          AssignedStaff(id: 'emp_2', name: 'Phạm Quỳnh Trang', role: 'Thu ngân', avatarText: 'QT', isRecurring: true),
-        ],
-        'Ca Chiều': [],
-        'Ca Tối': [
-          AssignedStaff(id: 'emp_3', name: 'Hoàng Minh Đức', role: 'Nhân viên pha chế', avatarText: 'MĐ', isRecurring: true),
-        ],
-        'Ca Hành chính': [],
-      },
-      'T6': {
-        'Ca Sáng': [
-          AssignedStaff(id: 'emp_1', name: 'Nguyễn Thu Hà', role: 'Nhân viên phục vụ', avatarText: 'TH', isRecurring: true),
-        ],
-        'Ca Chiều': [
-          AssignedStaff(id: 'emp_3', name: 'Hoàng Minh Đức', role: 'Nhân viên pha chế', avatarText: 'MĐ', isRecurring: false),
-        ],
-        'Ca Tối': [],
-        'Ca Hành chính': [],
-      },
-      'T7': {
-        'Ca Sáng': [],
-        'Ca Chiều': [
-          AssignedStaff(id: 'emp_1', name: 'Nguyễn Thu Hà', role: 'Nhân viên phục vụ', avatarText: 'TH', isRecurring: true),
-          AssignedStaff(id: 'emp_2', name: 'Phạm Quỳnh Trang', role: 'Thu ngân', avatarText: 'QT', isRecurring: true),
-        ],
-        'Ca Tối': [],
-        'Ca Hành chính': [],
-      },
-      'CN': {
-        'Ca Sáng': [
-          AssignedStaff(id: 'emp_2', name: 'Phạm Quỳnh Trang', role: 'Thu ngân', avatarText: 'QT', isRecurring: true),
-        ],
-        'Ca Chiều': [
-          AssignedStaff(id: 'emp_3', name: 'Hoàng Minh Đức', role: 'Nhân viên pha chế', avatarText: 'MĐ', isRecurring: false),
-        ],
-        'Ca Tối': [],
-        'Ca Hành chính': [],
-      },
+      for (final k in _weekDayKeys)
+        k: {
+          for (final s in _availableShifts) s.name: <AssignedStaff>[],
+        },
     };
   }
 
   Future<void> _loadApiData() async {
     try {
       final employees = await EmployeeRepository().getEmployees();
-      if (employees.isNotEmpty && mounted) {
+      if (mounted) {
         setState(() {
           _branchEmployees = employees.map((e) {
             final id = e['id']?.toString() ?? '';
-            final name = e['name']?.toString() ?? 'Nhân viên';
+            final name = e['name']?.toString() ?? 'Chưa phân công';
             final role = e['role']?.toString() ?? 'Nhân viên';
             final avatar = name.trim().split(' ').where((s) => s.isNotEmpty).map((s) => s[0]).take(2).join().toUpperCase();
             return AssignedStaff(
               id: id,
-              name: name,
+              name: name.isEmpty ? 'Chưa phân công' : name,
               role: role,
               avatarText: avatar.isNotEmpty ? avatar : 'NV',
             );
@@ -338,12 +210,13 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
       }
 
       final rawRegs = await ShiftRepository().getRegistrations();
-      if (rawRegs.isNotEmpty && mounted) {
+      if (mounted) {
         final Map<String, Map<String, String>> empWishes = {};
         for (final r in rawRegs) {
           final empId = r['employeeId']?.toString() ?? '';
           final emp = _branchEmployees.where((e) => e.id == empId).firstOrNull;
-          final empName = emp?.name ?? (r['employeeName']?.toString() ?? 'Nhân sự #$empId');
+          final rawName = r['employeeName']?.toString() ?? '';
+          final empName = emp?.name ?? (rawName.isNotEmpty ? rawName : 'Chưa phân công');
           empWishes.putIfAbsent(empName, () => {});
           final wish = r['wish']?.toString() ?? r['shiftId']?.toString() ?? 'Ca Sáng';
           final day = r['day']?.toString() ?? 'T2';
@@ -363,16 +236,14 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
           );
         }).toList();
 
-        if (mappedRegs.isNotEmpty && mounted) {
-          setState(() {
-            _registrations = mappedRegs;
-          });
-        }
+        setState(() {
+          _registrations = mappedRegs;
+        });
       }
 
       final monday = _thisWeekMonday.add(Duration(days: _weekOffset * 7));
       final shifts = await ShiftRepository().getShifts();
-      if (shifts.isNotEmpty && mounted) {
+      if (mounted) {
         final Map<String, Map<String, List<AssignedStaff>>> newAssignments = {};
         for (final k in _weekDayKeys) {
           newAssignments[k] = {
@@ -380,7 +251,8 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
           };
         }
 
-        bool hasMatchedAny = false;
+        // Map id nhân viên -> tên thật từ API
+        final empNameById = {for (final e in _branchEmployees) e.id: e};
         for (final s in shifts) {
           DateTime? sDate;
           try {
@@ -403,10 +275,11 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
             final diffDays = sDate.difference(monday).inDays;
             if (diffDays >= 0 && diffDays < 7) {
               final dayKey = _weekDayKeys[diffDays];
-              final staff = _branchEmployees.where((e) => e.id == s.employeeId).firstOrNull ??
+              final matched = s.employeeId != null ? empNameById[s.employeeId] : null;
+              final staff = matched ??
                   AssignedStaff(
                     id: s.employeeId ?? s.id,
-                    name: s.employeeId != null ? 'Nhân sự #${s.employeeId}' : 'Chưa gán',
+                    name: 'Chưa phân công',
                     role: 'Nhân viên',
                     avatarText: 'NV',
                   );
@@ -414,19 +287,16 @@ class _ShiftAssignmentScreenState extends State<ShiftAssignmentScreen> with Sing
               newAssignments[dayKey] ??= {};
               newAssignments[dayKey]![templateName] ??= [];
               newAssignments[dayKey]![templateName]!.add(staff);
-              hasMatchedAny = true;
             }
           }
         }
 
-        if (hasMatchedAny && mounted) {
-          setState(() {
-            _assignments = newAssignments;
-          });
-        }
+        setState(() {
+          _assignments = newAssignments;
+        });
       }
     } catch (_) {
-      // Giữ mock khi offline
+      // Lỗi API: giữ state rỗng để hiện empty state, không dùng mock
     }
   }
 

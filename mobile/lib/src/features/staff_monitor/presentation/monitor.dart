@@ -5,6 +5,7 @@ import '../../../core/state/branch_scope.dart';
 import '../../../core/widgets/branch_selector.dart';
 import '../../attendance/data/attendance_repository.dart';
 import '../../profile/data/employee_repository.dart';
+import '../../schedule/data/shift_repository.dart';
 
 // ─── Model ───────────────────────────────────────────────────────────────────
 
@@ -45,71 +46,15 @@ class _StaffMonitorScreenState extends State<StaffMonitorScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  final List<StaffMemberStatus> _allStaff = const [
-    StaffMemberStatus(
-      id: '1',
-      name: 'Nguyễn Minh Tuấn',
-      role: 'Trưởng ca',
-      shift: 'Ca Sáng (07:00 - 12:00)',
-      checkInTime: '06:58',
-      status: StaffAttendanceStatus.present,
-      avatar: 'T',
-    ),
-    StaffMemberStatus(
-      id: '2',
-      name: 'Trần Thị Lan',
-      role: 'Barista',
-      shift: 'Ca Sáng (07:00 - 12:00)',
-      checkInTime: '07:12',
-      status: StaffAttendanceStatus.late,
-      avatar: 'L',
-    ),
-    StaffMemberStatus(
-      id: '3',
-      name: 'Lê Văn Hùng',
-      role: 'Thu ngân',
-      shift: 'Ca Sáng (07:00 - 12:00)',
-      checkInTime: '07:01',
-      status: StaffAttendanceStatus.present,
-      avatar: 'H',
-    ),
-    StaffMemberStatus(
-      id: '4',
-      name: 'Phạm Thị Ngọc',
-      role: 'Phục vụ',
-      shift: 'Ca Chiều (12:00 - 17:30)',
-      checkInTime: '--:--',
-      status: StaffAttendanceStatus.offShift,
-      avatar: 'N',
-    ),
-    StaffMemberStatus(
-      id: '5',
-      name: 'Hoàng Văn Bình',
-      role: 'Barista',
-      shift: 'Ca Chiều (12:00 - 17:30)',
-      checkInTime: '--:--',
-      status: StaffAttendanceStatus.offShift,
-      avatar: 'B',
-    ),
-    StaffMemberStatus(
-      id: '6',
-      name: 'Nguyễn Thị Mai',
-      role: 'Phục vụ',
-      shift: 'Ca Sáng (07:00 - 12:00)',
-      checkInTime: '09:45',
-      status: StaffAttendanceStatus.absent,
-      avatar: 'M',
-    ),
-  ];
-
+  // Chỉ dùng API thật (getEmployees + getAttendance) — khởi rỗng để hiện empty state
   final AttendanceRepository _attendanceRepo = AttendanceRepository();
-  late List<StaffMemberStatus> _staffList;
+  List<StaffMemberStatus> _staffList = [];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this, initialIndex: 0);
-    _staffList = List.from(_allStaff);
+    _staffList = [];
     _fetchStaffAttendance();
   }
 
@@ -117,22 +62,40 @@ class _StaffMonitorScreenState extends State<StaffMonitorScreen>
     try {
       final emps = await EmployeeRepository().getEmployees();
       final list = await _attendanceRepo.getAttendance();
+      // Map ca thật từ API shifts (fallback 'Chưa rõ' khi không khớp)
+      List<ApiShiftModel> apiShifts = [];
+      try {
+        apiShifts = await ShiftRepository().getShifts();
+      } catch (_) {
+        apiShifts = [];
+      }
       if (mounted) {
+        final empById = <String, Map<String, dynamic>>{};
+        for (final e in emps) {
+          for (final k in ['id', 'email', 'employeeCode']) {
+            final v = e[k]?.toString();
+            if (v != null && v.isNotEmpty) empById[v] = e;
+          }
+        }
+        final shiftNameById = <String, String>{};
+        for (final s in apiShifts) {
+          shiftNameById[s.id] = s.template.isNotEmpty ? s.template : 'Chưa rõ';
+        }
         final apiList = list.map((m) {
           StaffAttendanceStatus st = StaffAttendanceStatus.present;
           if (m.status == 'absent') st = StaffAttendanceStatus.absent;
           if (m.status == 'late') st = StaffAttendanceStatus.late;
-          final emp = emps.firstWhere(
-            (e) => (e['id']?.toString() == m.employeeId || e['email']?.toString() == m.employeeId || e['employeeCode']?.toString() == m.employeeId),
-            orElse: () => <String, dynamic>{'name': 'Nhân sự #${m.employeeId}', 'role': 'Nhân viên'},
-          );
-          final name = emp['name']?.toString() ?? 'Nhân sự #${m.employeeId}';
-          final role = emp['role']?.toString() ?? (emp['position']?.toString() ?? 'Nhân viên');
+          final emp = empById[m.employeeId];
+          // Không khớp nhân viên thật -> 'Chưa rõ' (không dùng mock 'Nhân sự #...')
+          final name = emp?['name']?.toString() ?? 'Chưa rõ';
+          final role = emp?['role']?.toString() ?? (emp?['position']?.toString() ?? 'Chưa rõ');
+          // Không khớp ca thật -> 'Chưa rõ' (không dùng 'Ca #...')
+          final shift = shiftNameById[m.shiftId] ?? 'Chưa rõ';
           return StaffMemberStatus(
             id: m.id,
             name: name,
             role: role,
-            shift: 'Ca #${m.shiftId}',
+            shift: shift,
             checkInTime: m.checkIn ?? '--:--',
             checkOutTime: m.checkOut,
             status: st,
@@ -144,7 +107,7 @@ class _StaffMonitorScreenState extends State<StaffMonitorScreen>
         });
       }
     } catch (_) {
-      // Giữ mock khi offline
+      // Lỗi API: giữ state rỗng để hiện empty state, không dùng mock
     }
   }
 

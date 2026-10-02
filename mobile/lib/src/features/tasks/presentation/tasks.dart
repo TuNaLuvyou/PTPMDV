@@ -41,7 +41,8 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _tasks = TaskService.getTasksForUser(userEmail: widget.currentUser.email);
+    // Chỉ dùng API thật — khởi [] rỗng, _loadTasks gán kết quả API vô điều kiện.
+    _tasks = [];
     _tabController = TabController(length: _tabs.length, vsync: this);
 
     if (widget.initialFilter != null) {
@@ -59,10 +60,14 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
   Future<void> _loadEmployees() async {
     try {
       final emps = await EmployeeRepository().getEmployees();
-      if (emps.isNotEmpty && mounted) {
+      if (mounted) {
         setState(() => _employeeList = emps);
       }
-    } catch (_) {}
+    } catch (_) {
+      if (mounted) {
+        setState(() => _employeeList = []);
+      }
+    }
   }
 
   @override
@@ -80,10 +85,10 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
         });
       }
     } catch (_) {
-      // Giữ mock khi offline
-      if (_tasks.isEmpty && mounted) {
+      // Không dùng mock — lỗi thì hiện empty state.
+      if (mounted) {
         setState(() {
-          _tasks = TaskService.getTasksForUser(userEmail: widget.currentUser.email);
+          _tasks = [];
         });
       }
     }
@@ -623,10 +628,10 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
     TaskSourceType selectedSource = TaskSourceType.manager;
     TaskPriority selectedPriority = TaskPriority.normal;
     String selectedShift = 'Ca Sáng (07:00 - 14:00)';
-    final initialStaff = _employeeList.isNotEmpty
-        ? (_employeeList.first['name']?.toString() ?? 'Nguyễn Thu Hà')
-        : 'Nguyễn Thu Hà';
-    String assignedPerson = initialStaff;
+    final String? initialStaff = _employeeList.isNotEmpty
+        ? _employeeList.first['name']?.toString()
+        : null;
+    String? assignedPerson = initialStaff;
     bool requirePhoto = false; // Quản trị viên được phép yêu cầu chụp ảnh hoặc không
 
     showModalBottomSheet(
@@ -722,22 +727,18 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                     initialValue: assignedPerson,
                     decoration: InputDecoration(
                       labelText: 'Nhân sự thực hiện (Giao riêng)',
+                      hintText: _employeeList.isEmpty ? 'Chưa có dữ liệu nhân sự' : null,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    items: _employeeList.isNotEmpty
-                        ? _employeeList.map((e) {
+                    // Chỉ load từ getEmployees() — rỗng thì dropdown rỗng.
+                    items: _employeeList.map((e) {
                             final name = e['name']?.toString() ?? 'Nhân viên';
                             final role = e['role']?.toString() ?? 'Nhân viên';
                             return DropdownMenuItem(
                               value: name,
                               child: Text('$name ($role)'),
                             );
-                          }).toList()
-                        : const [
-                            DropdownMenuItem(value: 'Nguyễn Thu Hà', child: Text('Nguyễn Thu Hà (Nhân viên)')),
-                            DropdownMenuItem(value: 'Phạm Quỳnh Trang', child: Text('Phạm Quỳnh Trang (Thu ngân)')),
-                            DropdownMenuItem(value: 'Hoàng Minh Đức', child: Text('Hoàng Minh Đức (Nhân viên pha chế)')),
-                          ],
+                          }).toList(),
                     onChanged: (val) {
                       if (val != null) setDialogState(() => assignedPerson = val);
                     },
@@ -832,7 +833,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
 
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('✓ Đã giao việc thành công cho $assignedPerson!'),
+                        content: Text('✓ Đã giao việc thành công cho ${assignedPerson ?? 'nhân sự đã chọn'}!'),
                         backgroundColor: AppColors.success,
                       ),
                     );
@@ -852,7 +853,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    final stats = TaskService.getTaskStats();
+    final stats = TaskService.getTaskStats(tasks: _tasks);
     final bool canManage = widget.currentUser.canManage;
     final bool isAdmin = widget.currentUser.isAdmin;
 
