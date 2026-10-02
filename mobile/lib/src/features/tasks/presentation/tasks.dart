@@ -226,14 +226,17 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
               ),
               const SizedBox(height: 16),
 
-              // Khung xem trước ảnh / Nút chụp ảnh
+              // Chụp ảnh minh chứng: chưa có API upload + plugin camera,
+              // tạm thời báo đang phát triển thay vì gán ảnh giả.
               if (tempPhotoUrl == null)
                 InkWell(
                   onTap: () {
-                    // Giả lập mở camera và chụp ảnh minh chứng thực tế
-                    setSheetState(() {
-                      tempPhotoUrl = 'https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=600';
-                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('📷 Chụp ảnh minh chứng đang phát triển (chưa có API upload)'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
                   },
                   borderRadius: BorderRadius.circular(16),
                   child: Container(
@@ -349,17 +352,31 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                 ),
                 onPressed: tempPhotoUrl == null
                     ? null
-                    : () {
+                    : () async {
                         Navigator.pop(sheetCtx);
-                        TaskService.completeTask(task.id, proofPhotoUrl: tempPhotoUrl);
-                        _loadTasks();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('✓ Đã xác nhận ảnh và hoàn thành: ${task.title}'),
-                            backgroundColor: AppColors.success,
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
+                        try {
+                          await TaskRepository()
+                              .updateTaskStatus(task.id, 'completed');
+                          _loadTasks();
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                  '✓ Đã xác nhận ảnh và hoàn thành: ${task.title}'),
+                              backgroundColor: AppColors.success,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        } catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('❌ Hoàn thành thất bại: $e'),
+                              backgroundColor: Colors.red,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
                       },
                 icon: const Icon(Icons.check_rounded, size: 20),
                 label: Text(

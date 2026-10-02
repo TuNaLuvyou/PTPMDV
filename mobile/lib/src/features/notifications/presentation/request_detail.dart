@@ -40,7 +40,7 @@ class ShiftRequestDetailScreen extends StatefulWidget {
     required this.title,
     required this.senderName,
     required this.senderRole,
-    this.senderPhone = '0912.345.678',
+    this.senderPhone = '',
     this.requestType = 'cover',
     this.requestTime = '25 phút trước',
     required this.shiftName,
@@ -233,7 +233,8 @@ class _ShiftRequestDetailScreenState extends State<ShiftRequestDetailScreen> {
                   _buildInfoRow(FontAwesomeIcons.user, 'Người gửi yêu cầu', '${widget.senderName} (${widget.senderRole})',
                       valueColor: AppColors.primary),
                   _divider(),
-                  _buildInfoRow(FontAwesomeIcons.phone, 'Số điện thoại', widget.senderPhone),
+                  _buildInfoRow(FontAwesomeIcons.phone, 'Số điện thoại',
+                      widget.senderPhone.isEmpty ? 'Chưa cập nhật' : widget.senderPhone),
                   _divider(),
                   _buildInfoRow(
                     FontAwesomeIcons.tag,

@@ -363,7 +363,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           title: item.title,
           senderName: item.senderName ?? 'Đồng nghiệp',
           senderRole: item.senderRole ?? 'Nhân viên',
-          senderPhone: item.senderPhone ?? '0912.345.678',
+          senderPhone: item.senderPhone ?? '',
           requestType: item.requestType ?? 'cover',
           requestTime: item.time,
           shiftName: item.shiftName ?? 'Ca làm việc',
