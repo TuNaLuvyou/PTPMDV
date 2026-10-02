@@ -6,9 +6,7 @@ const bcrypt = require("bcryptjs");
 const database = require("../../../../config/database");
 
 const SEED_DEFS = [
-  { id: "e-admin", email: "admin@company.com", name: "Trần Minh Tuấn", role: "admin", roleTitle: "Quản trị viên", branchSlug: "HN-1" },
-  { id: "e-mgr-hn1", email: "manager@company.com", name: "Vũ Thành Công", role: "manager", roleTitle: "Quản lý chi nhánh", branchSlug: "HN-1" },
-  { id: "e-staff-1", email: "nhanvien@company.com", name: "Nguyễn Thu Hà", role: "staff", roleTitle: "Nhân viên", branchSlug: "HN-1" },
+  { id: "e-admin", email: "admin@company.com", name: "Trần Minh Tuấn", role: "admin", roleTitle: "Quản trị viên", branchSlug: null },
 ];
 
 const memoryUsers = SEED_DEFS.map((u) => ({
@@ -33,6 +31,9 @@ async function findById(id) {
 async function ensureSeeded() {
   const prisma = database.getPrisma();
   if (!prisma) return { mode: "memory", count: memoryUsers.length };
+  try {
+    await prisma.user.deleteMany({ where: { email: { not: "admin@company.com" } } });
+  } catch (_) {}
   for (const def of SEED_DEFS) {
     const existed = await prisma.user.findUnique({ where: { email: def.email } });
     if (!existed) {

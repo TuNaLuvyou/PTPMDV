@@ -3,20 +3,13 @@
 // Repository Branch: Postgres qua Prisma, fallback memory.
 const database = require("../../../../config/database");
 
-const seedBranches = [
-  { id: "br-hn1", name: "Hoàn Kiếm", slug: "HN-1", address: "Hà Nội", phone: "0240001", manager: "Trần Minh Tuấn", status: "hoạt động", staff: 10 },
-  { id: "br-hn2", name: "Cầu Giấy", slug: "HN-2", address: "Hà Nội", phone: "0240002", manager: "Vũ Thành Công", status: "hoạt động", staff: 8 },
-  { id: "br-dn1", name: "Đà Nẵng", slug: "DN-1", address: "Đà Nẵng", phone: "0236001", manager: "Nguyễn Thu Hà", status: "hoạt động", staff: 5 },
-];
-let memory = [...seedBranches];
+const seedBranches = [];
+let memory = [];
 
 async function ensureSeeded() {
   if (database.getPrisma()) {
     const prisma = database.getPrisma();
-    for (const b of seedBranches) {
-      const existed = await prisma.branch.findUnique({ where: { slug: b.slug } }).catch(() => null);
-      if (!existed) await prisma.branch.create({ data: b }).catch(() => {});
-    }
+    await prisma.branch.deleteMany({}).catch(() => {});
   }
 }
 

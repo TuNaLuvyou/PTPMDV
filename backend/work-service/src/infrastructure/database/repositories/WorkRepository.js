@@ -6,37 +6,27 @@ function uid(prefix) {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 }
 
-const seedShifts = [
-  { id: "sh-1", employeeId: "e-staff-1", branchSlug: "HN-1", date: "01-10-2026", template: "Ca sáng", scheduledStart: "08:00", scheduledEnd: "12:00", status: "hoàn thành", checkIn: "08:00", checkOut: "12:00" },
-];
-const seedTasks = [
-  { id: "t-1", title: "Kiểm kê kho", description: "Kiểm kê cuối tháng", assignedTo: "e-staff-1", branchSlug: "HN-1", dueDate: "05-10-2026", status: "pending" },
-];
-let memoryShifts = [...seedShifts];
+const seedShifts = [];
+const seedTasks = [];
+let memoryShifts = [];
 let memoryAttendances = [];
-let memoryTasks = [...seedTasks];
+let memoryTasks = [];
 let memoryRegistrations = [];
 let memoryConfig = { id: "default", latePenaltyAmount: 20000, earlyLeavePenaltyAmount: 0, gracePeriodMinutes: 5, autoCloseShift: false, shiftSwapMode: "manual", latePenaltyPct: 10, earlyLeavePenaltyPct: 10, earlyCheckinMinutes: 15, maxPenaltiesPerMonth: 10, deductOnCheckout: true, allowDoubleCheckin: true, maxCheckinsPerDay: 3, maxSwapsPerMonth: 3, requireReasonSwap: true };
-let memoryTemplates = [
-  { id: "t1", name: "Ca Sáng", startTime: "07:00", endTime: "14:00" },
-  { id: "t2", name: "Ca Chiều", startTime: "14:00", endTime: "22:00" },
-  { id: "t3", name: "Ca Tối (Part-time)", startTime: "18:00", endTime: "23:00" },
-  { id: "t4", name: "Ca Hành chính", startTime: "08:00", endTime: "17:00" },
-];
+let memoryTemplates = [];
 
 async function ensureSeeded() {
   const prisma = database.getPrisma();
-  if (!prisma) return { mode: "memory" };
-  try {
-    await prisma.attendanceConfig.upsert({ where: { id: "default" }, update: {}, create: memoryConfig });
-    for (const s of seedShifts) {
-      await prisma.shift.upsert({ where: { id: s.id }, update: {}, create: s });
-    }
-    for (const t of seedTasks) {
-      await prisma.task.upsert({ where: { id: t.id }, update: {}, create: t });
-    }
-  } catch (_) {}
-  return { mode: "postgres" };
+  if (prisma) {
+    try {
+      await prisma.shift.deleteMany({}).catch(() => {});
+      await prisma.shiftRegistration.deleteMany({}).catch(() => {});
+      await prisma.task.deleteMany({}).catch(() => {});
+      await prisma.attendance.deleteMany({}).catch(() => {});
+      await prisma.shiftTemplate.deleteMany({}).catch(() => {});
+    } catch (_) {}
+  }
+  return { mode: prisma ? "postgres" : "memory" };
 }
 
 // --- Shifts ---
