@@ -48,9 +48,9 @@ export default function CreatePayrollDisbursementModal({
     partners.find((p) => p.isPrimary)?.id || partners[0]?.id || ""
   );
   const [idempotencyKey, setIdempotencyKey] = useState("");
-  const [content, setContent] = useState("Chi lương tháng 10/2026");
-  const [totalAmountStr, setTotalAmountStr] = useState("50000000");
-  const [beneficiaryCountStr, setBeneficiaryCountStr] = useState("10");
+  const [content, setContent] = useState("");
+  const [totalAmountStr, setTotalAmountStr] = useState("");
+  const [beneficiaryCountStr, setBeneficiaryCountStr] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -59,6 +59,8 @@ export default function CreatePayrollDisbursementModal({
   useEffect(() => {
     if (open) {
       setIdempotencyKey(newIdempotencyKey());
+      const now = new Date();
+      setContent(`Chi lương tháng ${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`);
       setError(null);
     }
   }, [open ]);

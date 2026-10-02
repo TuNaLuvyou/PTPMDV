@@ -59,6 +59,7 @@ const ANONYMOUS_USER: UserSession = {
 
 interface AuthContextType {
   user: UserSession;
+  name: string;
   role: "admin" | "manager" | "staff";
   branchSlug: string;
   loading: boolean;
@@ -69,6 +70,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   user: ANONYMOUS_USER,
+  name: "",
   role: "staff",
   branchSlug: "",
   loading: true,
@@ -188,6 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
+        name: user.name,
         role: user.role,
         branchSlug: user.branchSlug,
         loading,

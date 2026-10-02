@@ -328,8 +328,9 @@ export default function PayslipsPage() {
       <BulkClosePayslipModal
         open={closeSlipOpen}
         onClose={() => setCloseSlipOpen(false)}
-        defaultMonth={selectedMonth !== "all" ? selectedMonth : "08/2026"}
-        pendingCount={pendingOfMonth(selectedMonth !== "all" ? selectedMonth : "08/2026").length}
+        defaultMonth={selectedMonth !== "all" ? selectedMonth : (monthOptions[0] ?? "")}
+        months={monthOptions}
+        pendingCount={pendingOfMonth(selectedMonth !== "all" ? selectedMonth : (monthOptions[0] ?? "")).length}
         saving={bulkSaving}
         onConfirm={handleBulkClose}
       />
