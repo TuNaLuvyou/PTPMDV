@@ -4,9 +4,9 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const morgan = require("morgan");
-const config = require("../config");
-const authRoutes = require("./api/routes/authRoutes");
-const { errorHandler } = require("./api/middlewares/errorHandler");
+const config = require("./config");
+const authRoutes = require("./routes/authRoutes");
+const { errorHandler } = require("./middlewares/errorHandler");
 
 const app = express();
 

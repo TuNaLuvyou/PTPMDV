@@ -11,16 +11,26 @@ test("requests CRUD + duyệt tự sinh thông báo", async () => {
   const base = `http://localhost:${port}`;
   const json = { "Content-Type": "application/json" };
 
-  // Danh sách seed
-  let res = await fetch(`${base}/api/requests`);
-  let body = await res.json();
-  assert.equal(res.status, 200);
-  assert.ok(body.data.length >= 5);
+  try {
+    // Danh sách khởi đầu là mảng (không phụ thuộc seed)
+    let res = await fetch(`${base}/api/requests`);
+    let body = await res.json();
+    assert.equal(res.status, 200);
+    assert.ok(Array.isArray(body.data));
 
-  // Lọc theo type
-  res = await fetch(`${base}/api/requests?type=advance`);
-  body = await res.json();
-  assert.ok(body.data.every((r) => r.type === "advance"));
+    // Tạo 1 yêu cầu tạm ứng để kiểm tra lọc theo type
+    res = await fetch(`${base}/api/requests`, {
+      method: "POST",
+      headers: json,
+      body: JSON.stringify({ type: "advance", employeeId: "e-seed-1", title: "Tạm ứng", content: "việc riêng" }),
+    });
+    assert.equal(res.status, 201);
+
+    // Lọc theo type
+    res = await fetch(`${base}/api/requests?type=advance`);
+    body = await res.json();
+    assert.ok(body.data.every((r) => r.type === "advance"));
+    assert.ok(body.data.length >= 1);
 
   // Tạo thiếu type -> 400
   res = await fetch(`${base}/api/requests`, {
@@ -98,5 +108,7 @@ test("requests CRUD + duyệt tự sinh thông báo", async () => {
   res = await fetch(`${base}/api/requests/${req2}`, { method: "DELETE" });
   assert.equal(res.status, 400);
 
-  server.close();
+  } finally {
+    server.close();
+  }
 });

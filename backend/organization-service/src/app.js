@@ -3,9 +3,9 @@
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
-const config = require("../config");
-const orgRoutes = require("./api/routes/orgRoutes");
-const { errorHandler } = require("./api/middlewares/errorHandler");
+const config = require("./config");
+const orgRoutes = require("./routes/orgRoutes");
+const { errorHandler } = require("./middlewares/errorHandler");
 
 const app = express();
 

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../constants/colors.dart';
 import '../models/branch.dart';
-import '../../features/profile/data/employee_repository.dart';
+import '../../features/profile/employee_repository.dart';
 import '../state/branch_scope.dart';
 import '../state/user_scope.dart';
 

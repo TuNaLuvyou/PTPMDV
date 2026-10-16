@@ -2,11 +2,11 @@
 
 const assert = require("node:assert/strict");
 const { test, describe } = require("node:test");
-const { validateCreateRequest, canDeleteRequest } = require("../../src/domain/entities/RequestEntity");
-const { validateCreateNotification } = require("../../src/domain/entities/NotificationEntity");
-const { validateCreateNews } = require("../../src/domain/entities/NewsEntity");
-const { validateCreateRegulation } = require("../../src/domain/entities/RegulationEntity");
-const { validateCreateWifiConfig } = require("../../src/domain/entities/WifiConfigEntity");
+const { validateCreateRequest, canDeleteRequest } = require("../../src/validators/requestValidator");
+const { validateCreateNotification } = require("../../src/validators/notificationValidator");
+const { validateCreateNews } = require("../../src/validators/newsValidator");
+const { validateCreateRegulation } = require("../../src/validators/regulationValidator");
+const { validateCreateWifiConfig } = require("../../src/validators/wifiConfigValidator");
 
 describe("Domain Validation Tests", () => {
   test("validateCreateRequest từ chối type không hợp lệ", () => {

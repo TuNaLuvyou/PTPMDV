@@ -6,7 +6,7 @@ const { test } = require("node:test");
 process.env.JWT_SECRET = "test_gateway_secret_1234567890";
 
 const jwt = require("jsonwebtoken");
-const { createAuthMiddleware } = require("../src/api/middlewares/auth");
+const { createAuthMiddleware } = require("../src/middlewares/auth");
 
 function mockReq({ path = "/api/employees", method = "GET", token } = {}) {
   const req = { path, method, headers: {}, cookies: {} };

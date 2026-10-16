@@ -1,10 +1,10 @@
 "use strict";
 
 // Seed tối thiểu cho work-service (memory + postgres upsert).
-const WorkRepository = require("../src/infrastructure/database/repositories/WorkRepository");
+const WorkService = require("../src/services/WorkService");
 
 async function ensureSeeded() {
-  return WorkRepository.ensureSeeded();
+  return WorkService.ensureSeeded();
 }
 
 module.exports = { ensureSeeded };

@@ -4,8 +4,8 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const morgan = require("morgan");
-const config = require("../config");
-const { errorHandler } = require("./api/middlewares/errorHandler");
+const config = require("./config");
+const { errorHandler } = require("./middlewares/errorHandler");
 
 const app = express();
 
@@ -31,15 +31,15 @@ app.get("/health", (_req, res) => {
 });
 
 // Các tuyến API CRUD độc lập (Task 1 & Task 2)
-app.use("/api/news", require("./api/routes/newsRoutes"));
-app.use("/api/regulations", require("./api/routes/regulationRoutes"));
-app.use("/api/wifi-configs", require("./api/routes/wifiConfigRoutes"));
-app.use("/api/requests", require("./api/routes/requestRoutes"));
-app.use("/api/notifications", require("./api/routes/notificationRoutes"));
-app.use("/api/soap-config", require("./api/routes/soapConfigRoutes"));
-app.use("/api/upload", require("./api/routes/uploadRoutes"));
+app.use("/api/news", require("./routes/newsRoutes"));
+app.use("/api/regulations", require("./routes/regulationRoutes"));
+app.use("/api/wifi-configs", require("./routes/wifiConfigRoutes"));
+app.use("/api/requests", require("./routes/requestRoutes"));
+app.use("/api/notifications", require("./routes/notificationRoutes"));
+app.use("/api/soap-config", require("./routes/soapConfigRoutes"));
+app.use("/api/upload", require("./routes/uploadRoutes"));
 // SOAP ngân hàng: chuyển tiếp nguyên vẹn body/headers/status XML.
-app.use("/soap/payroll", require("./api/routes/soapRoutes"));
+app.use("/soap/payroll", require("./routes/soapRoutes"));
 
 // Xử lý 404
 app.use((_req, res) => {

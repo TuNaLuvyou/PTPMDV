@@ -1,6 +1,6 @@
 "use strict";
 
-const database = require("../config/database");
+const database = require("../src/config/database");
 
 const SEED_REQUESTS = [];
 const SEED_NOTIFICATIONS = [];

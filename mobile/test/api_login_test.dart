@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/src/core/network/api_client.dart';
-import 'package:mobile/src/features/auth/data/auth_repository.dart';
+import 'package:mobile/src/features/auth/auth_repository.dart';
 
 // Test đấu API thật: cần identity (4001) + gateway (4000) đang chạy.
 // Bỏ qua khi không có server để không làm đỏ CI.

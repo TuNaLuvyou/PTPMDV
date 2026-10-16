@@ -57,43 +57,43 @@ Container(color: AppColors.primary.withOpacity(0.12));
 
 ---
 
-## 2. Kỹ Năng Viết Code Backend (Node.js + Express + Clean Architecture)
+## 2. Kỹ Năng Viết Code Backend (Node.js + Express + Flat 3-Tier Mẫu A)
 
-### 2.1. Nguyên tắc thiết kế
+### 2.1. Nguyên tắc thiết kế (Route -> Controller -> Service -> Prisma)
 
-1. Controller thật mỏng: chỉ trích xuất `req.params`, `req.query`, `req.body`, gọi Use Case rồi trả envelope.
-2. Nghiệp vụ nằm trong `domain/entities` và `src/services`. Cấm viết nghiệp vụ trong controller.
-3. Truy xuất dữ liệu chỉ qua repository. Cấm viết SQL trực tiếp trong controller hay Use Case.
-4. Tầng `domain/` thuần khiết, không import Express, ORM hay HTTP client.
-5. Mọi đầu vào đi qua `validators/` (Joi/Zod); mọi lỗi đi qua `errorHandler.js` để trả đúng `{error: {code, message}}`.
+1. Controller thật mỏng: chỉ trích xuất `req.params`, `req.query`, `req.body`, gọi Service rồi trả envelope.
+2. Nghiệp vụ nằm trong `src/services/*.js` và gọi trực tiếp Prisma. Cấm viết nghiệp vụ trong controller.
+3. Cấm tầng `repositories` riêng và cấm `domain/entities/` map 1-1 với Prisma. Truy xuất dữ liệu chỉ qua Prisma trong Service. Cấm viết SQL trực tiếp trong controller.
+4. `src/utils/errors.js` chứa lớp lỗi nghiệp vụ; `src/utils/` chứa logger, jwt, constants. Không import Express hay HTTP client vào `utils/errors.js`.
+5. Mọi đầu vào đi qua `src/validators/` (Joi/Zod); mọi lỗi đi qua `src/middlewares/errorHandler.js` để trả đúng `{error: {code, message}}`.
 
 ### 2.2. Mẫu controller đúng chuẩn
 
 ```javascript
-// ĐÚNG — controller chỉ điều phối
+// ĐÚNG — controller chỉ điều phối qua Service (Flat 3-Tier)
 async function createPayout(req, res, next) {
   try {
-    const useCase = new CreatePayoutUseCase({ payoutRepository });
-    const result = await useCase.execute(req.body);
+    const result = await PayoutService.create(req.body);
     return res.status(201).json({ data: result, message: "Thao tác thành công" });
   } catch (error) {
     return next(error);
   }
 }
 
-// SAI — nhét nghiệp vụ và SQL vào controller
+// SAI — nhét nghiệp vụ và Prisma/SQL vào controller
 async function createPayout(req, res) {
   if (req.body.totalAmount > balance) { /* ... */ }
-  const row = await db.query("INSERT INTO payouts ...");
+  const row = await prisma.payout.create({ data: req.body });
   return res.json(row);
 }
 ```
 
-### 2.3. Mẫu Use Case và idempotency
+### 2.3. Mẫu Service và idempotency (gộp Use Case + Repository)
 
 ```javascript
-async execute(payload) {
-  const existed = await this.payoutRepository.findByIdempotencyKey(payload.idempotencyKey);
+// src/services/PayoutService.js — gọi trực tiếp Prisma, không qua Repository
+async function create(payload) {
+  const existed = await prisma.payout.findUnique({ where: { idempotencyKey: payload.idempotencyKey } });
   if (existed) return { ...existed, deduped: true };
   // kiểm tra số dư, sinh id TXN-*, bankReference BANK-*, lưu bản ghi mới
 }
@@ -115,7 +115,7 @@ async function getAttendance(employeeId, month) {
 }
 ```
 
-Luôn đặt `timeout: 5000`, cài đặt adapter trong `src/infrastructure/external-clients/`, không import chéo mã nguồn service khác.
+Luôn đặt `timeout: 5000`, đặt adapter trong `src/clients/`, không import chéo mã nguồn service khác.
 
 ### 2.5. Kỹ năng làm việc với 5 database riêng (đã chốt)
 
@@ -203,7 +203,7 @@ Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HomePage()));
 
 ## 5. Kỹ Năng Đặt Tên, Envelope Và Định Dạng Chung
 
-1. Tên file backend theo Clean Architecture: `CreateXxxUseCase.js`, `XxxRepository.js`, `xxx.js` cho middleware/route/validator rõ nghĩa.
+1. Tên file backend theo Flat 3-Tier (Mẫu A): `XxxService.js` trong `src/services/`, `xxx.js` cho controller/route/middleware/validator rõ nghĩa. Cấm `CreateXxxUseCase.js`, `XxxRepository.js`, `src/api/`, `src/domain/`, `src/infrastructure/`.
 2. Tên route REST dùng danh từ số nhiều: `/api/employees`, `/api/shifts`, `/api/payroll/payouts`, `/api/requests`, `/api/news`.
 3. Thành công trả `{ "data": ..., "message": "Thao tác thành công" }`; thất bại trả `{ "error": { "code": "...", "message": "...", "details": null } }`.
 4. Ngày tháng: `date`/`joinDate` dùng `DD-MM-YYYY`; `Payslip.month` dùng `MM-YYYY`; query attendance dùng `month=YYYY-MM`.
@@ -215,7 +215,7 @@ Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HomePage()));
 - [ ] Màu chính đúng `#8E1B2F`, không hardcode hex lẻ, mobile không dùng `withOpacity`.
 - [ ] Chữ Public Sans (mobile) và icon Font Awesome (web) nhất quán.
 - [ ] Toàn bộ UI tiếng Việt, tiền tệ qua `formatVND`.
-- [ ] Controller mỏng, nghiệp vụ nằm đúng domain/Use Case, có validator và error handler.
+- [ ] Controller mỏng, nghiệp vụ nằm trong `src/services/` gọi trực tiếp Prisma, có validator và error handler.
 - [ ] Gọi liên service qua client adapter với timeout 5000ms.
 - [ ] Route, model và định dạng ngày khớp SSOT.
 - [ ] Đã chạy đủ kiểm thử bắt buộc của tầng mình sửa.
