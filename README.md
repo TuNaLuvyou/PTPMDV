@@ -27,8 +27,16 @@ hrm-enterprise/
 ## Chạy dự án
 
 ```bash
-# 1. Core Server (http://localhost:4000)
-cd backend && npm install && npm run dev
+# 0. Hạ tầng DB local — 5 Postgres RIÊNG BIỆT (mỗi service 1 server/node/port riêng)
+docker compose up -d
+#   hrm-db-identity:5433 · hrm-db-organization:5434 · hrm-db-work:5435
+#   hrm-db-payroll:5436 · hrm-db-integration:5437
+
+# 1. Core Server — chạy từng service (4000..4005). Copy .env.example -> .env trước,
+#    rồi đồng bộ schema vào DB của chính service đó:
+cd backend/api-gateway && npm install && npm run dev            # 4000 (không DB)
+cd backend/identity-service && npm install && npx prisma db push && npm run dev    # 4001
+#   organization (4002), work (4003), payroll (4004), integration (4005) làm tương tự
 
 # 2. Web Portal (http://localhost:3000)
 cd frontend && npm install && npm run dev

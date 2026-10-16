@@ -37,19 +37,30 @@ Nếu cần thay đổi ở phần của người khác (thiếu endpoint, sai s
 ## 2. Chuẩn kỹ thuật bắt buộc
 
 ### 2.1 Cấu trúc service
-Mỗi service nằm trong `backend/<service-name>/` gồm:
+Mỗi service nằm trong `backend/<service-name>/` theo **Flat 3-Tier (Mẫu A)** — luồng chuẩn `Route -> Controller -> Service -> Prisma`:
 
+```text
+backend/<service-name>/
+├── prisma/                # schema.prisma + migration + seed riêng
+├── src/
+│   ├── config/            # database.js + index.js (đọc env)
+│   ├── clients/           # (nếu có) HTTP client gọi service khác, timeout 5000ms
+│   ├── controllers/       # nhận req/res, gọi Service, trả JSON
+│   ├── middlewares/       # xác thực, phân quyền, xử lý lỗi
+│   ├── routes/            # khai báo route Express
+│   ├── services/          # business logic + gọi trực tiếp Prisma (không qua repository)
+│   ├── validators/        # (nếu có) kiểm tra đầu vào
+│   ├── utils/             # errors.js, logger.js, ...
+│   └── app.js             # khởi tạo Express, CORS, parser, gắn route, health
+├── tests/
+│   ├── unit/
+│   └── integration/
+├── .env.example
+├── package.json
+└── server.js
 ```
-config/
-src/api/
-src/domain/
-src/services/
-src/infrastructure/
-tests/
-.env.example
-Dockerfile
-server.js
-```
+
+Cấm `config/` ở root, `src/api/`, `src/domain/`, `src/infrastructure/`, tầng `repositories` riêng.
 
 ### 2.2 Định dạng response
 - Thành công: `{ "data": ... }`
@@ -142,7 +153,7 @@ Mốc đầu tiên của A là gateway + identity. Cần bám sát để chạy 
 - [ ] Đúng cấu trúc thư mục service (mục 2.1).
 - [ ] Response đúng envelope `{data}` hoặc `{error: {code, message}}`.
 - [ ] Có `GET /health`.
-- [ ] Có `.env.example` và `Dockerfile`.
+- [ ] Có `.env.example` (mặc định trỏ Postgres local của chính service; Supabase để dạng comment, mỗi service 1 link riêng).
 - [ ] Payout trùng `idempotencyKey` trả bản ghi cũ kèm `deduped: true`; hết số dư trả 422.
 - [ ] Payslip có `netSalary = baseSalary + bonus - totalPenalty`, không trùng cặp `employeeId` + `month`.
 - [ ] Đồng bộ công thức `netSalary` với `AGENTS.md` §2.6 (hiện ghi `baseSalary - totalPenalties + allowances` — khác bản này, cần chốt với A) **(suy ra)**.
@@ -156,7 +167,7 @@ Mốc đầu tiên của A là gateway + identity. Cần bám sát để chạy 
 
 Các mục sau không có trong tài liệu phân công. Không tự quyết định rồi coi như đã chốt. Hỏi A (nhóm trưởng) hoặc ghi rõ giả định trong PR.
 
-- **Cơ sở dữ liệu và ORM (đã chốt 5 DB trên 5 link Supabase riêng):** D sở hữu DB riêng `hrm_payroll` (4004) với Prisma schema + migration + `DATABASE_URL` riêng trỏ link Supabase riêng. Lớp lưu trữ đặt trong `src/infrastructure`. Cấm join xuyên cơ sở dữ liệu; cần `penaltyAmount` thì gọi HTTP `GET /api/attendance` của B, cần `baseSalary` thì gọi HTTP `GET /api/employees/:id` của B.
+- **Cơ sở dữ liệu và ORM (đã chốt 5 DB trên 5 link Supabase riêng):** D sở hữu DB riêng `hrm_payroll` (4004) với Prisma schema + migration + `DATABASE_URL` riêng trỏ link Supabase riêng. Lớp lưu trữ nằm trong `src/services/` gọi trực tiếp Prisma (Mẫu A — không có tầng `repositories` riêng hay `src/infrastructure`). Cấm join xuyên cơ sở dữ liệu; cần `penaltyAmount` thì gọi HTTP `GET /api/attendance` của B, cần `baseSalary` thì gọi HTTP `GET /api/employees/:id` của B.
 - **Cách service nhận danh tính người dùng (vai trò `admin`/`manager`/`staff`):** tài liệu chỉ nêu middleware `hrm-session` gắn `req.user` ở identity-service. Cách các service khác lấy được danh tính và vai trò chưa được quy định. Hỏi A trước khi làm phần phân quyền.
 - **Schema tài khoản công ty (bank-accounts) và cách quản lý số dư:** không được nêu.
 - **Giá trị `status` của Payout và Payslip:** không được nêu.

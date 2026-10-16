@@ -120,7 +120,7 @@ const taxResult = await payrollClient.getTaxCalculation(payload);
 
 ## 8. Quy Tắc Cấu Trúc Và Chất Lượng Bắt Buộc
 
-1. Mỗi backend service phải có đủ (Flat 3-Tier Mẫu A): `src/config/`, `src/controllers/`, `src/routes/`, `src/middlewares/`, `src/services/` (gọi trực tiếp Prisma), `src/validators/` (nếu có), `src/clients/` (nếu có), `src/utils/`, `tests/`, `.env.example`, `Dockerfile`, `package.json`, `server.js`. Cấm `src/api/`, `src/domain/`, `src/infrastructure/`, tầng `repositories` riêng.
+1. Mỗi backend service phải có đủ (Flat 3-Tier Mẫu A): `src/config/`, `src/controllers/`, `src/routes/`, `src/middlewares/`, `src/services/` (gọi trực tiếp Prisma), `src/validators/` (nếu có), `src/clients/` (nếu có), `src/utils/`, `tests/`, `.env.example`, `package.json`, `server.js`. Cấm `src/api/`, `src/domain/`, `src/infrastructure/`, tầng `repositories` riêng.
 2. Mỗi service (kể cả Gateway) phải có `GET /health` đúng khuôn `{ "status": "ok", "service": "...", "time": "..." }`.
 3. `src/utils/errors.js` không được import Express, driver CSDL, ORM hay thư viện HTTP.
 4. Controller không được chứa nghiệp vụ hay gọi trực tiếp Prisma; mọi nghiệp vụ và truy xuất Prisma nằm trong `src/services/`.

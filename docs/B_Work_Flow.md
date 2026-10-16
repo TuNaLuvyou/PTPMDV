@@ -37,19 +37,30 @@ Nếu cần thay đổi ở phần của người khác (thiếu endpoint, sai s
 ## 2. Chuẩn kỹ thuật bắt buộc
 
 ### 2.1 Cấu trúc service
-Mỗi service nằm trong `backend/<service-name>/` gồm:
+Mỗi service nằm trong `backend/<service-name>/` theo **Flat 3-Tier (Mẫu A)** — luồng chuẩn `Route -> Controller -> Service -> Prisma`:
 
+```text
+backend/<service-name>/
+├── prisma/                # schema.prisma + migration + seed riêng
+├── src/
+│   ├── config/            # database.js + index.js (đọc env)
+│   ├── clients/           # (nếu có) HTTP client gọi service khác, timeout 5000ms
+│   ├── controllers/       # nhận req/res, gọi Service, trả JSON
+│   ├── middlewares/       # xác thực, phân quyền, xử lý lỗi
+│   ├── routes/            # khai báo route Express
+│   ├── services/          # business logic + gọi trực tiếp Prisma (không qua repository)
+│   ├── validators/        # (nếu có) kiểm tra đầu vào
+│   ├── utils/             # errors.js, logger.js, ...
+│   └── app.js             # khởi tạo Express, CORS, parser, gắn route, health
+├── tests/
+│   ├── unit/
+│   └── integration/
+├── .env.example
+├── package.json
+└── server.js
 ```
-config/
-src/api/
-src/domain/
-src/services/
-src/infrastructure/
-tests/
-.env.example
-Dockerfile
-server.js
-```
+
+Cấm `config/` ở root, `src/api/`, `src/domain/`, `src/infrastructure/`, tầng `repositories` riêng.
 
 ### 2.2 Định dạng response
 - Thành công: `{ "data": ... }`
@@ -171,7 +182,7 @@ Mốc đầu tiên của A là gateway + identity. Cần bám sát để chạy 
 - [ ] Đúng cấu trúc thư mục service (mục 2.1).
 - [ ] Response đúng envelope `{data}` hoặc `{error: {code, message}}`.
 - [ ] Có `GET /health`.
-- [ ] Có `.env.example` và `Dockerfile`.
+- [ ] Có `.env.example` (mặc định trỏ Postgres local của chính service; Supabase để dạng comment, mỗi service 1 link riêng).
 - [ ] Email trùng bị từ chối, `role` chỉ nhận `admin`/`manager`/`staff`.
 - [ ] Chấm công tính phạt đúng; `Attendance.date` dùng `DD-MM-YYYY`.
 - [ ] Gọi liên service (nếu có) qua HTTP, timeout tối đa 5000ms, không import chéo mã nguồn.
@@ -184,7 +195,7 @@ Mốc đầu tiên của A là gateway + identity. Cần bám sát để chạy 
 
 Các mục sau không có trong tài liệu phân công. Không tự quyết định rồi coi như đã chốt. Hỏi A (nhóm trưởng) hoặc ghi rõ giả định trong PR.
 
-- **Cơ sở dữ liệu và ORM (đã chốt 5 DB trên 5 link Supabase riêng):** B sở hữu 2 DB riêng `hrm_organization` (4002) và `hrm_work` (4003), mỗi DB 1 Prisma schema + migration + `DATABASE_URL` riêng trỏ link Supabase riêng. Lớp lưu trữ đặt trong `src/infrastructure`. Cấm join xuyên cơ sở dữ liệu, cần dữ liệu chéo thì gọi HTTP timeout 5000ms.
+- **Cơ sở dữ liệu và ORM (đã chốt 5 DB trên 5 link Supabase riêng):** B sở hữu 2 DB riêng `hrm_organization` (4002) và `hrm_work` (4003), mỗi DB 1 Prisma schema + migration + `DATABASE_URL` riêng trỏ link Supabase riêng. Lớp lưu trữ nằm trong `src/services/` gọi trực tiếp Prisma (Mẫu A — không có tầng `repositories` riêng hay `src/infrastructure`). Cấm join xuyên cơ sở dữ liệu, cần dữ liệu chéo thì gọi HTTP timeout 5000ms.
 - **Cách service nhận danh tính người dùng (vai trò `admin`/`manager`/`staff`):** tài liệu chỉ nêu middleware `hrm-session` gắn `req.user` ở identity-service. Cách các service khác lấy được danh tính và vai trò chưa được quy định. Hỏi A trước khi làm phần phân quyền.
 - **Luật tính phạt chấm công:** mức phạt cụ thể lưu trong `AttendanceConfig`. Xem mục 5 để biết schema. Giá trị mặc định: `latePenaltyAmount=20000`, `gracePeriodMinutes=5`.
 - **Luồng `shift_swap`:** khi E tiếp nhận yêu cầu đổi ca và duyệt, có thể cần gọi vào `PUT /api/shifts/:id` của bạn để cập nhật phân công. Xác nhận luồng này với E trước khi làm.
