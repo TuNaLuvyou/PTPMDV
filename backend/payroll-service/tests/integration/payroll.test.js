@@ -11,6 +11,8 @@ test("bank-accounts + payout idempotent + payslip generate", { timeout: 90000 },
   const base = `http://localhost:${port}`;
   const json = { "Content-Type": "application/json" };
 
+  try {
+
   // Bank accounts seed (create test account if empty)
   let res = await fetch(`${base}/api/payroll/bank-accounts`);
   let body = await res.json();
@@ -97,9 +99,7 @@ test("bank-accounts + payout idempotent + payslip generate", { timeout: 90000 },
     body: JSON.stringify({ bonus: 2000000 }),
   });
   body = await res.json();
-  console.log("CHECK NET:", typeof body.data?.netSalary, body.data?.netSalary, "EXPECTED:", 10000000 + 2000000 - 20000);
   assert.equal(Number(body.data.netSalary), 10000000 + 2000000 - 20000);
-  void psId;
 
   // Chốt phiếu
   res = await fetch(`${base}/api/payroll/payslips/${slip.id}/status`, {
@@ -110,7 +110,8 @@ test("bank-accounts + payout idempotent + payslip generate", { timeout: 90000 },
   body = await res.json();
   assert.equal(res.status, 200);
   assert.equal(body.data.status, "đã chốt");
-
-  if (server.closeAllConnections) server.closeAllConnections();
-  await new Promise((r) => server.close(r));
+  } finally {
+    if (server.closeAllConnections) server.closeAllConnections();
+    await new Promise((r) => server.close(r));
+  }
 });

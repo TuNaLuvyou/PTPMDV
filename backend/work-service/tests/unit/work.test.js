@@ -2,7 +2,7 @@
 
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
-const { validateShift, validateTask } = require("../../src/api/validators/workValidator");
+const { validateShift, validateTask } = require("../../src/validators/workValidator");
 
 test("validateShift + validateTask", () => {
   assert.ok(validateShift({}).length > 0);

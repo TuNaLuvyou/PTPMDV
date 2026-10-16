@@ -25,7 +25,7 @@
 Quy tắc ranh giới:
 
 1. Agent được giao service nào thì chỉ tạo/sửa file trong `backend/<ten-service>/` đó **và chỉ truy cập database của chính service đó**.
-2. Cấm đọc/ghi trực tiếp DB của service khác, cấm join xuyên cơ sở dữ liệu, cấm FK xuyên cơ sở dữ liệu. Cần dữ liệu chéo thì gọi HTTP qua `external-clients/` (timeout 5000ms).
+2. Cấm đọc/ghi trực tiếp DB của service khác, cấm join xuyên cơ sở dữ liệu, cấm FK xuyên cơ sở dữ liệu. Cần dữ liệu chéo thì gọi HTTP qua `src/clients/` (timeout 5000ms).
 2. Không sửa service của người khác, `frontend/` hay `mobile/` trừ khi đề bài ghi rõ.
 3. Khi cần thay đổi ở phần của người khác (thiếu endpoint, sai schema, sai envelope), không tự sửa. Ghi lại service, endpoint, kỳ vọng và thực tế rồi báo cho chủ service hoặc nhóm trưởng.
 
@@ -65,7 +65,7 @@ Ví dụ đặt tên nhánh đúng:
 
 Agent phải tự kiểm tra toàn bộ mục sau và tick đầy đủ trước khi nhờ review:
 
-- [ ] Đúng cấu trúc thư mục service theo `docs/TECHS.md`.
+- [ ] Đúng cấu trúc Flat 3-Tier (Mẫu A) theo `docs/TECHS.md` §3.1 (cấm `src/api/`, `src/domain/`, `src/infrastructure/`).
 - [ ] Response đúng envelope `{data}` hoặc `{error: {code, message}}` theo `docs/RULES.md` (trừ tuyến SOAP trả XML).
 - [ ] Có `GET /health` đúng khuôn.
 - [ ] Có `.env.example` và `Dockerfile`.

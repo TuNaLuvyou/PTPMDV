@@ -2,7 +2,7 @@
 
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
-const { validatePayout, validateGenerate } = require("../../src/api/validators/payrollValidator");
+const { validatePayout, validateGenerate } = require("../../src/validators/payrollValidator");
 
 test("validators", () => {
   assert.ok(validatePayout({}).length > 0);

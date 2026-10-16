@@ -79,7 +79,7 @@ Ngoại lệ duy nhất: tuyến `POST /soap/payroll` nhận và trả XML, lỗ
 ## 6. Quy Tắc Giao Tiếp Giữa Các Service Và Database-Per-Service (Đã Chốt 5 DB)
 
 1. Quyết định đã chốt: **5 database Postgres riêng trên 5 link Supabase riêng**, mỗi service nghiệp vụ 1 DB: `hrm_identity` (4001), `hrm_organization` (4002), `hrm_work` (4003), `hrm_payroll` (4004), `hrm_integration` (4005). Gateway (4000) stateless, không có DB.
-2. Gọi liên service **chỉ qua HTTP REST hoặc gRPC**, đặt adapter trong `src/infrastructure/external-clients/`.
+2. Gọi liên service **chỉ qua HTTP REST hoặc gRPC**, đặt adapter trong `src/clients/`.
 2. **Timeout tối đa 5000ms** cho mọi cuộc gọi HTTP giữa các service.
 3. **Cấm import code trực tiếp từ service khác**, ví dụ:
 
@@ -88,7 +88,7 @@ Ngoại lệ duy nhất: tuyến `POST /soap/payroll` nhận và trả XML, lỗ
 const { calculateTax } = require("../../payroll-service/src/services/tax");
 
 // ĐÚNG — gọi qua client adapter
-const payrollClient = require("../infrastructure/external-clients/PayrollClient");
+const payrollClient = require("../clients/PayrollClient");
 const taxResult = await payrollClient.getTaxCalculation(payload);
 ```
 
@@ -120,10 +120,10 @@ const taxResult = await payrollClient.getTaxCalculation(payload);
 
 ## 8. Quy Tắc Cấu Trúc Và Chất Lượng Bắt Buộc
 
-1. Mỗi backend service phải có đủ: `config/`, `src/api/`, `src/domain/`, `src/services/`, `src/infrastructure/`, `tests/`, `.env.example`, `Dockerfile`, `docker-compose.yml`, `package.json`, `server.js`.
+1. Mỗi backend service phải có đủ (Flat 3-Tier Mẫu A): `src/config/`, `src/controllers/`, `src/routes/`, `src/middlewares/`, `src/services/` (gọi trực tiếp Prisma), `src/validators/` (nếu có), `src/clients/` (nếu có), `src/utils/`, `tests/`, `.env.example`, `Dockerfile`, `package.json`, `server.js`. Cấm `src/api/`, `src/domain/`, `src/infrastructure/`, tầng `repositories` riêng.
 2. Mỗi service (kể cả Gateway) phải có `GET /health` đúng khuôn `{ "status": "ok", "service": "...", "time": "..." }`.
-3. Tầng `domain/` không được import Express, driver CSDL, ORM hay thư viện HTTP.
-4. Controller không được chứa nghiệp vụ, SQL hay sửa dữ liệu trực tiếp.
+3. `src/utils/errors.js` không được import Express, driver CSDL, ORM hay thư viện HTTP.
+4. Controller không được chứa nghiệp vụ hay gọi trực tiếp Prisma; mọi nghiệp vụ và truy xuất Prisma nằm trong `src/services/`.
 5. Cổng kiểm tra chất lượng:
    - Backend: service khởi động sạch bằng `cd backend/<ten-service> && npm install && npm run dev`; test của service phải qua.
    - Web: `npx tsc --noEmit` 0 lỗi; `npm run build` thành công.

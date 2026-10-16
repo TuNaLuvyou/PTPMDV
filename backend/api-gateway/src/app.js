@@ -5,10 +5,10 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const morgan = require("morgan");
 const { createProxyMiddleware } = require("http-proxy-middleware");
-const config = require("../config");
-const { errorHandler } = require("./api/middlewares/errorHandler");
-const { createAuthMiddleware } = require("./api/middlewares/auth");
-const { createRateLimitMiddleware } = require("./api/middlewares/rateLimit");
+const config = require("./config");
+const { errorHandler } = require("./middlewares/errorHandler");
+const { createAuthMiddleware } = require("./middlewares/auth");
+const { createRateLimitMiddleware } = require("./middlewares/rateLimit");
 
 const app = express();
 

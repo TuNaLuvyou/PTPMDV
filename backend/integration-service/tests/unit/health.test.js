@@ -2,7 +2,7 @@
 
 const assert = require("node:assert/strict");
 const { test, describe } = require("node:test");
-const config = require("../../config");
+const config = require("../../src/config");
 
 describe("Health Check Unit Test", () => {
   test("Cấu hình health check có serviceName và port chuẩn", () => {

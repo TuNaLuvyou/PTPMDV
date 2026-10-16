@@ -2,7 +2,7 @@
 
 require("dotenv").config();
 const app = require("./src/app");
-const config = require("./config");
+const config = require("./src/config");
 
 const PORT = config.port || 4000;
 

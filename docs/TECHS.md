@@ -28,7 +28,7 @@ Ba tầng chính trong monorepo:
 | Thành phần / Tầng | Công nghệ chính | Thư viện và công cụ bổ trợ | Vai trò trong hệ thống |
 |---|---|---|---|
 | **Web Portal** | **Next.js 16 (App Router)** | React 19, Tailwind CSS v4, Font Awesome | Cổng quản trị cho ban giám đốc, nhân sự, quản lý chi nhánh, kế toán |
-| **Backend** | **Express (Node.js >= 18)** | Express 4.x, Clean Architecture / Hexagonal, REST JSON + SOAP XML | Cung cấp các service nghiệp vụ độc lập |
+| **Backend** | **Express (Node.js >= 18)** | Express 4.x, Flat 3-Tier Architecture (Mẫu A), REST JSON + SOAP XML | Cung cấp các service nghiệp vụ độc lập |
 | **Xác thực** | **JWT thuần (không qua bên thứ ba)** | Access Token + Refresh Token, cookie `hrm-session` | Xác thực phi trạng thái, phân quyền theo vai trò (RBAC) |
 | **Cơ sở dữ liệu** | **5 Postgres riêng (database-per-service)** | RDBMS, chuẩn ACID, hỗ trợ transaction, JSONB | Mỗi service 1 DB riêng (`hrm_identity`, `hrm_organization`, `hrm_work`, `hrm_payroll`, `hrm_integration`); Gateway không DB; cấm dùng chung |
 | **ORM** | **Prisma (mỗi service 1 schema riêng)** | Prisma Client, Prisma Migrate, truy vấn type-safe | Mỗi service khai báo `schema.prisma` + migration + seed riêng, cấm schema tập trung dùng chung |
@@ -38,45 +38,40 @@ Ba tầng chính trong monorepo:
 
 ## 3. Kiến Trúc Backend (Mỗi Service Là Một Gói Node Độc Lập)
 
-### 3.1. Cấu Trúc Thư Mục Chuẩn (Bắt Buộc 100%)
+### 3.1. Cấu Trúc Thư Mục Chuẩn (Bắt Buộc 100%) — Flat 3-Tier Architecture (Mẫu A)
 
-Mọi service trong `backend/<ten-service>/` phải tuân thủ đúng cấu trúc sau:
+Mọi service trong `backend/<ten-service>/` phải tuân thủ đúng cấu trúc phẳng dưới đây (luồng chuẩn `Route -> Controller -> Service -> Prisma`):
 
 ```text
 backend/<ten-service>/
-├── config/
-│   ├── index.js                # Đọc và kiểm tra biến môi trường, có giá trị mặc định
-│   └── database.js             # Kết nối CSDL (PostgreSQL / MongoDB) hoặc kho lưu trữ trong bộ nhớ (in-memory)
+├── prisma/                       # Giữ nguyên: schema.prisma + migration + seed riêng
 ├── src/
-│   ├── api/
-│   │   ├── controllers/        # Nhận req/res, gọi Use Case, trả JSON (không chứa nghiệp vụ)
-│   │   ├── middlewares/        # Xác thực, phân quyền, kiểm tra dữ liệu, xử lý lỗi
-│   │   ├── routes/             # Khai báo route Express, gắn HTTP verb với controller
-│   │   ├── validators/         # Schema kiểm tra đầu vào (Joi hoặc Zod)
-│   │   └── grpc/               # Cài đặt gRPC (nếu có)
-│   ├── domain/
-│   │   ├── entities/           # Đối tượng nghiệp vụ (Employee, Payout, Shift...)
-│   │   ├── errors/             # Lớp lỗi nghiệp vụ (NotFoundError, ValidationError...)
-│   │   └── value-objects/      # Giá trị bất biến (Money, Email, Address, Status...)
-│   ├── services/               # Tầng ứng dụng / Use Case (mỗi file một hành động nghiệp vụ)
-│   ├── infrastructure/
-│   │   ├── database/
-│   │   │   ├── models/         # Schema ORM (Prisma, Mongoose...)
-│   │   │   └── repositories/   # Cài đặt truy xuất CSDL cụ thể
-│   │   ├── messaging/          # Gửi / nhận sự kiện (RabbitMQ, Kafka, EventBus)
-│   │   ├── external-clients/   # Client HTTP/gRPC gọi sang service khác hoặc bên thứ ba
-│   │   └── logging/            # Logger tập trung (Winston hoặc Pino)
-│   ├── utils/                  # Hàm thuần túy (định dạng ngày, mã hóa...)
-│   └── app.js                  # Khởi tạo Express, CORS, parser, gắn route, health check
+│   ├── config/                   # Đọc và kiểm tra biến môi trường, kết nối CSDL
+│   │   ├── database.js           # Kết nối Postgres (Prisma) hoặc fallback in-memory
+│   │   └── index.js              # Đọc env, có giá trị mặc định
+│   ├── clients/                  # (Nếu có) Client HTTP gọi sang service khác, timeout 5000ms
+│   ├── controllers/              # Nhận req/res, gọi Service, trả JSON (không chứa nghiệp vụ)
+│   ├── middlewares/              # Xác thực, phân quyền, kiểm tra dữ liệu, xử lý lỗi
+│   ├── routes/                   # Khai báo route Express, gắn HTTP verb với controller
+│   ├── services/                 # Chứa toàn bộ Business Logic + gọi trực tiếp Prisma (không qua repository)
+│   ├── validators/               # (Nếu có) Schema kiểm tra đầu vào (Joi hoặc Zod)
+│   ├── utils/                    # Hàm thuần túy: errors.js, logger.js, jwt.js, constants...
+│   │   ├── errors.js             # Lớp lỗi nghiệp vụ (NotFoundError, ValidationError...)
+│   │   ├── logger.js             # Logger tập trung (Winston hoặc Pino / console)
+│   │   └── jwt.js                # (Nếu có) Helper JWT
+│   └── app.js                    # Khởi tạo Express, CORS, parser, gắn route, health check
 ├── tests/
-│   ├── unit/                   # Kiểm thử entity và use case
-│   └── integration/            # Kiểm thử API đầu cuối
-├── .env.example                # Mẫu biến môi trường (bắt buộc)
-├── Dockerfile                  # Hướng dẫn build container (bắt buộc)
-├── docker-compose.yml          # Vận hành service và CSDL kèm theo (bắt buộc)
-├── package.json                # Phụ thuộc và script riêng của service (bắt buộc)
-└── server.js                   # Điểm vào: nạp env, nối CSDL, lắng nghe cổng (bắt buộc)
+│   ├── unit/                     # Kiểm thử validator và service
+│   └── integration/              # Kiểm thử API đầu cuối
+├── .env.example                  # Mẫu biến môi trường (bắt buộc)
+├── Dockerfile                    # Hướng dẫn build container (bắt buộc)
+├── package.json                  # Phụ thuộc và script riêng của service (bắt buộc)
+└── server.js                     # Điểm vào: nạp env, nối CSDL, lắng nghe cổng (bắt buộc)
 ```
+
+*(Riêng `api-gateway`: chỉ cần `src/config/` + `src/middlewares/`, stateless không DB, không có `services/`/`prisma/`).*
+
+> Cấm tuyệt đối các thư mục cũ: `config/` ở root (phải nằm trong `src/config/`), `src/api/`, `src/domain/`, `src/infrastructure/`, `src/domain/entities/`, `src/infrastructure/database/repositories/`.
 
 ### 3.2. Vai Trò Từng Lớp
 
@@ -98,25 +93,20 @@ backend/<ten-service>/
    }
    ```
 
-4. **Tầng trình bày (`src/api/`)**:
-   - `controllers/` chỉ nhận `(req, res, next)`, trích xuất tham số, gọi Use Case, trả JSON chuẩn. Cấm viết nghiệp vụ, SQL hay sửa dữ liệu trực tiếp.
-   - `middlewares/` gồm `auth.js` (kiểm tra Bearer Token hoặc cookie `hrm-session`, gắn `req.user`), `validation.js` (kiểm tra body/query/params theo `validators/`), `errorHandler.js` (ánh xạ lỗi domain sang mã HTTP).
+4. **Tầng trình bày (`src/controllers/`, `src/routes/`, `src/middlewares/`, `src/validators/`)**:
+   - `controllers/` chỉ nhận `(req, res, next)`, trích xuất tham số, gọi Service, trả JSON chuẩn. Cấm viết nghiệp vụ, SQL hay sửa dữ liệu trực tiếp ngoài Service.
+   - `middlewares/` gồm `auth.js` (kiểm tra Bearer Token hoặc cookie `hrm-session`, gắn `req.user`), `validation.js` (kiểm tra body/query/params theo `validators/`), `errorHandler.js` (ánh xạ lỗi từ `utils/errors.js` sang mã HTTP).
    - `routes/` gắn động từ HTTP với controller, ví dụ `router.post("/", controller.create)`.
 
-4. **Tầng miền (`src/domain/`)**:
-   - Chứa logic nghiệp vụ cốt lõi, thuần JavaScript, không được import Express, driver CSDL, ORM hay thư viện HTTP.
-   - `entities/` là lớp hoặc hàm factory đóng gói trạng thái và ràng buộc nghiệp vụ.
-   - `value-objects/` là đối tượng bất biến (`Money`, `Address`, `WorkShiftStatus`...).
-   - `errors/` là lớp lỗi kế thừa `Error` (`EmployeeNotFoundError`, `InsufficientBalanceError`...).
+4. **Tầng nghiệp vụ (`src/services/` — gộp Use Case + Repository)**:
+   - Mỗi file là một Service theo miền (`WorkService.js`, `PayoutService.js`...), chứa toàn bộ business logic và **gọi trực tiếp Prisma**, không qua tầng `repositories`.
+   - Không dùng class Entity / Value-Object map 1-1 với Prisma. Nếu cần ẩn trường nhạy cảm (như `password`) hay format DTO thì viết helper function ngay trong Service hoặc `src/utils/`.
+   - Lỗi nghiệp vụ ném từ `src/utils/errors.js` (`EmployeeNotFoundError`, `InsufficientBalanceError`...).
 
-5. **Tầng ứng dụng (`src/services/`)**:
-   - Mỗi Use Case là một hành động nghiệp vụ (`CreatePayoutUseCase`, `ApproveRequestUseCase`).
-   - Điều phối entity và repository, chỉ truy xuất dữ liệu qua interface repository được tiêm vào.
-
-6. **Tầng hạ tầng (`src/infrastructure/`)**:
-   - `database/repositories/` cài đặt truy xuất CSDL cụ thể.
-   - `external-clients/` gọi HTTP/gRPC sang service khác hoặc cổng ngân hàng, bắt buộc timeout tối đa 5000ms và có chính sách thử lại.
-   - `logging/` cấu hình log thống nhất.
+6. **Hạ tầng tinh gọn (`src/config/`, `src/clients/`, `src/utils/`)**:
+   - `src/config/database.js` quản lý kết nối Prisma + fallback in-memory; `src/config/index.js` đọc env.
+   - `src/clients/` gọi HTTP sang service khác hoặc cổng ngân hàng, bắt buộc timeout tối đa 5000ms và có chính sách thử lại.
+   - `src/utils/logger.js` cấu hình log thống nhất.
 
 ### 3.3. Phân Bổ Cổng Và Bảng Đăng Ký Service
 
@@ -218,9 +208,9 @@ lib/src/
 
 ### 6.3. Các mẫu kiến trúc trong môn PTPMDV
 
-- **IPC (giao tiếp giữa các service)**: gọi qua `src/infrastructure/external-clients/` bằng HTTP REST, timeout tối đa 5000ms; cấm import code trực tiếp giữa các service; `integration-service` dùng SOAP XML mô phỏng cổng ngân hàng.
+- **IPC (giao tiếp giữa các service)**: gọi qua `src/clients/` bằng HTTP REST, timeout tối đa 5000ms; cấm import code trực tiếp giữa các service; `integration-service` dùng SOAP XML mô phỏng cổng ngân hàng.
 - **SAGA (giao dịch phân tán)**: SAGA điều phối cho luồng chi lương `payroll-service` → `integration-service` (cổng SOAP) → phát sinh giao dịch bù trừ nếu thất bại; mỗi bước ghi log `PENDING → SUCCESS / COMPENSATED`.
-- **DDD và Event Sourcing**: tách domain rõ theo từng service (`domain/entities/`, `domain/value-objects/`, `domain/errors/`); sự kiện quan trọng (checkout ca, duyệt đơn, tạo phiếu lương) thiết kế dạng event để tái hiện trạng thái.
+- **DDD và Event Sourcing**: tách domain rõ theo từng service (mỗi service sở hữu `src/services/` + schema Prisma riêng); sự kiện quan trọng (checkout ca, duyệt đơn, tạo phiếu lương) thiết kế dạng event để tái hiện trạng thái. Không dùng `domain/entities/`, `domain/value-objects/` hay tầng `repositories` riêng.
 - **CQRS và API Composition**: Gateway tổng hợp dữ liệu nhiều service thành một response cho frontend; tách luồng đọc (GET) và luồng ghi (POST/PUT/DELETE) ở controller.
 - **API Gateway và BFF**: Gateway (cổng 4000) là điểm vào duy nhất, làm xác thực JWT, giới hạn tần suất, định tuyến, không chứa nghiệp vụ; Web nhận payload đầy đủ cho quản trị, Mobile nhận payload gọn cho băng thông di động.
 - **Triển khai production-ready**: mỗi service có `Dockerfile` riêng; `docker-compose.yml` gốc điều phối toàn stack; phân phiên bản API bằng tiền tố `/api/v1/`; mỗi service mở `GET /health` cho giám sát.

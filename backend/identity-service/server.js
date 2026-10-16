@@ -2,14 +2,14 @@
 
 require("dotenv").config();
 const app = require("./src/app");
-const config = require("./config");
-const database = require("./config/database");
-const UserRepository = require("./src/infrastructure/database/repositories/UserRepository");
+const config = require("./src/config");
+const database = require("./src/config/database");
+const AuthService = require("./src/services/AuthService");
 
 async function startServer() {
   try {
     await database.connect();
-    await UserRepository.ensureSeeded().catch((e) => {
+    await AuthService.ensureSeeded().catch((e) => {
       console.warn("[identity-service] Seed bỏ qua:", e.message);
     });
     if (require.main === module) {

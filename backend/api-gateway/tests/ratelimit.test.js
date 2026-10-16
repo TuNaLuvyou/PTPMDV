@@ -3,7 +3,7 @@
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
 
-const { createRateLimitMiddleware } = require("../src/api/middlewares/rateLimit");
+const { createRateLimitMiddleware } = require("../src/middlewares/rateLimit");
 
 function mockReqRes(path = "/api/employees") {
   const req = { path, ip: "127.0.0.1", socket: {} };

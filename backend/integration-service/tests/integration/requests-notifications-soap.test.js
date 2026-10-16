@@ -11,11 +11,20 @@ test("notifications CRUD + read", async () => {
   const base = `http://localhost:${port}`;
   const json = { "Content-Type": "application/json" };
 
-  // Broadcast luôn trả về cho mọi nhân viên
-  let res = await fetch(`${base}/api/notifications?employeeId=ai-do`);
-  let body = await res.json();
-  assert.equal(res.status, 200);
-  assert.ok(body.data.some((n) => n.targetEmployeeId === null));
+  try {
+    // Tạo 1 thông báo broadcast (không targetEmployeeId) rồi kiểm tra
+    let res = await fetch(`${base}/api/notifications`, {
+      method: "POST",
+      headers: json,
+      body: JSON.stringify({ title: "Thông báo chung", body: "Nội dung broadcast" }),
+    });
+    assert.equal(res.status, 201);
+
+    // Broadcast luôn trả về cho mọi nhân viên
+    res = await fetch(`${base}/api/notifications?employeeId=ai-do`);
+    let body = await res.json();
+    assert.equal(res.status, 200);
+    assert.ok(body.data.some((n) => n.targetEmployeeId === null));
 
   // Thiếu body -> 400
   res = await fetch(`${base}/api/notifications`, {
@@ -42,7 +51,9 @@ test("notifications CRUD + read", async () => {
   res = await fetch(`${base}/api/notifications/${id}`, { method: "DELETE" });
   assert.equal(res.status, 200);
 
-  server.close();
+  } finally {
+    server.close();
+  }
 });
 
 test("SOAP WSDL + Fault khi thiếu trường", async () => {
@@ -52,7 +63,8 @@ test("SOAP WSDL + Fault khi thiếu trường", async () => {
   const port = server.address().port;
   const base = `http://localhost:${port}`;
 
-  let res = await fetch(`${base}/soap/payroll?wsdl`);
+  try {
+    let res = await fetch(`${base}/soap/payroll?wsdl`);
   let text = await res.text();
   assert.equal(res.status, 200);
   assert.ok(res.headers.get("content-type").includes("xml"));
@@ -77,5 +89,7 @@ test("SOAP WSDL + Fault khi thiếu trường", async () => {
   text = await res.text();
   assert.ok(text.includes("soap:Fault"));
 
-  server.close();
+  } finally {
+    server.close();
+  }
 });
