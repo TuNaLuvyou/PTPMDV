@@ -68,7 +68,7 @@ Agent phải tự kiểm tra toàn bộ mục sau và tick đầy đủ trước
 - [ ] Đúng cấu trúc Flat 3-Tier (Mẫu A) theo `docs/TECHS.md` §3.1 (cấm `src/api/`, `src/domain/`, `src/infrastructure/`).
 - [ ] Response đúng envelope `{data}` hoặc `{error: {code, message}}` theo `docs/RULES.md` (trừ tuyến SOAP trả XML).
 - [ ] Có `GET /health` đúng khuôn.
-- [ ] Có `.env.example` và `Dockerfile`.
+- [ ] Có `.env.example` (mặc định trỏ Postgres local của chính service; Supabase để dạng comment, mỗi service 1 link riêng).
 - [ ] Gọi liên service qua HTTP, timeout tối đa 5000ms, không import chéo mã nguồn, không join xuyên cơ sở dữ liệu.
 - [ ] Đúng database của service mình (`hrm_identity` / `hrm_organization` / `hrm_work` / `hrm_payroll` / `hrm_integration`), có migration và `DATABASE_URL` riêng.
 - [ ] Nhánh đặt tên `feat/...` hoặc `fix/...`, đích pull request là `dev`.

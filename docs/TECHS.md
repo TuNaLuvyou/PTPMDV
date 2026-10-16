@@ -64,7 +64,6 @@ backend/<ten-service>/
 │   ├── unit/                     # Kiểm thử validator và service
 │   └── integration/              # Kiểm thử API đầu cuối
 ├── .env.example                  # Mẫu biến môi trường (bắt buộc)
-├── Dockerfile                    # Hướng dẫn build container (bắt buộc)
 ├── package.json                  # Phụ thuộc và script riêng của service (bắt buộc)
 └── server.js                     # Điểm vào: nạp env, nối CSDL, lắng nghe cổng (bắt buộc)
 ```
@@ -194,7 +193,7 @@ lib/src/
 ### 6.2. Cơ sở dữ liệu: 5 Postgres riêng (database-per-service, đã chốt)
 
 - Quyết định đã chốt: mỗi service nghiệp vụ sở hữu **1 database Postgres riêng**, tổng **5 DB**: `hrm_identity` (4001), `hrm_organization` (4002), `hrm_work` (4003), `hrm_payroll` (4004), `hrm_integration` (4005). Gateway (4000) stateless, không có DB.
-- Triển khai: **5 link Supabase riêng** (mỗi service 1 project/link Supabase với `DATABASE_URL` riêng trong `.env.example` của chính mình). Môi trường local dùng `docker-compose.yml` với 5 database tương ứng để dev/test. Gateway (4000) stateless, không có DB.
+- Triển khai: **5 link Supabase riêng** (mỗi service 1 project/link Supabase với `DATABASE_URL` riêng trong `.env.example` của chính mình). Môi trường local: `docker-compose.yml` gốc dựng **5 container Postgres riêng biệt** — 5 server/node/volume/port độc lập (`5433`–`5437`) để dev/test, cách ly failure domain thật; app service chạy ngoài Docker bằng `npm run dev`. Gateway (4000) stateless, không có DB.
 - Tuân thủ ACID trong phạm vi từng DB, hỗ trợ transaction, khóa bi quan / lạc quan khi giải ngân lương, index phong phú, JSONB cho cấu hình linh hoạt.
 - Prisma: mỗi service có `prisma/schema.prisma` + migration + seed riêng, truy vấn type-safe. Cấm dùng chung schema Prisma giữa các service.
 - Cấm tuyệt đối: join xuyên cơ sở dữ liệu, foreign key xuyên cơ sở dữ liệu, đọc bảng của service khác trực tiếp. Tham chiếu chéo chỉ lưu dạng chuỗi (`employeeId`, `branchSlug`, `shiftId`), cần chi tiết thì gọi HTTP qua `external-clients/` (timeout 5000ms).
@@ -213,4 +212,4 @@ lib/src/
 - **DDD và Event Sourcing**: tách domain rõ theo từng service (mỗi service sở hữu `src/services/` + schema Prisma riêng); sự kiện quan trọng (checkout ca, duyệt đơn, tạo phiếu lương) thiết kế dạng event để tái hiện trạng thái. Không dùng `domain/entities/`, `domain/value-objects/` hay tầng `repositories` riêng.
 - **CQRS và API Composition**: Gateway tổng hợp dữ liệu nhiều service thành một response cho frontend; tách luồng đọc (GET) và luồng ghi (POST/PUT/DELETE) ở controller.
 - **API Gateway và BFF**: Gateway (cổng 4000) là điểm vào duy nhất, làm xác thực JWT, giới hạn tần suất, định tuyến, không chứa nghiệp vụ; Web nhận payload đầy đủ cho quản trị, Mobile nhận payload gọn cho băng thông di động.
-- **Triển khai production-ready**: mỗi service có `Dockerfile` riêng; `docker-compose.yml` gốc điều phối toàn stack; phân phiên bản API bằng tiền tố `/api/v1/`; mỗi service mở `GET /health` cho giám sát.
+- **Triển khai production-ready**: `docker-compose.yml` gốc dựng hạ tầng DB local (**5 Postgres riêng**, mỗi service 1 container/volume/port); production trỏ `DATABASE_URL` về 5 link Supabase riêng; phân phiên bản API bằng tiền tố `/api/v1/`; mỗi service mở `GET /health` cho giám sát.

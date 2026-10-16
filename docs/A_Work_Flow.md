@@ -42,21 +42,32 @@ Nếu cần thay đổi ở service của người khác (thiếu endpoint, sai 
 ## 2. Chuẩn kỹ thuật bắt buộc
 
 ### 2.1 Cấu trúc service
-Mỗi service nằm trong `backend/<service-name>/` gồm:
+Mỗi service nằm trong `backend/<service-name>/` theo **Flat 3-Tier (Mẫu A)** — luồng chuẩn `Route -> Controller -> Service -> Prisma`:
 
-```
-config/
-src/api/
-src/domain/
-src/services/
-src/infrastructure/
-tests/
-.env.example
-Dockerfile
-server.js
+```text
+backend/<service-name>/
+├── prisma/                # schema.prisma + migration + seed riêng
+├── src/
+│   ├── config/            # database.js + index.js (đọc env)
+│   ├── clients/           # (nếu có) HTTP client gọi service khác, timeout 5000ms
+│   ├── controllers/       # nhận req/res, gọi Service, trả JSON
+│   ├── middlewares/       # xác thực, phân quyền, xử lý lỗi
+│   ├── routes/            # khai báo route Express
+│   ├── services/          # business logic + gọi trực tiếp Prisma (không qua repository)
+│   ├── validators/        # (nếu có) kiểm tra đầu vào
+│   ├── utils/             # errors.js, logger.js, ...
+│   └── app.js             # khởi tạo Express, CORS, parser, gắn route, health
+├── tests/
+│   ├── unit/
+│   └── integration/
+├── .env.example
+├── package.json
+└── server.js
 ```
 
-Áp dụng cho `api-gateway` và `identity-service`.
+Áp dụng cho `api-gateway` và `identity-service`. Riêng `api-gateway` chỉ cần `src/config/` + `src/middlewares/`, stateless không DB, không có `prisma/`/`services/`.
+
+Cấm `config/` ở root, `src/api/`, `src/domain/`, `src/infrastructure/`, tầng `repositories` riêng.
 
 ### 2.2 Định dạng response
 - Thành công: `{ "data": ... }`
@@ -101,7 +112,7 @@ Tài liệu PTPMDV không nêu định dạng body của `/health`. Nên giữ t
 - [x] Cấu hình CORS.
 - [x] Xử lý lỗi tập trung, trả đúng envelope `{error: {code, message}}`.
 - [x] `GET /health` cho gateway.
-- [x] Viết `docker-compose` chạy đủ 6 thành phần (gateway + 5 service).
+- [x] Viết `docker-compose` dựng hạ tầng DB local: **5 Postgres riêng** (mỗi service 1 container/volume/port `5433`–`5437`); app service chạy ngoài Docker bằng `npm run dev`.
 - [x] Đặt timeout tối đa 5000ms khi proxy về service phía sau (suy ra từ mục 2.4).
 - [x] Rate-limiting và xác thực JWT đầu vào tại gateway (TECHS.md §6.3) **(đã xong trên `feat/gateway-hardening`: `auth.js` verify JWT + cookie `hrm-session`, `rateLimit.js` 429, forward `x-user-*`, E2E login qua gateway pass)**.
 
@@ -283,7 +294,7 @@ Thứ tự ưu tiên: hoàn thành gateway và identity trước, vì các thàn
 - [ ] Đúng cấu trúc thư mục service (mục 2.1).
 - [ ] Response đúng envelope `{data}` hoặc `{error: {code, message}}`.
 - [ ] Có `GET /health`.
-- [ ] Có `.env.example` và `Dockerfile`.
+- [ ] Có `.env.example` (mặc định trỏ Postgres local của chính service; Supabase để dạng comment, mỗi service 1 link riêng).
 - [ ] Gọi liên service qua HTTP, timeout tối đa 5000ms, không import chéo mã nguồn.
 - [ ] Nhánh đặt tên `feat/<service>-<tên>`, PR về `dev`.
 - [ ] Mobile không dùng `withOpacity`, dùng `AppColors`, `go_router`, Public Sans.
@@ -296,7 +307,7 @@ Thứ tự ưu tiên: hoàn thành gateway và identity trước, vì các thàn
 
 Các mục sau không có trong tài liệu phân công. Không tự quyết định rồi coi như đã chốt. Hỏi người A hoặc ghi rõ giả định trong PR.
 
-- **Cơ sở dữ liệu và ORM (đã chốt 5 DB trên 5 link Supabase riêng):** mỗi service 1 Postgres + Prisma riêng — A giữ `hrm_identity`; B giữ `hrm_organization` + `hrm_work`; D giữ `hrm_payroll`; E giữ `hrm_integration`, mỗi DB 1 `DATABASE_URL` riêng trỏ link Supabase riêng. Lớp lưu trữ đặt trong `src/infrastructure`. Cấm join xuyên cơ sở dữ liệu, cần dữ liệu chéo thì gọi HTTP timeout 5000ms. `api-gateway` (4000) không cần DB — chỉ routing và proxy. B duy nhất sở hữu 2 DB (`hrm_organization` và `hrm_work`).
+- **Cơ sở dữ liệu và ORM (đã chốt 5 DB trên 5 link Supabase riêng):** mỗi service 1 Postgres + Prisma riêng — A giữ `hrm_identity`; B giữ `hrm_organization` + `hrm_work`; D giữ `hrm_payroll`; E giữ `hrm_integration`, mỗi DB 1 `DATABASE_URL` riêng trỏ link Supabase riêng. Lớp lưu trữ nằm trong `src/services/` gọi trực tiếp Prisma (Mẫu A — không có tầng `repositories` riêng hay `src/infrastructure`). Cấm join xuyên cơ sở dữ liệu, cần dữ liệu chéo thì gọi HTTP timeout 5000ms. `api-gateway` (4000) không cần DB — chỉ routing và proxy. B duy nhất sở hữu 2 DB (`hrm_organization` và `hrm_work`).
 - **Ai soạn schema chung:** không có người được giao riêng việc thiết kế dữ liệu. Mỗi người tự lo model của service mình, còn mục 6 là chuẩn chung.
 - **Body request và response của `/api/auth/login`, `/api/auth/me`:** không được quy định chi tiết, chỉ bắt buộc đúng envelope.
 - **Mật khẩu và thông tin 3 tài khoản seed:** không được nêu.

@@ -37,19 +37,30 @@ Nếu cần thay đổi ở phần của người khác (thiếu endpoint, sai s
 ## 2. Chuẩn kỹ thuật bắt buộc
 
 ### 2.1 Cấu trúc service
-Mỗi service nằm trong `backend/<service-name>/` gồm:
+Mỗi service nằm trong `backend/<service-name>/` theo **Flat 3-Tier (Mẫu A)** — luồng chuẩn `Route -> Controller -> Service -> Prisma`:
 
+```text
+backend/<service-name>/
+├── prisma/                # schema.prisma + migration + seed riêng
+├── src/
+│   ├── config/            # database.js + index.js (đọc env)
+│   ├── clients/           # (nếu có) HTTP client gọi service khác, timeout 5000ms
+│   ├── controllers/       # nhận req/res, gọi Service, trả JSON
+│   ├── middlewares/       # xác thực, phân quyền, xử lý lỗi
+│   ├── routes/            # khai báo route Express
+│   ├── services/          # business logic + gọi trực tiếp Prisma (không qua repository)
+│   ├── validators/        # (nếu có) kiểm tra đầu vào
+│   ├── utils/             # errors.js, logger.js, ...
+│   └── app.js             # khởi tạo Express, CORS, parser, gắn route, health
+├── tests/
+│   ├── unit/
+│   └── integration/
+├── .env.example
+├── package.json
+└── server.js
 ```
-config/
-src/api/
-src/domain/
-src/services/
-src/infrastructure/
-tests/
-.env.example
-Dockerfile
-server.js
-```
+
+Cấm `config/` ở root, `src/api/`, `src/domain/`, `src/infrastructure/`, tầng `repositories` riêng.
 
 ### 2.2 Định dạng response
 - Thành công: `{ "data": ... }`
@@ -165,7 +176,7 @@ Mốc đầu tiên của A là gateway + identity. Cần bám sát để chạy 
 - [ ] Đúng cấu trúc thư mục service (mục 2.1).
 - [ ] Response đúng envelope `{data}` hoặc `{error: {code, message}}`.
 - [ ] Có `GET /health`.
-- [ ] Có `.env.example` và `Dockerfile`.
+- [ ] Có `.env.example` (mặc định trỏ Postgres local của chính service; Supabase để dạng comment, mỗi service 1 link riêng).
 - [ ] `GET /soap/payroll?wsdl` hợp lệ; lỗi trả `soap:Fault` với `faultcode = soap:Client`.
 - [ ] Duyệt/từ chối yêu cầu tự sinh thông báo; chỉ xóa yêu cầu khi `pending`.
 - [ ] Tạo/sửa/xóa bảng tin chỉ cho `admin`/`manager`.
@@ -179,7 +190,7 @@ Mốc đầu tiên của A là gateway + identity. Cần bám sát để chạy 
 
 Các mục sau không có trong tài liệu phân công. Không tự quyết định rồi coi như đã chốt. Hỏi A (nhóm trưởng) hoặc ghi rõ giả định trong PR.
 
-- **Cơ sở dữ liệu và ORM (đã chốt 5 DB trên 5 link Supabase riêng):** E sở hữu DB riêng `hrm_integration` (4005) với Prisma schema + migration + `DATABASE_URL` riêng trỏ link Supabase riêng. Lớp lưu trữ đặt trong `src/infrastructure`. Cấm join xuyên cơ sở dữ liệu; SOAP tạo lệnh chi thì gọi HTTP `POST /api/payroll/payouts` của D, duyệt `shift_swap`/`work_supplement` thì gọi HTTP sang work-service của B.
+- **Cơ sở dữ liệu và ORM (đã chốt 5 DB trên 5 link Supabase riêng):** E sở hữu DB riêng `hrm_integration` (4005) với Prisma schema + migration + `DATABASE_URL` riêng trỏ link Supabase riêng. Lớp lưu trữ nằm trong `src/services/` gọi trực tiếp Prisma (Mẫu A — không có tầng `repositories` riêng hay `src/infrastructure`). Cấm join xuyên cơ sở dữ liệu; SOAP tạo lệnh chi thì gọi HTTP `POST /api/payroll/payouts` của D, duyệt `shift_swap`/`work_supplement` thì gọi HTTP sang work-service của B.
 - **Cách service nhận danh tính người dùng (vai trò `admin`/`manager`/`staff`):** tài liệu chỉ nêu middleware `hrm-session` gắn `req.user` ở identity-service. Cách các service khác lấy được danh tính và vai trò chưa được quy định. Hỏi A trước khi làm phần phân quyền.
 - **Đường dẫn chính xác của requests, notifications và thao tác approve/reject/read:** tài liệu PTPMDV chỉ nêu phương thức HTTP, không nêu đường dẫn. **Phụ trách: E** đề xuất, A duyệt khi cấu hình gateway (A §5) **(suy ra)**.
 - **Cấu trúc WSDL:** không được nêu chi tiết, chỉ yêu cầu WSDL hợp lệ.
