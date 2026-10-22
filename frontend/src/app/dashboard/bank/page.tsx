@@ -200,14 +200,6 @@ export default function BankIntegrationPage() {
           <div className="flex items-center gap-2">
             <Button
               variant="white"
-              onClick={fetchData}
-              className="text-xs"
-              title="Tải lại tài khoản và lịch sử lệnh chi"
-            >
-              <FontAwesomeIcon icon={faRotateRight} fontSize={12} /> Tải lại
-            </Button>
-            <Button
-              variant="white"
               onClick={() => setTestModalOpen(true)}
               className="text-xs"
             >

@@ -31,16 +31,20 @@ interface AuthMeResponse {
 }
 
 function toSession(me: AuthMeResponse): UserSession {
-  const slug = (me.branchSlug || "HN-1").toLowerCase();
+  const slug = (me.branchSlug || "").toLowerCase();
   return {
     userId: me.id,
     name: me.name,
     email: me.email,
     role: me.role,
     roleTitle: me.roleTitle,
-    branchId: `b-${slug}`,
+    branchId: slug ? `b-${slug}` : "",
     branchSlug: slug,
-    branchName: slug === "hn-1" ? "Chi nhánh HN-1" : `Chi nhánh ${slug.toUpperCase()}`,
+    branchName: !slug
+      ? ""
+      : slug === "hn-1"
+        ? "Chi nhánh HN-1"
+        : `Chi nhánh ${slug.toUpperCase()}`,
   };
 }
 

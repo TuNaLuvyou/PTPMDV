@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEnvelope, faEye, faEyeSlash, faLock, faUserGear } from "@fortawesome/free-solid-svg-icons";
+import { faEnvelope, faEye, faEyeSlash, faLock } from "@fortawesome/free-solid-svg-icons";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { Field, Input, Checkbox } from "@/components/ui/Form";
@@ -63,21 +63,12 @@ export default function LoginPage() {
 
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 py-10">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2.5 mb-4">
-            <span className="w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center shadow-md">
-              <FontAwesomeIcon icon={faUserGear} fontSize={28} />
-            </span>
-            <span className="text-2xl font-bold text-gray-800 tracking-tight">HRM System</span>
-          </div>
-          <h1 className="text-2xl font-semibold mb-1 text-gray-900">Đăng nhập Quản trị</h1>
-          <p className="text-gray-500 text-sm">Cổng quản trị dành cho Ban Giám đốc & Quản lý Chi nhánh</p>
-        </div>
+    <main className="w-full max-w-md py-6">
+      <div className="text-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Đăng nhập</h1>
+      </div>
 
-
-        <div className="bg-white rounded-xl border border-gray-300 shadow-card p-6">
+      <div className="bg-white rounded-xl border border-gray-300 shadow-card p-6">
           <form onSubmit={handleLogin}>
             <Field label="Email tài khoản" required>
               <div className="relative">
@@ -138,7 +129,6 @@ export default function LoginPage() {
         <p className="text-center text-xs text-gray-400 mt-6">
           © 2026 HRM System — Hệ thống Quản lý Nhân sự nội bộ doanh nghiệp
         </p>
-      </div>
 
       <Modal
         open={forgotOpen}

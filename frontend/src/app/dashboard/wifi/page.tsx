@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faRotateRight } from "@fortawesome/free-solid-svg-icons";
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
 import type { WifiConfig } from "@/types";
@@ -141,16 +141,13 @@ export default function WifiPage() {
         title="Cấu hình Wi-Fi"
         breadcrumb={[{ label: "HR", href: "#" }, { label: "Wi-Fi chấm công" }]}
         actions={
-          <div className="flex items-center gap-2">
-            <Button variant="white" onClick={fetchData} className="text-xs">
-              <FontAwesomeIcon icon={faRotateRight} fontSize={16} /> Làm mới danh sách
-            </Button>
-            {!isManager && (
+          !isManager ? (
+            <div className="flex items-center gap-2">
               <Button onClick={handleOpenCreate} className="text-xs">
                 <FontAwesomeIcon icon={faPlus} fontSize={14} /> Thêm Wi-Fi
               </Button>
-            )}
-          </div>
+            </div>
+          ) : undefined
         }
       />
 

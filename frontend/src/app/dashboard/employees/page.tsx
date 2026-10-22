@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPlus,
-  faRotateRight,
   faTriangleExclamation,
   faCircleCheck,
 } from "@fortawesome/free-solid-svg-icons";
@@ -19,6 +18,10 @@ import EmployeeSection from "@/features/employees/EmployeeList";
 import DisableEmployeeDialog from "@/features/employees/EmployeeDisable";
 import EmployeeDetailModal from "@/features/employees/EmployeeDetailModal";
 import { useCurrentUser } from "@/context/AuthContext";
+
+// Chuẩn hoá mã chi nhánh để so sánh (bỏ dấu gạch, không phân biệt hoa/thường).
+const normalizeSlug = (value?: string | null) =>
+  (value || "").toLowerCase().replace(/-/g, "");
 
 async function parseEnvelope(res: Response) {
   const text = await res.text();
@@ -97,7 +100,7 @@ function CreateEmployeeDialog({
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [branch, setBranch] = useState(managerBranch || "HN-1");
+  const [branch, setBranch] = useState(managerBranch || "");
   const [department, setDepartment] = useState("Phòng Kinh Doanh");
   const [role, setRole] = useState("Nhân viên");
   const [systemRole, setSystemRole] = useState<"admin" | "manager" | "staff">("staff");
@@ -111,7 +114,9 @@ function CreateEmployeeDialog({
 
   useEffect(() => {
     if (open) {
-      setBranch(managerBranch || "HN-1");
+      // Manager: cố định chi nhánh phụ trách. Admin: mặc định chi nhánh đầu tiên,
+      // không tự gán cứng khi chưa có chi nhánh nào.
+      setBranch(isManager ? managerBranch || "" : branches[0]?.slug || "");
       // Mặc định phòng ban đầu tiên từ API thay vì tên cứng.
       setDepartment((prev) =>
         departments.some((d) => d.name === prev)
@@ -120,7 +125,7 @@ function CreateEmployeeDialog({
       );
       setErrorMsg("");
     }
-  }, [open, managerBranch, departments]);
+  }, [open, isManager, managerBranch, branches, departments]);
 
   const handleCreate = async () => {
     if (!name.trim()) {
@@ -131,6 +136,19 @@ function CreateEmployeeDialog({
       setErrorMsg("Vui lòng nhập địa chỉ email hợp lệ");
       return;
     }
+    const targetBranch = (isManager ? managerBranch : branch).trim().toUpperCase();
+    if (!targetBranch) {
+      setErrorMsg(
+        branches.length === 0
+          ? "Chưa có chi nhánh nào trên hệ thống. Vui lòng tạo chi nhánh trước khi thêm nhân sự."
+          : "Vui lòng chọn chi nhánh cho nhân sự."
+      );
+      return;
+    }
+    if (!department) {
+      setErrorMsg("Chưa có phòng ban nào. Vui lòng tạo phòng ban trước khi thêm nhân sự.");
+      return;
+    }
     try {
       setSubmitting(true);
       setErrorMsg("");
@@ -138,7 +156,7 @@ function CreateEmployeeDialog({
         name: name.trim(),
         phone: phone.trim(),
         email: email.trim(),
-        branch: (isManager ? managerBranch : branch).toUpperCase(),
+        branch: targetBranch,
         department,
         role,
         systemRole,
@@ -174,7 +192,13 @@ function CreateEmployeeDialog({
           <Button variant="white" onClick={onClose} disabled={submitting}>
             Hủy
           </Button>
-          <Button onClick={handleCreate} disabled={submitting}>
+          <Button
+            onClick={handleCreate}
+            disabled={
+              submitting ||
+              (isManager ? !managerBranch : branches.length === 0)
+            }
+          >
             {submitting ? "Đang tạo..." : "Tạo"}
           </Button>
         </>
@@ -218,11 +242,21 @@ function CreateEmployeeDialog({
         </Field>
         <Field label="Gán chi nhánh" required>
           {isManager ? (
-            <div className="px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm font-bold text-gray-800 flex items-center justify-between">
-              <span>Chi nhánh {managerBranch.toUpperCase()}</span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-primary-50 text-primary border border-primary-200">
-                Cố định
-              </span>
+            managerBranch ? (
+              <div className="px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm font-bold text-gray-800 flex items-center justify-between">
+                <span>Chi nhánh {managerBranch.toUpperCase()}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-primary-50 text-primary border border-primary-200">
+                  Cố định
+                </span>
+              </div>
+            ) : (
+              <div className="px-3 py-2 rounded-lg border border-amber-200 bg-amber-50 text-sm text-amber-700">
+                Tài khoản của bạn chưa được gán chi nhánh phụ trách.
+              </div>
+            )
+          ) : branches.length === 0 ? (
+            <div className="px-3 py-2 rounded-lg border border-amber-200 bg-amber-50 text-sm text-amber-700">
+              Chưa có chi nhánh nào. Vui lòng tạo chi nhánh trước.
             </div>
           ) : (
             <Select
@@ -236,7 +270,7 @@ function CreateEmployeeDialog({
               ))}
             </Select>
           )}
-          {isManager && (
+          {isManager && managerBranch && (
             <p className="text-[11px] text-gray-400 mt-1">
               Tài khoản Manager chỉ tạo nhân viên cho chi nhánh phụ trách
             </p>
@@ -357,7 +391,7 @@ export default function EmployeesPage() {
       setDepartments(departmentsData || []);
       const normalized = (data || []).map((e: any) => ({
         ...e,
-        branch: e.branch || e.branchSlug || "HN-1",
+        branch: e.branchSlug || e.branch || "",
         department: e.department || "",
         role: e.role || "Nhân viên",
         systemRole: e.systemRole || "staff",
@@ -380,23 +414,37 @@ export default function EmployeesPage() {
 
   // Nếu là Manager, lọc thêm ở client để đảm bảo chuẩn an toàn hiển thị
   const filteredEmployees = isManager
-    ? rawEmployees.filter(
-        (e) =>
-          e.branch.toLowerCase().replace("-", "") === branchSlug.replace("-", "").toLowerCase() ||
-          e.branch.toUpperCase() === "HN-1"
-      )
+    ? rawEmployees.filter((e) => normalizeSlug(e.branch) === normalizeSlug(branchSlug))
     : rawEmployees;
 
+  const currentBranchName = branches.find(
+    (b) => normalizeSlug(b.slug) === normalizeSlug(branchSlug)
+  )?.name;
+
   const pageTitle = isManager
-    ? "Nhân sự Chi nhánh Hoàn Kiếm (HN-1)"
+    ? `Nhân sự ${
+        currentBranchName ||
+        (branchSlug ? `Chi nhánh ${branchSlug.toUpperCase()}` : "Chi nhánh chưa xác định")
+      }`
     : "Danh sách Nhân sự Toàn công ty";
 
   const handleCreateEmployee = async (payload: Partial<Employee>) => {
+    const targetBranch = (payload.branch || (isManager ? branchSlug : ""))
+      .trim()
+      .toUpperCase();
+    if (!targetBranch) {
+      const msg =
+        branches.length === 0
+          ? "Chưa có chi nhánh nào trên hệ thống. Vui lòng tạo chi nhánh trước khi thêm nhân sự."
+          : "Vui lòng chọn chi nhánh cho nhân sự";
+      showToast(msg, "danger");
+      throw new Error(msg);
+    }
     try {
       setActionInProgress(true);
       await apiPost<Employee>("/api/employees", {
         ...payload,
-        branchSlug: payload.branch || (isManager ? branchSlug.toUpperCase() : "HN-1"),
+        branchSlug: targetBranch,
       });
       showToast("Tạo nhân viên mới thành công!", "success");
       await fetchEmployees();
@@ -414,7 +462,7 @@ export default function EmployeesPage() {
       setActionInProgress(true);
       await apiPut<Employee>(`/api/employees/${updated.id}`, {
         ...updated,
-        branchSlug: updated.branch,
+        branchSlug: updated.branch ? updated.branch.toUpperCase() : undefined,
       });
       setRawEmployees((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
       setSelectedEmployee(updated);
@@ -493,9 +541,6 @@ export default function EmployeesPage() {
         breadcrumb={[{ label: "HRM", href: "#" }, { label: "Nhân sự" }]}
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="white" onClick={fetchEmployees} disabled={loading || actionInProgress}>
-              <FontAwesomeIcon icon={faRotateRight} className={loading ? "animate-spin" : ""} /> Tải lại
-            </Button>
             <Button onClick={() => setCreateOpen(true)} disabled={actionInProgress}>
               <FontAwesomeIcon icon={faPlus} fontSize={18} /> Thêm nhân viên mới
             </Button>

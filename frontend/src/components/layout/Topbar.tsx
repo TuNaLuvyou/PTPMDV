@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCircleUser, faMagnifyingGlass, faRightFromBracket } from "@fortawesome/free-solid-svg-icons";
+import { faCircleUser, faRightFromBracket } from "@fortawesome/free-solid-svg-icons";
 import { cn } from "@/lib/utils";
 
 interface TopbarProps {
@@ -17,7 +17,6 @@ interface TopbarProps {
   logoutHref?: string;
   profileHref?: string;
   rightExtra?: React.ReactNode; // vd: nút chuyển phân hệ (Web 2 R2)
-  showSearch?: boolean;
 }
 
 export default function Topbar({
@@ -31,7 +30,6 @@ export default function Topbar({
   logoutHref = "/login",
   profileHref = "#",
   rightExtra,
-  showSearch = true,
 }: TopbarProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -59,13 +57,6 @@ export default function Topbar({
             <div className="flex items-center gap-2 mr-1">
               {headerActions}
             </div>
-          )}
-          {showSearch && (
-            <button className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-gray-300 text-gray-500 text-xs hover:bg-gray-50 cursor-pointer">
-              <FontAwesomeIcon icon={faMagnifyingGlass} fontSize={15} />
-              <span>Tìm kiếm...</span>
-              <kbd className="ml-2 px-1.5 py-0.5 rounded bg-gray-100 border border-gray-200 text-[10px]">⌘K</kbd>
-            </button>
           )}
 
           {/* User menu */}

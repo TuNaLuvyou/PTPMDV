@@ -6,7 +6,6 @@ import {
   faCalendarDay,
   faCalendarWeek,
   faGear,
-  faRotateRight,
   faTriangleExclamation,
   faCircleCheck,
 } from "@fortawesome/free-solid-svg-icons";
@@ -460,9 +459,6 @@ export default function ShiftsPage() {
         breadcrumb={[{ label: "HRM", href: "#" }, { label: "Lịch ca" }]}
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="white" size="sm" onClick={fetchData} disabled={loading || actionInProgress}>
-              <FontAwesomeIcon icon={faRotateRight} className={loading ? "animate-spin" : ""} /> Tải lại
-            </Button>
             <Button variant="white" size="sm" onClick={() => setExportOpen(true)}>
               Xuất báo cáo
             </Button>

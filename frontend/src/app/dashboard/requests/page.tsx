@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faGear,
-  faRotateRight,
   faTriangleExclamation,
   faCircleCheck,
   faFilter,
@@ -378,16 +377,13 @@ export default function RequestsPage() {
         title={isManager ? "Phê duyệt yêu cầu Chi nhánh Hoàn Kiếm (HN-1)" : "Phê duyệt yêu cầu Toàn hệ thống"}
         breadcrumb={[{ label: "HRM", href: "#" }, { label: "Phê duyệt yêu cầu" }]}
         actions={
-          <div className="flex items-center gap-2">
-            <Button variant="white" onClick={fetchData} disabled={loading || actionInProgress}>
-              <FontAwesomeIcon icon={faRotateRight} className={loading ? "animate-spin" : ""} /> Tải lại
-            </Button>
-            {!isManager && (
+          !isManager ? (
+            <div className="flex items-center gap-2">
               <Button variant="white" onClick={() => setAttendanceOpen(true)}>
                 <FontAwesomeIcon icon={faGear} fontSize={16} /> Cấu hình chấm công
               </Button>
-            )}
-          </div>
+            </div>
+          ) : undefined
         }
       />
 
