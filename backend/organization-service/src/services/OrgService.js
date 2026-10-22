@@ -234,6 +234,28 @@ async function getEmployee(id) {
   throw err;
 }
 
+// Whitelist field của model Employee trước khi ghi Prisma, tránh lỗi
+// "Unknown argument" khi client gửi thêm field (vd: `branch` của frontend).
+const EMPLOYEE_FIELDS = [
+  "name", "email", "phone", "gender", "birthDate", "province", "ward", "street",
+  "cccd", "issueDate", "issuePlace", "cccdFront", "cccdBack", "branchSlug",
+  "department", "role", "systemRole", "status", "joinDate", "baseSalary",
+  "salaryType", "hourlySalary", "bankName", "bankAccountNumber", "bankAccountName",
+];
+
+function sanitizeEmployeePayload(payload = {}) {
+  const data = {};
+  const source = { ...payload };
+  // Alias tương thích: frontend có thể gửi `branch` thay cho `branchSlug`.
+  if (source.branchSlug === undefined && source.branch !== undefined) {
+    source.branchSlug = source.branch;
+  }
+  for (const key of EMPLOYEE_FIELDS) {
+    if (source[key] !== undefined) data[key] = source[key];
+  }
+  return data;
+}
+
 async function createEmployee(payload) {
   if (!["admin", "manager", "staff"].includes(payload.systemRole || "staff")) {
     const err = new Error("Vai trò hệ thống không hợp lệ");
@@ -244,7 +266,7 @@ async function createEmployee(payload) {
   const prisma = database.getPrisma();
   if (prisma) {
     try {
-      return await prisma.employee.create({ data: payload });
+      return await prisma.employee.create({ data: sanitizeEmployeePayload(payload) });
     } catch (e) {
       if (String(e.code) === "P2002") {
         const err = new Error("Email đã tồn tại");
@@ -276,7 +298,7 @@ async function updateEmployee(id, payload) {
   const prisma = database.getPrisma();
   if (prisma) {
     try {
-      return await prisma.employee.update({ where: { id }, data: payload });
+      return await prisma.employee.update({ where: { id }, data: sanitizeEmployeePayload(payload) });
     } catch (_) {}
   }
   const idx = memoryEmployees.findIndex((e) => e.id === id);

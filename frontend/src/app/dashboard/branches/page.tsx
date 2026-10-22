@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPlus,
-  faRotateRight,
   faTriangleExclamation,
   faCircleCheck,
 } from "@fortawesome/free-solid-svg-icons";
@@ -225,11 +224,8 @@ export default function BranchesPage() {
         title={isManager ? "Thông tin Hệ thống Chi nhánh" : "Quản lý Chi nhánh Doanh nghiệp"}
         breadcrumb={[{ label: "HRM", href: "#" }, { label: "Chi nhánh" }]}
         actions={
-          <div className="flex items-center gap-2">
-            <Button variant="white" onClick={fetchBranches} disabled={loading || actionInProgress}>
-              <FontAwesomeIcon icon={faRotateRight} className={loading ? "animate-spin" : ""} /> Tải lại
-            </Button>
-            {!isManager && (
+          !isManager ? (
+            <div className="flex items-center gap-2">
               <Button
                 onClick={() => {
                   setEditing(null);
@@ -239,8 +235,8 @@ export default function BranchesPage() {
               >
                 <FontAwesomeIcon icon={faPlus} fontSize={18} /> Thêm chi nhánh mới
               </Button>
-            )}
-          </div>
+            </div>
+          ) : undefined
         }
       />
 
