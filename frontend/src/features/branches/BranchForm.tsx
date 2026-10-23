@@ -4,16 +4,18 @@ import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { Field, Input, Select } from "@/components/ui/Form";
-import type { Branch } from "@/types";
+import type { Branch, Employee } from "@/types";
 
 interface Props {
   open: boolean;
   onClose: () => void;
   branch: Branch | null;
+  employees?: Employee[];
   onSave: (data: Omit<Branch, "id"> & { id?: string }) => void;
+  onDelete?: (branch: Branch) => void;
 }
 
-export default function BranchModal({ open, onClose, branch, onSave }: Props) {
+export default function BranchModal({ open, onClose, branch, employees = [], onSave, onDelete }: Props) {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [address, setAddress] = useState("");
@@ -23,12 +25,12 @@ export default function BranchModal({ open, onClose, branch, onSave }: Props) {
 
   useEffect(() => {
     if (branch) {
-      setName(branch.name);
-      setSlug(branch.slug);
-      setAddress(branch.address);
-      setPhone(branch.phone);
-      setManager(branch.manager);
-      setStatus(branch.status);
+      setName(branch.name || "");
+      setSlug(branch.slug || "");
+      setAddress(branch.address || "");
+      setPhone(branch.phone || "");
+      setManager(branch.manager ? branch.manager.split(/—|-|\(/)[0].trim() : "");
+      setStatus(branch.status || "hoạt động");
     } else {
       setName("");
       setSlug("");
@@ -52,17 +54,71 @@ export default function BranchModal({ open, onClose, branch, onSave }: Props) {
       size="lg"
       footer={
         <>
+          {branch && onDelete && (
+            <Button
+              type="button"
+              variant="danger"
+              className="mr-auto"
+              onClick={() => onDelete(branch)}
+            >
+              Xóa
+            </Button>
+          )}
           <Button variant="white" onClick={onClose}>Hủy</Button>
           <Button onClick={handleSave}>{branch ? "Lưu" : "Tạo"}</Button>
         </>
       }
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1">
-        <Field label="Tên chi nhánh" required><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Chi nhánh HN-3" /></Field>
-        <Field label="Mã chi nhánh (slug)" required><Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="hn-3" /></Field>
-        <Field label="Địa chỉ" required className="md:col-span-2"><Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Số nhà, đường, quận/huyện" /></Field>
-        <Field label="SĐT" required><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="024 3xxx xxxx" /></Field>
-        <Field label="Quản lý"><Input value={manager} onChange={(e) => setManager(e.target.value)} placeholder="Tên quản lý" /></Field>
+        <Field label="Tên chi nhánh" required>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Nhập tên chi nhánh..."
+          />
+        </Field>
+        <Field label="Mã chi nhánh (slug)" required>
+          <Input
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+            placeholder="Nhập mã chi nhánh..."
+          />
+        </Field>
+        <Field label="Địa chỉ" required className="md:col-span-2">
+          <Input
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Nhập địa chỉ chi nhánh..."
+          />
+        </Field>
+        <Field label="SĐT" required>
+          <Input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="Nhập số điện thoại liên hệ..."
+          />
+        </Field>
+        <Field label="Quản lý">
+          {employees.length > 0 ? (
+            <Select value={manager} onChange={(e) => setManager(e.target.value)}>
+              <option value="">-- Chọn nhân sự quản lý --</option>
+              {employees.map((emp) => (
+                <option key={emp.id} value={emp.name}>
+                  {emp.name}
+                </option>
+              ))}
+              {manager && !employees.some((emp) => emp.name === manager) && (
+                <option value={manager}>{manager}</option>
+              )}
+            </Select>
+          ) : (
+            <Input
+              value={manager}
+              onChange={(e) => setManager(e.target.value)}
+              placeholder="Nhập tên người quản lý..."
+            />
+          )}
+        </Field>
         <Field label="Trạng thái" required>
           <Select value={status} onChange={(e) => setStatus(e.target.value as any)}>
             <option value="hoạt động">Hoạt động</option>

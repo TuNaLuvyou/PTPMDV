@@ -11,7 +11,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { apiGet, apiPost, GatewayError, GATEWAY_URL } from "@/lib/api";
-import type { Branch } from "@/types";
+import type { Branch, Employee } from "@/types";
 import BranchSection from "@/features/branches/BranchList";
 import BranchModal from "@/features/branches/BranchForm";
 import { useCurrentUser } from "@/context/AuthContext";
@@ -75,6 +75,7 @@ export default function BranchesPage() {
   const isManager = role === "manager";
 
   const [list, setList] = useState<Branch[]>([]);
+  const [empList, setEmpList] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ text: string; tone: "success" | "danger" } | null>(null);
@@ -96,13 +97,17 @@ export default function BranchesPage() {
     try {
       setLoading(true);
       setError(null);
-      const data = await apiGet<Branch[]>("/api/branches");
+      const [data, empData] = await Promise.all([
+        apiGet<Branch[]>("/api/branches"),
+        apiGet<Employee[]>("/api/employees").catch(() => []),
+      ]);
       const normalized = (data || []).map((b: any) => ({
         ...b,
         status: b.status || "hoạt động",
         staff: b.staff ?? 0,
       }));
       setList(normalized);
+      setEmpList(empData || []);
     } catch (e: any) {
       const msg = e instanceof GatewayError ? e.message : e?.message || "Không thể tải danh sách chi nhánh";
       setError(msg);
@@ -290,7 +295,13 @@ export default function BranchesPage() {
           setEditing(null);
         }}
         branch={editing}
+        employees={empList}
         onSave={handleSave}
+        onDelete={!isManager ? (b) => {
+          setModalOpen(false);
+          setEditing(null);
+          setDeleteTarget(b);
+        } : undefined}
       />
 
       <ConfirmDialog

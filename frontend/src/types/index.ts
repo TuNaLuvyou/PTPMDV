@@ -102,7 +102,6 @@ export interface Department {
   id: string;
   name: string;
   code: string;
-  description?: string;
   manager: string;
   status: "hoạt động" | "tạm dừng";
   staff?: number;

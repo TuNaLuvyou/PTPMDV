@@ -8,6 +8,7 @@ const {
   refreshTokenUseCase,
   getDevicesUseCase,
   revokeDeviceUseCase,
+  syncEmployeeUseCase,
 } = require("../services/AuthService");
 const {
   validateLogin,
@@ -122,6 +123,16 @@ async function revokeDevice(req, res, next) {
   }
 }
 
+async function syncEmployee(req, res, next) {
+  try {
+    const { employee, action } = req.body || {};
+    const result = await syncEmployeeUseCase({ employee, action });
+    return res.status(200).json({ data: result, message: "Đồng bộ nhân sự thành công" });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 module.exports = {
   login,
   me,
@@ -131,4 +142,5 @@ module.exports = {
   refresh,
   getDevices,
   revokeDevice,
+  syncEmployee,
 };

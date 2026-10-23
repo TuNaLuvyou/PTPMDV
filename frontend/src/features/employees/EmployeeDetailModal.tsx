@@ -8,27 +8,18 @@ import {
   faXmark,
   faUser,
   faBuilding,
-  faPhone,
-  faEnvelope,
   faIdCard,
-  faBriefcase,
-  faCalendarDay,
   faMoneyBillWave,
   faShieldHalved,
   faBuildingColumns,
-  faCreditCard,
-  faClock,
   faInfoCircle,
   faLocationDot,
   faHouse,
-  faImage,
-  faCamera,
-  faStore,
 } from "@fortawesome/free-solid-svg-icons";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import { Field, Input, Select } from "@/components/ui/Form";
-import Badge, { StatusBadge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/Badge";
 import type { Employee, UserRole, Branch, Department } from "@/types";
 
 interface Props {
@@ -37,7 +28,8 @@ interface Props {
   employee: Employee | null;
   branches?: Branch[];
   departments?: Department[];
-  onSave?: (updated: Employee) => void;
+  onSave?: (updated: Employee) => Promise<Employee | void>;
+  onDelete?: (employee: Employee) => void;
   isManager?: boolean;
   managerBranch?: string;
 }
@@ -66,11 +58,14 @@ export default function EmployeeDetailModal({
   branches = [],
   departments = [],
   onSave,
+  onDelete,
   isManager = false,
-  managerBranch = "HN-1",
+  managerBranch = "",
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<DetailTab>("profile");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   // 1. Hồ sơ cá nhân & Liên hệ
   const [name, setName] = useState("");
@@ -85,7 +80,7 @@ export default function EmployeeDetailModal({
   const [street, setStreet] = useState("");
 
   // 3. Công tác & Phân quyền
-  const [branch, setBranch] = useState("HN-1");
+  const [branch, setBranch] = useState("");
   const [department, setDepartment] = useState("");
   const [role, setRole] = useState("");
   const [systemRole, setSystemRole] = useState<UserRole>("staff");
@@ -111,15 +106,15 @@ export default function EmployeeDetailModal({
       setName(employee.name);
       setPhone(employee.phone);
       setEmail(employee.email);
-      setGender(employee.gender || "Nam");
+      setGender(employee.gender || "");
       setBirthDate(employee.birthDate || "");
 
       setProvince(employee.province || "");
       setWard(employee.ward || "");
       setStreet(employee.street || "");
 
-      setBranch(employee.branch);
-      setDepartment(employee.department || departments[0]?.name || "");
+      setBranch((employee.branch || "").toUpperCase());
+      setDepartment(employee.department || "");
       setRole(employee.role);
       setSystemRole(employee.systemRole || "staff");
       setStatus(employee.status);
@@ -130,7 +125,7 @@ export default function EmployeeDetailModal({
       setBaseSalary(employee.baseSalary ?? 0);
       setBankName(employee.bankName || "");
       setBankAccountNumber(employee.bankAccountNumber || "");
-      setBankAccountName(employee.bankAccountName || employee.name.toUpperCase());
+      setBankAccountName(employee.bankAccountName || "");
 
       setCccd(employee.cccd || "");
       setIssueDate(employee.issueDate || "");
@@ -138,6 +133,7 @@ export default function EmployeeDetailModal({
 
       setIsEditing(false);
       setActiveTab("profile");
+      setSaveError("");
     }
   }, [employee, open]);
 
@@ -148,15 +144,15 @@ export default function EmployeeDetailModal({
     setName(employee.name);
     setPhone(employee.phone);
     setEmail(employee.email);
-    setGender(employee.gender || "Nam");
+    setGender(employee.gender || "");
     setBirthDate(employee.birthDate || "");
 
     setProvince(employee.province || "");
     setWard(employee.ward || "");
     setStreet(employee.street || "");
 
-    setBranch(employee.branch);
-    setDepartment(employee.department || departments[0]?.name || "");
+    setBranch((employee.branch || "").toUpperCase());
+    setDepartment(employee.department || "");
     setRole(employee.role);
     setSystemRole(employee.systemRole || "staff");
     setStatus(employee.status);
@@ -167,21 +163,31 @@ export default function EmployeeDetailModal({
     setBaseSalary(employee.baseSalary ?? 0);
     setBankName(employee.bankName || "");
     setBankAccountNumber(employee.bankAccountNumber || "");
-    setBankAccountName(employee.bankAccountName || employee.name.toUpperCase());
+    setBankAccountName(employee.bankAccountName || "");
 
     setCccd(employee.cccd || "");
     setIssueDate(employee.issueDate || "");
     setIssuePlace(employee.issuePlace || "");
 
+    setSaveError("");
     setIsEditing(false);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!name.trim()) {
+      setSaveError("Vui lòng nhập họ và tên nhân viên");
+      return;
+    }
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setSaveError("Vui lòng nhập địa chỉ email hợp lệ");
+      return;
+    }
+
     const updated: Employee = {
       ...employee,
-      name,
-      phone,
-      email,
+      name: name.trim(),
+      phone: phone.trim(),
+      email: email.trim(),
       gender,
       birthDate,
       province,
@@ -197,19 +203,23 @@ export default function EmployeeDetailModal({
       hourlySalary: Number(hourlySalary) || 0,
       baseSalary: Number(baseSalary) || 0,
       bankName,
-      bankAccountNumber,
+      bankAccountNumber: bankAccountNumber.trim(),
       bankAccountName: bankAccountName.trim().toUpperCase(),
       cccd,
       issueDate,
       issuePlace,
-      cccdFront: true,
-      cccdBack: true,
     };
 
-    if (onSave) {
-      onSave(updated);
+    try {
+      setSaving(true);
+      setSaveError("");
+      if (onSave) await onSave(updated);
+      setIsEditing(false);
+    } catch (e: unknown) {
+      setSaveError(e instanceof Error ? e.message : "Không thể lưu thay đổi vào cơ sở dữ liệu");
+    } finally {
+      setSaving(false);
     }
-    setIsEditing(false);
   };
 
   const getSystemRoleLabel = (r: UserRole) => {
@@ -235,17 +245,38 @@ export default function EmployeeDetailModal({
       footer={
         isEditing ? (
           <>
-            <Button variant="white" onClick={handleCancelEdit}>
+            {onDelete && !isManager && employee && (
+              <Button
+                type="button"
+                variant="danger"
+                className="mr-auto"
+                disabled={saving}
+                onClick={() => onDelete(employee)}
+              >
+                Xóa
+              </Button>
+            )}
+            <Button variant="white" onClick={handleCancelEdit} disabled={saving}>
               <FontAwesomeIcon icon={faXmark} className="mr-1.5" />
               Huỷ
             </Button>
-            <Button onClick={handleSave}>
+            <Button onClick={handleSave} disabled={saving}>
               <FontAwesomeIcon icon={faCheck} className="mr-1.5" />
-              Lưu thay đổi
+              {saving ? "Đang lưu..." : "Lưu thay đổi"}
             </Button>
           </>
         ) : (
           <>
+            {onDelete && !isManager && employee && (
+              <Button
+                type="button"
+                variant="danger"
+                className="mr-auto"
+                onClick={() => onDelete(employee)}
+              >
+                Xóa
+              </Button>
+            )}
             <Button variant="white" onClick={onClose}>
               Đóng
             </Button>
@@ -258,6 +289,12 @@ export default function EmployeeDetailModal({
       }
     >
       <div className="space-y-6">
+        {saveError && (
+          <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg">
+            {saveError}
+          </div>
+        )}
+
         {/* ===================== HERO PROFILE CARD ===================== */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-gray-50 via-white to-gray-50 border border-gray-200 p-5 sm:p-6 shadow-2xs">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
@@ -272,9 +309,6 @@ export default function EmployeeDetailModal({
                     {isEditing ? name || employee.name : employee.name}
                   </h3>
                   <StatusBadge status={isEditing ? status : employee.status} />
-                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
-                    {getSystemRoleLabel(isEditing ? systemRole : employee.systemRole)}
-                  </span>
                   <span
                     className={`text-xs font-semibold px-2.5 py-0.5 rounded-md border ${
                       (isEditing ? salaryType : employee.salaryType) === "hourly"
@@ -310,24 +344,15 @@ export default function EmployeeDetailModal({
               </div>
             </div>
 
-            {/* Quick Action / Status Tag */}
-            <div className="shrink-0 flex items-center gap-2">
-              {isEditing ? (
+            {/* Trạng thái chỉnh sửa */}
+            {isEditing && (
+              <div className="shrink-0 flex items-center gap-2">
                 <div className="px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold flex items-center gap-1.5">
                   <FontAwesomeIcon icon={faPencil} className="text-amber-600" />
                   Đang chỉnh sửa
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(true)}
-                  className="px-3 py-1.5 rounded-lg bg-primary text-white hover:bg-primary-dark transition-all text-xs font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer"
-                >
-                  <FontAwesomeIcon icon={faPencil} />
-                  Sửa thông tin
-                </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -495,6 +520,7 @@ export default function EmployeeDetailModal({
                   <div className="grid grid-cols-2 gap-4">
                     <Field label="Giới tính" required>
                       <Select value={gender} onChange={(e) => setGender(e.target.value)}>
+                        <option value="">— Chọn giới tính —</option>
                         <option value="Nam">Nam</option>
                         <option value="Nữ">Nữ</option>
                         <option value="Khác">Khác</option>
@@ -659,6 +685,10 @@ export default function EmployeeDetailModal({
                       </div>
                     ) : (
                       <Select value={branch} onChange={(e) => setBranch(e.target.value)}>
+                        <option value="">— Chọn chi nhánh —</option>
+                        {branch && !branches.some((b) => b.slug.toUpperCase() === branch) && (
+                          <option value={branch}>{branch}</option>
+                        )}
                         {branches.map((b) => (
                           <option key={b.id} value={b.slug.toUpperCase()}>
                             {b.name} ({b.slug.toUpperCase()})
@@ -670,6 +700,10 @@ export default function EmployeeDetailModal({
 
                   <Field label="Phòng ban trực thuộc" required>
                     <Select value={department} onChange={(e) => setDepartment(e.target.value)}>
+                      <option value="">— Chọn phòng ban —</option>
+                      {department && !departments.some((d) => d.name === department) && (
+                        <option value={department}>{department}</option>
+                      )}
                       {departments.map((d) => (
                         <option key={d.id} value={d.name}>
                           {d.name} ({d.code})
@@ -748,8 +782,8 @@ export default function EmployeeDetailModal({
                       <span className="text-gray-500 text-xs">Hình thức tính lương:</span>
                       <span className="font-bold text-gray-900 text-xs">
                         {employee.salaryType === "hourly"
-                          ? "Lương theo giờ làm (Ca kíp)"
-                          : "Lương cơ bản cố định (Theo tháng)"}
+                          ? "Lương theo giờ"
+                          : "Lương cơ bản tháng"}
                       </span>
                     </div>
 
@@ -799,13 +833,21 @@ export default function EmployeeDetailModal({
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Chủ tài khoản:</span>
                       <span className="font-bold text-gray-900 text-xs tracking-wide">
-                        {employee.bankAccountName || employee.name.toUpperCase()}
+                        {employee.bankAccountName || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5">
                       <span className="text-gray-500 text-xs">Trạng thái giải ngân:</span>
-                      <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold">
-                        Sẵn sàng chi trả tự động
+                      <span
+                        className={`px-2 py-0.5 rounded border text-[11px] font-semibold ${
+                          employee.bankAccountNumber
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : "bg-gray-50 text-gray-600 border-gray-200"
+                        }`}
+                      >
+                        {employee.bankAccountNumber
+                          ? "Đã cấu hình tài khoản nhận lương"
+                          : "Chưa cấu hình tài khoản nhận lương"}
                       </span>
                     </div>
                   </div>
@@ -823,8 +865,8 @@ export default function EmployeeDetailModal({
                       value={salaryType}
                       onChange={(e) => setSalaryType(e.target.value as "hourly" | "monthly")}
                     >
-                      <option value="hourly">Lương theo giờ (Cộng theo giờ khi checkout ca)</option>
-                      <option value="monthly">Lương cơ bản tháng (Cố định, chỉ trừ khi phạt)</option>
+                      <option value="hourly">Lương theo giờ</option>
+                      <option value="monthly">Lương cơ bản tháng</option>
                     </Select>
                   </Field>
 
@@ -858,6 +900,10 @@ export default function EmployeeDetailModal({
                   </h5>
                   <Field label="Tên ngân hàng" required>
                     <Select value={bankName} onChange={(e) => setBankName(e.target.value)}>
+                      <option value="">— Chọn ngân hàng —</option>
+                      {bankName && !COMMON_BANKS.includes(bankName) && (
+                        <option value={bankName}>{bankName}</option>
+                      )}
                       {COMMON_BANKS.map((b) => (
                         <option key={b} value={b}>
                           {b}
@@ -908,7 +954,7 @@ export default function EmployeeDetailModal({
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                       <span className="text-gray-500 text-xs">Số CCCD (12 chữ số):</span>
                       <span className="font-mono font-bold text-gray-900 text-sm tracking-wider">
-                            {employee.cccd || "Chưa cập nhật"}
+                        {employee.cccd || "Chưa cập nhật"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
@@ -923,87 +969,25 @@ export default function EmployeeDetailModal({
                         {employee.issuePlace || "Chưa cập nhật"}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
-                      <span className="text-gray-500 text-xs">Loại thẻ:</span>
-                      <span className="font-semibold text-gray-800 text-xs">
-                        Căn cước công dân gắn chip
-                      </span>
-                    </div>
                     <div className="flex justify-between items-center py-1.5">
                       <span className="text-gray-500 text-xs">Trạng thái định danh:</span>
-                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold flex items-center gap-1">
-                        <FontAwesomeIcon icon={faCheck} className="text-[10px]" />
-                        Đã xác thực định danh
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full border text-[11px] font-semibold flex items-center gap-1 ${
+                          employee.cccd
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : "bg-gray-50 text-gray-600 border-gray-200"
+                        }`}
+                      >
+                        {employee.cccd && <FontAwesomeIcon icon={faCheck} className="text-[10px]" />}
+                        {employee.cccd ? "Đã cập nhật số CCCD" : "Chưa cập nhật số CCCD"}
                       </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Thẻ mô phỏng ảnh CCCD */}
-                <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-2xs space-y-4">
-                  <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
-                    <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center text-sm">
-                      <FontAwesomeIcon icon={faImage} />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-gray-900 text-sm">Bản chụp Căn cước công dân</h4>
-                      <p className="text-xs text-gray-500">Hình ảnh 2 mặt chứng minh nhân sự</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Thẻ mặt trước */}
-                    <div className="relative rounded-xl border border-gray-200 bg-gradient-to-br from-emerald-50/50 via-teal-50/30 to-blue-50/50 p-4 shadow-2xs flex flex-col justify-between h-36">
-                      <div className="flex justify-between items-start">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">
-                          Mặt trước CCCD
-                        </span>
-                        <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                          ✓ Đã chụp
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-7 rounded bg-amber-200 border border-amber-300 flex items-center justify-center text-[10px] font-bold text-amber-800 shadow-2xs">
-                          CHIP
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-mono text-xs font-bold text-gray-900 truncate">
-                        {employee.cccd || "Chưa cập nhật"}
-                          </p>
-                          <p className="text-[10px] text-gray-500 truncate">{employee.name}</p>
-                        </div>
-                      </div>
-                      <div className="text-[9px] text-gray-400 text-right">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
-                    </div>
-
-                    {/* Thẻ mặt sau */}
-                    <div className="relative rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 via-slate-50 to-gray-100 p-4 shadow-2xs flex flex-col justify-between h-36">
-                      <div className="flex justify-between items-start">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-700">
-                          Mặt sau CCCD
-                        </span>
-                        <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                          ✓ Đã chụp
-                        </span>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="h-4 bg-gray-200 rounded border border-gray-300 flex items-center px-2 text-[8px] font-mono text-gray-600">
-                          |||| ||||| |||| |||||||| ||||
-                        </div>
-                        <p className="text-[9px] text-gray-500">
-                          {employee.issuePlace || "Chưa cập nhật"} • {employee.issueDate || "—"}
-                        </p>
-                      </div>
-                      <div className="text-[9px] font-mono text-gray-400 truncate">
-                        IDVNM{employee.cccd || "____________"}&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;
-                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             ) : (
               /* Edit mode Tab 4 */
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6">
                 <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
                   <h5 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-2">
                     <FontAwesomeIcon icon={faIdCard} /> Thông tin số CCCD
@@ -1029,24 +1013,6 @@ export default function EmployeeDetailModal({
                       placeholder="Cục CS QLHC về TTXH"
                     />
                   </Field>
-                </div>
-
-                <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
-                  <h5 className="text-xs font-bold uppercase tracking-wider text-teal-700 flex items-center gap-2">
-                    <FontAwesomeIcon icon={faCamera} /> Cập nhật ảnh CCCD 2 mặt
-                  </h5>
-                  <div className="space-y-3">
-                    <div className="p-3 rounded-xl border border-dashed border-gray-300 bg-gray-50 text-center hover:bg-gray-100 transition-colors cursor-pointer">
-                      <FontAwesomeIcon icon={faCamera} className="text-gray-400 text-lg mb-1" />
-                      <p className="text-xs font-semibold text-gray-700">Tải lên ảnh Mặt trước CCCD</p>
-                      <p className="text-[10px] text-gray-400">Định dạng JPG, PNG dưới 5MB</p>
-                    </div>
-                    <div className="p-3 rounded-xl border border-dashed border-gray-300 bg-gray-50 text-center hover:bg-gray-100 transition-colors cursor-pointer">
-                      <FontAwesomeIcon icon={faCamera} className="text-gray-400 text-lg mb-1" />
-                      <p className="text-xs font-semibold text-gray-700">Tải lên ảnh Mặt sau CCCD</p>
-                      <p className="text-[10px] text-gray-400">Định dạng JPG, PNG dưới 5MB</p>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}

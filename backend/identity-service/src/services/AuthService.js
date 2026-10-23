@@ -70,9 +70,8 @@ async function updateUserPassword(id, passwordHash) {
 async function ensureSeeded() {
   const prisma = database.getPrisma();
   if (!prisma) return { mode: "memory", count: memoryUsers.length };
-  try {
-    await prisma.user.deleteMany({ where: { email: { not: "admin@company.com" } } });
-  } catch (_) {}
+  // Chỉ tạo tài khoản admin mặc định nếu DB chưa có.
+  // KHÔNG xoá các tài khoản khác: dữ liệu tài khoản thật phải được giữ nguyên.
   for (const def of SEED_DEFS) {
     const existed = await prisma.user.findUnique({ where: { email: def.email } });
     if (!existed) {
@@ -319,6 +318,112 @@ async function revokeDeviceUseCase(userId, deviceId) {
   return await removeDevice(userId, deviceId);
 }
 
+async function syncEmployeeUseCase({ employee, action = "upsert" }) {
+  if (!employee) return { ok: false };
+  const prisma = database.getPrisma();
+
+  if (action === "delete") {
+    if (prisma) {
+      await prisma.user
+        .deleteMany({
+          where: {
+            OR: [
+              employee.id ? { id: employee.id } : undefined,
+              employee.email ? { email: employee.email } : undefined,
+            ].filter(Boolean),
+          },
+        })
+        .catch(() => {});
+    }
+    const idx = memoryUsers.findIndex(
+      (u) => (employee.id && u.id === employee.id) || (employee.email && u.email === employee.email)
+    );
+    if (idx >= 0) memoryUsers.splice(idx, 1);
+    return { ok: true, action: "delete" };
+  }
+
+  // action === "upsert"
+  const rawRole = (employee.systemRole || employee.role || "staff").toString().toLowerCase();
+  let role = "staff";
+  if (rawRole.includes("admin") || rawRole === "admin") role = "admin";
+  else if (rawRole.includes("quản lý") || rawRole.includes("manager") || rawRole === "manager") role = "manager";
+
+  let roleTitle = employee.role || "Nhân viên";
+  if (role === "admin") roleTitle = "Quản trị viên";
+  else if (role === "manager") roleTitle = "Quản lý Chi nhánh";
+
+  const email = (employee.email || "").trim().toLowerCase();
+  if (!email) return { ok: false, error: "Thiếu email" };
+
+  const name = (employee.name || "").trim() || "Nhân viên";
+  const branchSlug = employee.branchSlug ? employee.branchSlug.toUpperCase() : null;
+
+  if (prisma) {
+    const existing = await prisma.user.findFirst({
+      where: {
+        OR: [
+          employee.id ? { id: employee.id } : undefined,
+          { email },
+        ].filter(Boolean),
+      },
+    });
+
+    if (existing) {
+      const updated = await prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          email,
+          name,
+          role,
+          roleTitle,
+          branchSlug,
+        },
+      });
+      return { ok: true, action: "updated", user: toSafeUser(updated) };
+    } else {
+      const created = await prisma.user.create({
+        data: {
+          id: employee.id || undefined,
+          email,
+          name,
+          role,
+          roleTitle,
+          branchSlug,
+          passwordHash: bcrypt.hashSync("123456", 10),
+        },
+      });
+      return { ok: true, action: "created", user: toSafeUser(created) };
+    }
+  } else {
+    const idx = memoryUsers.findIndex(
+      (u) => (employee.id && u.id === employee.id) || u.email === email
+    );
+    if (idx >= 0) {
+      memoryUsers[idx] = {
+        ...memoryUsers[idx],
+        email,
+        name,
+        role,
+        roleTitle,
+        branchSlug,
+      };
+      return { ok: true, action: "updated", user: toSafeUser(memoryUsers[idx]) };
+    } else {
+      const newUser = {
+        id: employee.id || `u-${Date.now()}`,
+        email,
+        name,
+        role,
+        roleTitle,
+        branchSlug,
+        passwordHash: bcrypt.hashSync("123456", 10),
+      };
+      memoryUsers.push(newUser);
+      return { ok: true, action: "created", user: toSafeUser(newUser) };
+    }
+  }
+}
+
 module.exports = {
   ALLOWED_ROLES,
   toSafeUser,
@@ -330,4 +435,5 @@ module.exports = {
   refreshTokenUseCase,
   getDevicesUseCase,
   revokeDeviceUseCase,
+  syncEmployeeUseCase,
 };
