@@ -17,6 +17,7 @@ module.exports = {
     { method: "POST", path: "/api/auth/login", exact: true },
     { method: "POST", path: "/api/auth/refresh", exact: true },
     { method: "POST", path: "/api/auth/forgot-password", exact: true },
+    { method: "POST", path: "/api/auth/sync-employee", exact: true },
     { method: "GET", path: "/soap/payroll", exact: false },
   ],
   targets: {

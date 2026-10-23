@@ -13,8 +13,8 @@ import { apiPost } from "@/lib/api";
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useCurrentUser();
-  const [email, setEmail] = useState("admin@company.com");
-  const [password, setPassword] = useState("123456");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +118,7 @@ export default function LoginPage() {
             </div>
 
             <Button type="submit" block size="lg" disabled={submitting}>
-              {submitting ? "Đang đăng nhập..." : "Đăng nhập hệ thống"}
+              {submitting ? "Đang đăng nhập..." : "Đăng nhập"}
             </Button>
             {error && (
               <p className="text-sm text-red-600 mt-3 text-center">{error}</p>

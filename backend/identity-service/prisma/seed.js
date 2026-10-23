@@ -10,7 +10,7 @@ async function main() {
   const seeds = [
     { id: "e-admin", email: "admin@company.com", name: "Trần Minh Tuấn", role: "admin", roleTitle: "Quản trị viên", branchSlug: null },
   ];
-  await prisma.user.deleteMany({ where: { email: { not: "admin@company.com" } } }).catch(() => {});
+  // Không xoá tài khoản khác khi seed: giữ nguyên dữ liệu thật trong DB.
   for (const s of seeds) {
     await prisma.user.upsert({
       where: { email: s.email },
@@ -18,7 +18,7 @@ async function main() {
       create: { ...s, passwordHash: bcrypt.hashSync("123456", 10) },
     });
   }
-  console.log("Seed xong 1 tài khoản admin duy nhất");
+  console.log("Seed xong tài khoản admin mặc định (không xoá tài khoản khác)");
   await prisma.$disconnect();
 }
 

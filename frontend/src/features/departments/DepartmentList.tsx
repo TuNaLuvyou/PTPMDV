@@ -7,9 +7,6 @@ import {
   faPencil,
   faTrashCan,
   faMagnifyingGlass,
-  faSitemap,
-  faUsers,
-  faUserTie,
 } from "@fortawesome/free-solid-svg-icons";
 import Badge, { StatusBadge } from "@/components/ui/Badge";
 import Table, { Column } from "@/components/ui/Table";
@@ -40,8 +37,9 @@ export default function DepartmentList({
   const staffCounts = useMemo(() => {
     const map: Record<string, number> = {};
     employees.forEach((e) => {
-      if (e.department) {
-        map[e.department] = (map[e.department] || 0) + 1;
+      const key = (e.department || "").trim().toLowerCase();
+      if (key) {
+        map[key] = (map[key] || 0) + 1;
       }
     });
     return map;
@@ -54,8 +52,7 @@ export default function DepartmentList({
       (d) =>
         d.name.toLowerCase().includes(q) ||
         d.code.toLowerCase().includes(q) ||
-        d.manager.toLowerCase().includes(q) ||
-        (d.description && d.description.toLowerCase().includes(q))
+        d.manager.toLowerCase().includes(q)
     );
   }, [departments, searchQuery]);
 
@@ -65,45 +62,28 @@ export default function DepartmentList({
       key: "name",
       header: "Phòng ban",
       render: (d) => (
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-primary-50 text-primary flex items-center justify-center font-bold text-sm shrink-0 border border-primary-200">
-            <FontAwesomeIcon icon={faSitemap} fontSize={16} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-gray-900">{d.name}</span>
-              <span className="px-1.5 py-0.5 rounded text-[11px] font-mono font-bold bg-gray-100 text-gray-700 border border-gray-200">
-                {d.code}
-              </span>
-            </div>
-            <div className="text-xs text-gray-500 line-clamp-1 max-w-xs">{d.description || "Chưa có mô tả"}</div>
-          </div>
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-gray-900">{d.name}</span>
+          <span className="px-1.5 py-0.5 rounded text-[11px] font-mono font-bold bg-gray-100 text-gray-700 border border-gray-200">
+            {d.code}
+          </span>
         </div>
       ),
     },
     {
       key: "manager",
-      header: "Trưởng phòng / Phụ trách",
+      header: "Phụ trách",
       render: (d) => (
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center text-xs font-bold">
-            <FontAwesomeIcon icon={faUserTie} fontSize={12} />
-          </div>
-          <div>
-            <span className="font-medium text-gray-800 text-sm block">{d.manager || "Chưa bổ nhiệm"}</span>
-            <span className="text-[11px] text-gray-400">Trưởng bộ phận</span>
-          </div>
-        </div>
+        <span className="font-medium text-gray-800 text-sm">{d.manager || "Chưa bổ nhiệm"}</span>
       ),
     },
     {
       key: "staff",
       header: "Nhân sự",
       render: (d) => {
-        const count = staffCounts[d.name] ?? d.staff ?? 0;
+        const count = staffCounts[(d.name || "").trim().toLowerCase()] ?? d.staff ?? 0;
         return (
           <div className="flex items-center gap-1.5">
-            <FontAwesomeIcon icon={faUsers} fontSize={13} className="text-gray-400" />
             <span className="font-bold text-sm text-gray-800">{count}</span>
             <span className="text-xs text-gray-400">nhân sự</span>
           </div>
@@ -150,7 +130,7 @@ export default function DepartmentList({
               className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
             />
             <Input
-              placeholder="Tìm theo tên, mã, trưởng phòng..."
+              placeholder="Tìm theo tên, mã, người phụ trách..."
               className="pl-8 py-1.5 text-xs"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}

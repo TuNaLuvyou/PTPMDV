@@ -12,27 +12,25 @@ interface Props {
   department: Department | null;
   employees: Employee[];
   onSave: (data: Omit<Department, "id"> & { id?: string }) => void;
+  onDelete?: (department: Department) => void;
 }
 
-export default function DepartmentModal({ open, onClose, department, employees, onSave }: Props) {
+export default function DepartmentModal({ open, onClose, department, employees, onSave, onDelete }: Props) {
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [manager, setManager] = useState("");
-  const [description, setDescription] = useState("");
   const [status, setStatus] = useState<"hoạt động" | "tạm dừng">("hoạt động");
 
   useEffect(() => {
     if (department) {
-      setName(department.name);
-      setCode(department.code);
-      setManager(department.manager);
-      setDescription(department.description || "");
-      setStatus(department.status);
+      setName(department.name || "");
+      setCode(department.code || "");
+      setManager(department.manager ? department.manager.split(/—|-|\(/)[0].trim() : "");
+      setStatus(department.status || "hoạt động");
     } else {
       setName("");
       setCode("");
-      setManager(employees[0]?.name || "");
-      setDescription("");
+      setManager("");
       setStatus("hoạt động");
     }
   }, [department, employees, open]);
@@ -44,7 +42,6 @@ export default function DepartmentModal({ open, onClose, department, employees, 
       name: name.trim(),
       code: code.trim().toUpperCase(),
       manager: manager.trim(),
-      description: description.trim(),
       status,
       staff: department?.staff ?? 0,
       createdAt: department?.createdAt || new Date().toLocaleDateString("vi-VN"),
@@ -59,6 +56,16 @@ export default function DepartmentModal({ open, onClose, department, employees, 
       size="lg"
       footer={
         <>
+          {department && onDelete && (
+            <Button
+              type="button"
+              variant="danger"
+              className="mr-auto"
+              onClick={() => onDelete(department)}
+            >
+              Xóa
+            </Button>
+          )}
           <Button variant="white" onClick={onClose}>
             Hủy
           </Button>
@@ -71,7 +78,7 @@ export default function DepartmentModal({ open, onClose, department, employees, 
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Ví dụ: Phòng Marketing & Thương hiệu"
+            placeholder="Nhập tên phòng ban..."
           />
         </Field>
 
@@ -79,34 +86,30 @@ export default function DepartmentModal({ open, onClose, department, employees, 
           <Input
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="Ví dụ: PMKT"
+            placeholder="Nhập mã phòng ban..."
           />
         </Field>
 
-        <Field label="Trưởng phòng / Phụ trách" className="md:col-span-2">
-          <div className="space-y-2">
+        <Field label="Phụ trách" className="md:col-span-2">
+          {employees.length > 0 ? (
             <Select value={manager} onChange={(e) => setManager(e.target.value)}>
               <option value="">-- Chọn nhân sự phụ trách --</option>
               {employees.map((emp) => (
                 <option key={emp.id} value={emp.name}>
-                  {emp.name} — {emp.role} ({emp.branch})
+                  {emp.name}
                 </option>
               ))}
+              {manager && !employees.some((emp) => emp.name === manager) && (
+                <option value={manager}>{manager}</option>
+              )}
             </Select>
+          ) : (
             <Input
               value={manager}
               onChange={(e) => setManager(e.target.value)}
-              placeholder="Hoặc nhập tên người phụ trách nếu chưa có tài khoản..."
+              placeholder="Nhập tên nhân sự phụ trách..."
             />
-          </div>
-        </Field>
-
-        <Field label="Mô tả chức năng & nhiệm vụ" className="md:col-span-2">
-          <Input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Mô tả tóm tắt phạm vi công việc của phòng ban..."
-          />
+          )}
         </Field>
 
         <Field label="Trạng thái hoạt động" required className="md:col-span-2">

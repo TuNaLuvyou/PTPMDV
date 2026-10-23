@@ -130,7 +130,6 @@ export default function DepartmentsPage() {
           name: data.name,
           code: data.code,
           manager: data.manager,
-          description: data.description,
           status: data.status,
           staff: data.staff,
         });
@@ -143,7 +142,6 @@ export default function DepartmentsPage() {
           name: data.name,
           code: data.code,
           manager: data.manager,
-          description: data.description,
           status: data.status || "hoạt động",
           staff: data.staff ?? 0,
         });
@@ -300,6 +298,11 @@ export default function DepartmentsPage() {
         department={editing}
         employees={empList}
         onSave={handleSave}
+        onDelete={!isManager ? (d) => {
+          setModalOpen(false);
+          setEditing(null);
+          setDeleteTarget(d);
+        } : undefined}
       />
 
       {/* Confirm Lock / Toggle status */}

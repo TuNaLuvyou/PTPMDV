@@ -11,6 +11,7 @@ router.post("/login", AuthController.login);
 router.post("/logout", AuthController.logout);
 router.post("/refresh", AuthController.refresh);
 router.post("/forgot-password", AuthController.forgotPassword);
+router.post("/sync-employee", AuthController.syncEmployee);
 
 // Protected routes (cần phiên đăng nhập)
 router.get("/me", sessionMiddleware, AuthController.me);

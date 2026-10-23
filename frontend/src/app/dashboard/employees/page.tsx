@@ -12,7 +12,7 @@ import Button from "@/components/ui/Button";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Modal from "@/components/ui/Modal";
 import { Field, Input, Select } from "@/components/ui/Form";
-import { apiGet, apiPost, GatewayError, GATEWAY_URL } from "@/lib/api";
+import { apiGet, apiPost, apiPut, GatewayError, GATEWAY_URL } from "@/lib/api";
 import type { Employee, Branch, Department } from "@/types";
 import EmployeeSection from "@/features/employees/EmployeeList";
 import DisableEmployeeDialog from "@/features/employees/EmployeeDisable";
@@ -22,6 +22,17 @@ import { useCurrentUser } from "@/context/AuthContext";
 // Chuẩn hoá mã chi nhánh để so sánh (bỏ dấu gạch, không phân biệt hoa/thường).
 const normalizeSlug = (value?: string | null) =>
   (value || "").toLowerCase().replace(/-/g, "");
+
+// Chuẩn hoá bản ghi trả về từ DB (branchSlug -> branch) cho UI.
+const normalizeEmployee = (e: any): Employee => ({
+  ...e,
+  branch: e?.branchSlug ?? e?.branch ?? "",
+  department: e?.department || "",
+  role: e?.role || "Nhân viên",
+  systemRole: e?.systemRole || "staff",
+  status: e?.status || "đang làm",
+  phone: e?.phone || "",
+});
 
 async function parseEnvelope(res: Response) {
   const text = await res.text();
@@ -43,23 +54,6 @@ async function parseEnvelope(res: Response) {
     return (body as { data: unknown }).data;
   }
   return body;
-}
-
-async function apiPut<T>(path: string, payload?: unknown): Promise<T> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 5000);
-  try {
-    const res = await fetch(`${GATEWAY_URL}${path}`, {
-      method: "PUT",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: payload !== undefined ? JSON.stringify(payload) : undefined,
-      signal: controller.signal,
-    });
-    return (await parseEnvelope(res)) as T;
-  } finally {
-    clearTimeout(timer);
-  }
 }
 
 async function apiDelete<T>(path: string): Promise<T> {
@@ -312,8 +306,8 @@ function CreateEmployeeDialog({
             value={salaryType}
             onChange={(e) => setSalaryType(e.target.value as "hourly" | "monthly")}
           >
-            <option value="hourly">Lương theo giờ (Checkout cộng theo giờ)</option>
-            <option value="monthly">Lương cơ bản tháng (Cố định, chỉ trừ khi phạt)</option>
+            <option value="hourly">Lương theo giờ</option>
+            <option value="monthly">Lương cơ bản tháng</option>
           </Select>
         </Field>
         <Field label="Mức lương (VNĐ/giờ hoặc VNĐ/tháng)" required>
@@ -389,16 +383,7 @@ export default function EmployeesPage() {
       ]);
       setBranches(branchesData || []);
       setDepartments(departmentsData || []);
-      const normalized = (data || []).map((e: any) => ({
-        ...e,
-        branch: e.branchSlug || e.branch || "",
-        department: e.department || "",
-        role: e.role || "Nhân viên",
-        systemRole: e.systemRole || "staff",
-        status: e.status || "đang làm",
-        phone: e.phone || "",
-      }));
-      setRawEmployees(normalized);
+      setRawEmployees((data || []).map(normalizeEmployee));
     } catch (e: any) {
       const msg = e instanceof GatewayError ? e.message : e?.message || "Không thể tải danh sách nhân sự từ server";
       setError(msg);
@@ -457,21 +442,64 @@ export default function EmployeesPage() {
     }
   };
 
-  const handleSaveEmployee = async (updated: Employee) => {
+  const handleSaveEmployee = async (updated: Employee): Promise<Employee> => {
     try {
       setActionInProgress(true);
-      await apiPut<Employee>(`/api/employees/${updated.id}`, {
-        ...updated,
-        branchSlug: updated.branch ? updated.branch.toUpperCase() : undefined,
+      // Chỉ gửi các field nghiệp vụ; bỏ các field chỉ đọc (id, createdAt, updatedAt...).
+      const saved = await apiPut<any>(`/api/employees/${encodeURIComponent(updated.id)}`, {
+        name: updated.name,
+        phone: updated.phone,
+        email: updated.email,
+        gender: updated.gender,
+        birthDate: updated.birthDate,
+        province: updated.province,
+        ward: updated.ward,
+        street: updated.street,
+        branchSlug: updated.branch ? updated.branch.toUpperCase() : null,
+        department: updated.department,
+        role: updated.role,
+        systemRole: updated.systemRole,
+        status: updated.status,
+        joinDate: updated.joinDate,
+        salaryType: updated.salaryType,
+        hourlySalary: updated.hourlySalary,
+        baseSalary: updated.baseSalary,
+        bankName: updated.bankName,
+        bankAccountNumber: updated.bankAccountNumber,
+        bankAccountName: updated.bankAccountName,
+        cccd: updated.cccd,
+        issueDate: updated.issueDate,
+        issuePlace: updated.issuePlace,
       });
-      setRawEmployees((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
-      setSelectedEmployee(updated);
+
+      const normalized = normalizeEmployee(saved || updated);
+      setRawEmployees((prev) => prev.map((e) => (e.id === normalized.id ? normalized : e)));
+      setSelectedEmployee(normalized);
       showToast("Cập nhật thông tin nhân viên thành công!", "success");
+      return normalized;
     } catch (e: any) {
       const msg = e instanceof GatewayError ? e.message : e?.message || "Lỗi khi cập nhật nhân viên";
       showToast(msg, "danger");
+      // Ném lại để modal giữ chế độ chỉnh sửa và hiển thị lỗi.
+      throw e;
     } finally {
       setActionInProgress(false);
+    }
+  };
+
+  // Lấy bản ghi mới nhất từ DB mỗi lần mở hồ sơ, không dùng dữ liệu danh sách cũ.
+  const handleOpenDetail = async (e: Employee) => {
+    setSelectedEmployee(e);
+    setDetailOpen(true);
+    try {
+      const fresh = await apiGet<any>(`/api/employees/${encodeURIComponent(e.id)}`);
+      setSelectedEmployee((prev) =>
+        prev && prev.id === e.id ? normalizeEmployee(fresh) : prev
+      );
+    } catch (err: any) {
+      const msg =
+        err instanceof GatewayError ? err.message : err?.message || "Không thể tải hồ sơ nhân viên từ server";
+      showToast(msg, "danger");
     }
   };
 
@@ -579,10 +607,7 @@ export default function EmployeesPage() {
           employees={filteredEmployees}
           branches={branches}
           departments={departments}
-          onOpenDetail={(e) => {
-            setSelectedEmployee(e);
-            setDetailOpen(true);
-          }}
+          onOpenDetail={handleOpenDetail}
           onLock={setLockTarget}
           onDelete={setDeleteTarget}
           isManager={isManager}
@@ -600,6 +625,11 @@ export default function EmployeesPage() {
         branches={branches}
         departments={departments}
         onSave={handleSaveEmployee}
+        onDelete={!isManager ? (emp) => {
+          setDetailOpen(false);
+          setSelectedEmployee(null);
+          setDeleteTarget(emp);
+        } : undefined}
         isManager={isManager}
         managerBranch={branchSlug.toUpperCase()}
       />
