@@ -64,7 +64,6 @@ export default function GeneralScheduleSection({
   const [selectedDayIndex, setSelectedDayIndex] = useState(0); // 0: Thứ 2 ... 6: Chủ nhật
   const effectiveDefaultBranch = isManager && managerBranch ? managerBranch : defaultBranch;
   const [selectedBranch, setSelectedBranch] = useState(effectiveDefaultBranch);
-  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "checked_in" | "not_yet">("all");
   const [expandedShifts, setExpandedShifts] = useState<Record<string, boolean>>({
     "shift_0": true,
@@ -146,8 +145,26 @@ export default function GeneralScheduleSection({
     const [dd, mm, yyyy] = currentDay.fullDate.split("/").map(Number);
     const dayDate = new Date(yyyy, (mm || 1) - 1, dd || 1);
     dayDate.setHours(0, 0, 0, 0);
-    const dayStatus: GeneralShiftItem["status"] =
-      dayDate.getTime() < today.getTime() ? "completed" : dayDate.getTime() === today.getTime() ? "active" : "upcoming";
+    // Trạng thái theo ngày + giờ: ca đã qua giờ kết thúc -> hoàn thành,
+    // chưa tới giờ bắt đầu -> sắp diễn ra, đang trong khung -> đang diễn ra.
+    const calcStatus = (startTime: string, endTime: string): GeneralShiftItem["status"] => {
+      if (dayDate.getTime() < today.getTime()) return "completed";
+      if (dayDate.getTime() > today.getTime()) return "upcoming";
+      const toMinutes = (hms: string) => {
+        const [h, m] = (hms || "00:00").split(":").map(Number);
+        return (h || 0) * 60 + (m || 0);
+      };
+      const startMin = toMinutes(startTime);
+      let endMin = toMinutes(endTime);
+      // Ca kết thúc sau nửa đêm (VD: 22:00 - 00:00) -> cộng thêm 24h.
+      if (endMin <= startMin) endMin += 1440;
+      const nowMin = new Date();
+      nowMin.setHours(0, 0, 0, 0);
+      const elapsed = (Date.now() - nowMin.getTime()) / 60000;
+      if (elapsed >= endMin) return "completed";
+      if (elapsed < startMin) return "upcoming";
+      return "active";
+    };
 
     const iconFor = (start: string): GeneralShiftItem["iconType"] => {
       const h = Number((start || "07:00").split(":")[0]);
@@ -156,13 +173,10 @@ export default function GeneralScheduleSection({
       return "morning";
     };
 
-    // Mỗi khung ca mẫu -> 1 nhóm; nhân sự lọc theo templateName khớp ngày.
-    const groups = (templates.length > 0
-      ? templates
-      : [{ id: "t-fallback", name: "Ca làm việc", startTime: "07:00", endTime: "14:00" }]
-    ).map((t, ti) => {
+    // Chỉ hiển thị nhóm theo khung ca mẫu; chưa có khung -> không hiện nhóm ảo nào.
+    const groups = templates.map((t, ti) => {
       const staff = shiftsOfDay
-        .filter((ws) => !ws.templateName || ws.templateName === t.name || templates.length === 0)
+        .filter((ws) => !ws.templateName || ws.templateName === t.name)
         .map(toStaff);
       // Áp dụng override chấm công và loại bỏ ca đã hủy
       const withOverrides = staff
@@ -183,7 +197,7 @@ export default function GeneralScheduleSection({
         shiftName: t.name,
         timeRange: `${t.startTime} - ${t.endTime}`,
         iconType: iconFor(t.startTime),
-        status: dayStatus,
+        status: calcStatus(t.startTime, t.endTime),
         staffList: filteredByBranch,
       };
     });
@@ -284,25 +298,12 @@ export default function GeneralScheduleSection({
                   <option value="all">Tất cả chi nhánh</option>
                   {branches.map((b) => (
                     <option key={b.id || b.slug} value={b.slug.toUpperCase()}>
-                      Chi nhánh {b.slug.toUpperCase()} ({b.name})
+                      {b.slug.toUpperCase()} ({b.name})
                     </option>
                   ))}
                 </select>
               </div>
             )}
-
-            <div className="relative">
-              <FontAwesomeIcon icon={faMagnifyingGlass} fontSize={15}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="text"
-                placeholder="Tìm tên hoặc SĐT..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-xs bg-gray-50 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-primary w-40"
-              />
-            </div>
 
             <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs">
               <FontAwesomeIcon icon={faFilter} fontSize={14} className="text-gray-400" />
@@ -411,17 +412,17 @@ export default function GeneralScheduleSection({
 
       {/* ── DANH SÁCH CÁC CA LÀM VIỆC TRONG NGÀY (ACCORDION GIỐNG MOBILE) ── */}
       <div className="flex flex-col gap-4">
+        {dayShifts.length === 0 && (
+          <div className="bg-white border border-gray-200 rounded-xl p-10 text-center">
+            <FontAwesomeIcon icon={faCalendar} fontSize={30} className="text-gray-200" />
+            <p className="text-sm text-gray-400 mt-3">Chưa có ca làm việc nào trong ngày này</p>
+          </div>
+        )}
         {dayShifts.map((shift) => {
           const isExpanded = !!expandedShifts[shift.id];
 
           // Lọc nhân sự theo ô tìm kiếm và trạng thái checkin
           const visibleStaff = shift.staffList.filter((s) => {
-            const matchesQuery =
-              !searchQuery ||
-              s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              s.phone.includes(searchQuery) ||
-              s.role.toLowerCase().includes(searchQuery.toLowerCase());
-
             const matchesStatus =
               statusFilter === "all"
                 ? true
@@ -429,7 +430,7 @@ export default function GeneralScheduleSection({
                 ? s.checkInStatus === "checked_in" || s.checkInStatus === "in_progress"
                 : s.checkInStatus === "not_yet";
 
-            return matchesQuery && matchesStatus;
+            return matchesStatus;
           });
 
           const getStatusBadge = () => {
@@ -523,7 +524,7 @@ export default function GeneralScheduleSection({
                         onOpenAssignModal(
                           shift.templateId!,
                           currentDay.fullDate,
-                          selectedBranch === "all" ? "HN-1" : selectedBranch
+                          selectedBranch === "all" ? "all" : selectedBranch
                         );
                       }}
                       className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary hover:bg-primary hover:text-white transition-all cursor-pointer"

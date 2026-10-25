@@ -59,15 +59,15 @@ export default function DepartmentList({
 
   const columns: Column<Department>[] = [
     {
+      key: "code",
+      header: "Mã phòng ban",
+      render: (d) => <span className="text-sm text-gray-700">{d.code}</span>,
+    },
+    {
       key: "name",
       header: "Phòng ban",
       render: (d) => (
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-gray-900">{d.name}</span>
-          <span className="px-1.5 py-0.5 rounded text-[11px] font-mono font-bold bg-gray-100 text-gray-700 border border-gray-200">
-            {d.code}
-          </span>
-        </div>
+        <span className="font-semibold text-gray-900">{d.name}</span>
       ),
     },
     {

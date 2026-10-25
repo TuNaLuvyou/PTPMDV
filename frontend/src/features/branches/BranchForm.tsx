@@ -17,33 +17,27 @@ interface Props {
 
 export default function BranchModal({ open, onClose, branch, employees = [], onSave, onDelete }: Props) {
   const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
   const [address, setAddress] = useState("");
-  const [phone, setPhone] = useState("");
   const [manager, setManager] = useState("");
   const [status, setStatus] = useState<"hoạt động" | "vô hiệu hóa">("hoạt động");
 
   useEffect(() => {
     if (branch) {
       setName(branch.name || "");
-      setSlug(branch.slug || "");
       setAddress(branch.address || "");
-      setPhone(branch.phone || "");
       setManager(branch.manager ? branch.manager.split(/—|-|\(/)[0].trim() : "");
       setStatus(branch.status || "hoạt động");
     } else {
       setName("");
-      setSlug("");
       setAddress("");
-      setPhone("");
       setManager("");
       setStatus("hoạt động");
     }
   }, [branch, open]);
 
   const handleSave = () => {
-    if (!name || !slug) return;
-    onSave({ id: branch?.id, name, slug, address, phone, manager, status, staff: branch?.staff ?? 0 });
+    if (!name) return;
+    onSave({ id: branch?.id, name, slug: branch?.slug || "", address, manager, status, staff: branch?.staff ?? 0 });
   };
 
   return (
@@ -70,18 +64,11 @@ export default function BranchModal({ open, onClose, branch, employees = [], onS
       }
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1">
-        <Field label="Tên chi nhánh" required>
+        <Field label="Tên chi nhánh" required className="md:col-span-2">
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Nhập tên chi nhánh..."
-          />
-        </Field>
-        <Field label="Mã chi nhánh (slug)" required>
-          <Input
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            placeholder="Nhập mã chi nhánh..."
           />
         </Field>
         <Field label="Địa chỉ" required className="md:col-span-2">
@@ -89,13 +76,6 @@ export default function BranchModal({ open, onClose, branch, employees = [], onS
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="Nhập địa chỉ chi nhánh..."
-          />
-        </Field>
-        <Field label="SĐT" required>
-          <Input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Nhập số điện thoại liên hệ..."
           />
         </Field>
         <Field label="Quản lý">

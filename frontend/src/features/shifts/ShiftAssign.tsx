@@ -20,12 +20,9 @@ interface Props {
   isRecurring: boolean;
   isManager?: boolean;
   managerBranch?: string;
-  lockedBranch?: string;
   employees?: Employee[];
   onEmployeeChange: (v: string) => void;
   onBranchChange: (v: string) => void;
-  onDateChange: (v: string) => void;
-  onTemplateChange: (v: string) => void;
   onNoteChange: (v: string) => void;
   onRecurringChange: (v: boolean) => void;
   onSave: () => void;
@@ -43,25 +40,26 @@ export default function AssignShiftModal({
   isRecurring,
   isManager = false,
   managerBranch,
-  lockedBranch,
   employees: employeesProp,
   onEmployeeChange,
   onBranchChange,
-  onDateChange,
-  onTemplateChange,
   onNoteChange,
   onRecurringChange,
   onSave,
 }: Props) {
   const empList = employeesProp ?? [];
   const [branches, setBranches] = useState<Branch[]>([]);
+  // Khung ca khóa cứng theo ca được bấm trong lịch (không cho đổi trong modal).
+  const activeTemplate = templates.find((t) => t.id === templateId);
 
   useEffect(() => {
     if (!open) return;
     apiGet<Branch[]>("/api/branches").then((d) => setBranches(d || [])).catch(() => {});
   }, [open ]);
-  const isBranchLocked = isManager || (lockedBranch !== undefined && lockedBranch !== "all" && lockedBranch !== "");
-  const branchDisplay = isManager ? (managerBranch ?? branch) : (lockedBranch && lockedBranch !== "all" ? lockedBranch : branch);
+  // Chi nhánh: rỗng = admin xem "Tất cả chi nhánh" -> mở select để tự chọn lúc phân công;
+  // có giá trị (hoặc manager) -> khóa cứng theo chi nhánh đang lọc.
+  const isBranchLocked = isManager || (!!branch && branch !== "all");
+  const branchDisplay = isManager ? (managerBranch ?? branch) : branch;
   return (
     <Modal open={open} onClose={onClose} title="Phân công nhân viên vào ca" size="lg" footer={<><Button variant="white" onClick={onClose}>Hủy</Button><Button onClick={onSave}>Phân công</Button></>}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1">
@@ -80,6 +78,9 @@ export default function AssignShiftModal({
             </div>
           ) : (
             <Select value={branch} onChange={(e) => onBranchChange(e.target.value)}>
+              <option value="" disabled>
+                — Chọn chi nhánh —
+              </option>
               {branches.map((b) => (
                 <option key={b.id || b.slug} value={b.slug.toUpperCase()}>
                   Chi nhánh {b.slug.toUpperCase()} ({b.name})
@@ -91,14 +92,14 @@ export default function AssignShiftModal({
           {!isManager && isBranchLocked && <p className="text-[11px] text-gray-400 mt-1">Đã khóa theo chi nhánh đã chọn ở bộ lọc tổng</p>}
         </Field>
         <Field label="Ngày làm việc" required>
-          <Input type="text" placeholder="DD/MM/YYYY (VD: hôm nay)" value={date} onChange={(e) => onDateChange(e.target.value)} />
+          <div className="px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm font-bold text-gray-800">
+            {date}
+          </div>
         </Field>
         <Field label="Khung ca áp dụng" required>
-          <Select value={templateId} onChange={(e) => onTemplateChange(e.target.value)}>
-            {templates.map((t) => (
-              <option key={t.id} value={t.id}>{t.name} ({t.startTime} - {t.endTime})</option>
-            ))}
-          </Select>
+          <div className="px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm font-bold text-gray-800">
+            {activeTemplate ? `${activeTemplate.name} (${activeTemplate.startTime} - ${activeTemplate.endTime})` : "—"}
+          </div>
         </Field>
       </div>
       <Field label="Ghi chú phân công (tùy chọn)">
@@ -106,11 +107,10 @@ export default function AssignShiftModal({
       </Field>
       <div className="mt-1">
         <Checkbox
-          label="Lặp lại"
+          label="Lặp lại mỗi tuần"
           checked={isRecurring}
           onChange={(e) => onRecurringChange(e.target.checked)}
         />
-        <p className="text-[11px] text-gray-400 mt-1 ml-6">Áp dụng ca này lặp lại hàng tuần cho nhân viên</p>
       </div>
     </Modal>
   );

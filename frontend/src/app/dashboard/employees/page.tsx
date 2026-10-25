@@ -32,6 +32,9 @@ const normalizeEmployee = (e: any): Employee => ({
   systemRole: e?.systemRole || "staff",
   status: e?.status || "đang làm",
   phone: e?.phone || "",
+  cccdFront: typeof e?.cccdFront === "string" ? e.cccdFront : "",
+  cccdBack: typeof e?.cccdBack === "string" ? e.cccdBack : "",
+  avatar: typeof e?.avatar === "string" ? e.avatar : "",
 });
 
 async function parseEnvelope(res: Response) {
@@ -470,6 +473,9 @@ export default function EmployeesPage() {
         cccd: updated.cccd,
         issueDate: updated.issueDate,
         issuePlace: updated.issuePlace,
+        cccdFront: typeof updated.cccdFront === "string" ? updated.cccdFront : "",
+        cccdBack: typeof updated.cccdBack === "string" ? updated.cccdBack : "",
+        avatar: typeof updated.avatar === "string" ? updated.avatar : "",
       });
 
       const normalized = normalizeEmployee(saved || updated);

@@ -2,14 +2,26 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCalendar, faChevronLeft, faChevronRight, faCloudSun, faMoon, faSun, faUsers } from "@fortawesome/free-solid-svg-icons";
+import {
+  faCalendar,
+  faChevronDown,
+  faChevronLeft,
+  faChevronRight,
+  faChevronUp,
+  faClock,
+  faCloudSun,
+  faMoon,
+  faSun,
+  faUsers,
+} from "@fortawesome/free-solid-svg-icons";
 import Badge from "@/components/ui/Badge";
 import { apiGet } from "@/lib/api";
 import type { Branch } from "@/types";
-import type { WeeklyRegistration } from "./types";
+import type { WeeklyRegistration, ShiftTemplate } from "./types";
 
 interface Props {
   registrations: WeeklyRegistration[];
+  templates?: ShiftTemplate[];
   defaultBranch?: string;
   isManager?: boolean;
   managerBranch?: string;
@@ -17,6 +29,7 @@ interface Props {
 
 interface RegistrationShiftGroup {
   id: string;
+  templateId?: string;
   shiftName: string;
   timeRange: string;
   iconType: "morning" | "afternoon" | "evening" | "off";
@@ -32,12 +45,26 @@ function getMondayOfCurrentWeek(): Date {
   return monday;
 }
 
-export default function RegistrationTimetableSection({ registrations, defaultBranch = "all", isManager = false, managerBranch }: Props) {
+export default function RegistrationTimetableSection({
+  registrations,
+  templates = [],
+  defaultBranch = "all",
+  isManager = false,
+  managerBranch,
+}: Props) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
+  const [expandedShifts, setExpandedShifts] = useState<Record<string, boolean>>({});
   const effectiveDefaultBranch = isManager && managerBranch ? managerBranch : defaultBranch;
   const [selectedBranch, setSelectedBranch] = useState(effectiveDefaultBranch);
   const [branches, setBranches] = useState<Branch[]>([]);
+
+  const toggleExpand = (shiftId: string) => {
+    setExpandedShifts((prev) => ({
+      ...prev,
+      [shiftId]: prev[shiftId] === undefined ? false : !prev[shiftId],
+    }));
+  };
 
   useEffect(() => {
     apiGet<Branch[]>("/api/branches").then((d) => setBranches(d || [])).catch(() => {});
@@ -87,12 +114,53 @@ export default function RegistrationTimetableSection({ registrations, defaultBra
   }, [registrations, selectedBranch]);
 
   const dayGroups: RegistrationShiftGroup[] = useMemo(() => {
+    // 1. Nếu có danh sách ca khung mẫu tạo sẵn: hiển thị theo từng ca khung mẫu
+    if (templates && templates.length > 0) {
+      return templates.map((t) => {
+        const h = Number((t.startTime || "07:00").split(":")[0]);
+        let iconType: RegistrationShiftGroup["iconType"] = "morning";
+        if (h >= 17) iconType = "evening";
+        else if (h >= 12) iconType = "afternoon";
+
+        const matchesTemplate = (regShiftVal: string) => {
+          if (!regShiftVal || regShiftVal === "Nghỉ") return false;
+          const cleanReg = regShiftVal.trim().toLowerCase();
+          const cleanTName = t.name.trim().toLowerCase();
+          return (
+            cleanReg === cleanTName ||
+            cleanReg === t.id.toLowerCase() ||
+            cleanReg.includes(cleanTName) ||
+            cleanTName.includes(cleanReg)
+          );
+        };
+
+        const staffList = filteredRegs
+          .filter((r) => matchesTemplate(r.days[currentDay.key]))
+          .map((r) => ({
+            id: r.id,
+            name: r.employeeName,
+            role: r.role,
+            branch: r.branch,
+            note: r.note,
+          }));
+
+        return {
+          id: t.id,
+          templateId: t.id,
+          shiftName: t.name,
+          timeRange: `${t.startTime} - ${t.endTime}`,
+          iconType,
+          staffList,
+        };
+      });
+    }
+
+    // 2. Fallback nếu chưa có ca mẫu: gom nhóm theo nguyện vọng ca có trong dữ liệu
     const regsForDay = filteredRegs.filter((r) => {
       const shift = r.days[currentDay.key];
       return shift && shift !== "Nghỉ";
     });
 
-    // Group by shift name
     const groups: Record<string, typeof regsForDay> = {};
     regsForDay.forEach((r) => {
       const shift = r.days[currentDay.key];
@@ -132,40 +200,37 @@ export default function RegistrationTimetableSection({ registrations, defaultBra
         staffList: list.map((r) => ({ id: r.id, name: r.employeeName, role: r.role, branch: r.branch, note: r.note })),
       };
     });
-  }, [filteredRegs, currentDay]);
+  }, [templates, filteredRegs, currentDay]);
 
   const totalRegsForDay = dayGroups.reduce((sum, g) => sum + g.staffList.length, 0);
 
   return (
     <div className="flex flex-col gap-4 bg-white border border-gray-200 rounded-xl p-4 shadow-xs">
       {/* Header: tiêu đề + bộ lọc chi nhánh */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-            <FontAwesomeIcon icon={faCalendar} fontSize={16} className="text-primary" />
-            Thời gian biểu đăng ký ca
-          </h3>
-          {isManager ? (
-            <div className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs bg-gray-50 font-bold text-gray-800 flex items-center gap-1.5">
-              <span>{managerBranch}</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary-50 text-primary border border-primary-200">Cố định</span>
-            </div>
-          ) : (
-            <select
-              value={selectedBranch}
-              onChange={(e) => setSelectedBranch(e.target.value)}
-              className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs bg-gray-50 font-bold text-gray-800 focus:outline-none cursor-pointer"
-            >
-              <option value="all">Tất cả chi nhánh</option>
-              {branches.map((b) => (
-                <option key={b.id || b.slug} value={b.slug.toUpperCase()}>
-                  {b.slug.toUpperCase()}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-        <p className="text-xs text-gray-500">Lịch sử đăng ký nguyện vọng của nhân viên theo từng ngày, nhóm theo ca — đồng bộ như Lịch làm việc chung</p>
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+          <FontAwesomeIcon icon={faCalendar} fontSize={16} className="text-primary" />
+          Thời gian biểu đăng ký ca
+        </h3>
+        {isManager ? (
+          <div className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs bg-gray-50 font-bold text-gray-800 flex items-center gap-1.5">
+            <span>{managerBranch}</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary-50 text-primary border border-primary-200">Cố định</span>
+          </div>
+        ) : (
+          <select
+            value={selectedBranch}
+            onChange={(e) => setSelectedBranch(e.target.value)}
+            className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs bg-gray-50 font-bold text-gray-800 focus:outline-none cursor-pointer"
+          >
+            <option value="all">Tất cả chi nhánh</option>
+            {branches.map((b) => (
+              <option key={b.id || b.slug} value={b.slug.toUpperCase()}>
+                {b.slug.toUpperCase()}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Thanh chuyển tuần - cùng kích thước với ô tìm kiếm, ngang hàng */}
@@ -229,42 +294,125 @@ export default function RegistrationTimetableSection({ registrations, defaultBra
           {currentDay.name}, {currentDay.fullDate} <span className="text-xs font-normal text-gray-500">• {totalRegsForDay} lượt đăng ký</span>
         </div>
         <div className="flex gap-2">
-          <Badge tone="primary"><FontAwesomeIcon icon={faCalendar} fontSize={13} /> {dayGroups.length} ca</Badge>
+          <Badge tone="primary"><FontAwesomeIcon icon={faCalendar} fontSize={13} /> {dayGroups.length} khung ca</Badge>
           <Badge tone="gray"><FontAwesomeIcon icon={faUsers} fontSize={13} /> {totalRegsForDay} NV</Badge>
         </div>
       </div>
 
-      {/* Danh sách ca đăng ký trong ngày */}
-      <div className="flex flex-col gap-3">
+      {/* Danh sách các khung ca mẫu và nhân viên đăng ký trong ngày */}
+      <div className="flex flex-col gap-4">
         {dayGroups.length === 0 ? (
-          <div className="text-center py-8 bg-gray-50 border border-dashed border-gray-200 rounded-xl text-xs text-gray-400">Không có đăng ký nào cho ngày này (tất cả nghỉ).</div>
+          <div className="text-center py-8 bg-gray-50 border border-dashed border-gray-200 rounded-xl text-xs text-gray-400">
+            Chưa có khung ca mẫu nào được thiết lập. Hãy tạo ca mẫu trong tab &quot;Cấu hình ca mẫu&quot;.
+          </div>
         ) : (
-          dayGroups.map((group) => (
-            <div key={group.id} className="bg-gray-50/60 border border-gray-200 rounded-xl overflow-hidden">
-              <div className="p-3 flex items-center gap-3 bg-white">
-                {group.iconType === "morning" && <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200"><FontAwesomeIcon icon={faSun} fontSize={18} /></div>}
-                {group.iconType === "afternoon" && <div className="w-9 h-9 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center border border-orange-200"><FontAwesomeIcon icon={faCloudSun} fontSize={18} /></div>}
-                {group.iconType === "evening" && <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-200"><FontAwesomeIcon icon={faMoon} fontSize={18} /></div>}
-                <div>
-                  <div className="font-bold text-sm text-gray-900">{group.shiftName}</div>
-                  <div className="text-xs text-gray-500 font-mono">{group.timeRange}</div>
+          dayGroups.map((group) => {
+            const isExpanded = expandedShifts[group.id] !== false;
+
+            const getShiftIcon = () => {
+              if (group.iconType === "morning") {
+                return (
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200 shrink-0">
+                    <FontAwesomeIcon icon={faSun} fontSize={22} />
+                  </div>
+                );
+              }
+              if (group.iconType === "afternoon") {
+                return (
+                  <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center border border-orange-200 shrink-0">
+                    <FontAwesomeIcon icon={faCloudSun} fontSize={22} />
+                  </div>
+                );
+              }
+              return (
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-200 shrink-0">
+                  <FontAwesomeIcon icon={faMoon} fontSize={22} />
                 </div>
-                <span className="ml-auto text-xs font-bold bg-gray-100 border border-gray-200 px-2 py-1 rounded-lg">{group.staffList.length} NV</span>
-              </div>
-              <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {group.staffList.map((s) => (
-                  <div key={s.id} className="bg-white border border-gray-200 rounded-lg p-2.5 flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">{s.name.charAt(0)}</div>
+              );
+            };
+
+            return (
+              <div
+                key={group.id}
+                className={`bg-white border rounded-xl overflow-hidden transition-all shadow-xs ${
+                  isExpanded
+                    ? "border-primary/40 ring-1 ring-primary/10"
+                    : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                {/* Header khung ca (Click để mở rộng / thu gọn) */}
+                <div
+                  onClick={() => toggleExpand(group.id)}
+                  className="p-4 flex items-center justify-between gap-3 cursor-pointer select-none hover:bg-gray-50/70 transition-colors"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    {getShiftIcon()}
                     <div className="min-w-0">
-                      <div className="font-semibold text-xs text-gray-900 truncate">{s.name}</div>
-                      <div className="text-[11px] text-gray-500 truncate">{s.role} • {s.branch}</div>
-                      {s.note && <div className="text-[10px] text-amber-700 italic truncate max-w-[160px]">“{s.note}”</div>}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-bold text-gray-900 text-sm md:text-base truncate">
+                          {group.shiftName}
+                        </h3>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                        <span className="flex items-center gap-1 font-mono font-medium text-gray-700">
+                          <FontAwesomeIcon icon={faClock} fontSize={13} className="text-gray-400" />
+                          {group.timeRange}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                ))}
+
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-gray-100 text-gray-800 border border-gray-200">
+                      <FontAwesomeIcon icon={faUsers} fontSize={14} className="text-primary" />
+                      {group.staffList.length} nhân sự
+                    </span>
+
+                    <div className="text-gray-400 p-1">
+                      {isExpanded ? (
+                        <FontAwesomeIcon icon={faChevronUp} fontSize={20} className="text-primary" />
+                      ) : (
+                        <FontAwesomeIcon icon={faChevronDown} fontSize={20} />
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Danh sách nhân sự trong khung ca khi mở rộng */}
+                {isExpanded && (
+                  <div className="border-t border-gray-100 bg-gray-50/50 p-4">
+                    {group.staffList.length === 0 ? (
+                      <div className="text-center py-6 text-gray-400 text-xs">
+                        Trống
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {group.staffList.map((s) => (
+                          <div
+                            key={s.id}
+                            className="bg-white border border-gray-200 rounded-xl p-3 flex items-center gap-2.5 hover:border-primary/40 transition-colors shadow-2xs"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+                              {s.name.charAt(0)}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="font-semibold text-xs text-gray-900 truncate">{s.name}</div>
+                              <div className="text-[11px] text-gray-500 truncate">{s.role} • {s.branch}</div>
+                              {s.note && (
+                                <div className="text-[10px] text-amber-700 italic truncate max-w-[200px]">
+                                  “{s.note}”
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

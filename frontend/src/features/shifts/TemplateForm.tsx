@@ -43,7 +43,7 @@ export default function TemplateModal({
       }
     >
       <div className="flex flex-col gap-5">
-        <Field label="Tên khung ca" required hint="VD: Ca Sáng, Ca Chiều">
+        <Field label="Tên khung ca" required>
           <Input placeholder="Nhập tên khung ca..." value={name} onChange={(e) => onNameChange(e.target.value)} />
         </Field>
         <div className="grid grid-cols-2 gap-4">

@@ -35,7 +35,7 @@ function toSafeUser(row) {
 
 // --- Truy xuất User (gộp từ UserRepository cũ) ---
 const SEED_DEFS = [
-  { id: "e-admin", email: "admin@company.com", name: "Trần Minh Tuấn", role: "admin", roleTitle: "Quản trị viên", branchSlug: null },
+  { id: "NV-0001", email: "admin@company.com", name: "Trần Minh Tuấn", role: "admin", roleTitle: "Quản trị viên", branchSlug: null },
 ];
 
 const memoryUsers = SEED_DEFS.map((u) => ({

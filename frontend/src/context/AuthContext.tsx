@@ -126,9 +126,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Hết phiên mà đang ở dashboard thì đá về login (giữ ?from= để quay lại).
+  // Hết phiên mà đang ở dashboard thì đánh dấu cờ (login sẽ hiện toast) + đá về login.
   useEffect(() => {
     if (!loading && !authenticated && pathname.startsWith("/dashboard")) {
+      try {
+        sessionStorage.setItem("hrm_session_expired", "1");
+      } catch {
+        /* ignore */
+      }
       router.replace(`/login?from=${encodeURIComponent(pathname)}`);
     }
   }, [loading, authenticated, pathname, router]);
