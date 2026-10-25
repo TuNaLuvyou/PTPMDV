@@ -69,9 +69,17 @@ export default function EmployeeSection({
       header: "Nhân viên",
       render: (e) => (
         <div className="flex items-center gap-2.5">
-          <span className="w-8 h-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs font-bold">
-            {e.name.charAt(0)}
-          </span>
+          {e.avatar ? (
+            <img
+              src={e.avatar}
+              alt={e.name}
+              className="w-8 h-8 rounded-full object-cover border border-primary/20 shrink-0"
+            />
+          ) : (
+            <span className="w-8 h-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs font-bold shrink-0">
+              {e.name.charAt(0)}
+            </span>
+          )}
           <div>
             <div className="font-semibold text-gray-800">{e.name}</div>
             <div className="text-xs text-gray-400 font-mono">{e.phone}</div>

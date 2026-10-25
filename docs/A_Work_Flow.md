@@ -225,11 +225,11 @@ Lưu ý: `/soap/payroll` nhận và trả XML, và trả `soap:Fault` khi lỗi.
 
 ### Các thực thể
 
-- **Branch:** `id, name, slug, address, phone, manager (tên hiển thị), status (hoạt động/vô hiệu hóa), staff (số lượng nhân sự)`
+- **Branch:** `id, name, slug (mã chi nhánh do hệ thống tự sinh CN-0001, client không tự nhập), address, manager (tên hiển thị), status (hoạt động/vô hiệu hóa), staff (số lượng nhân sự)`
 
-- **Department:** `id, name, code, description, manager (tên hiển thị), status (hoạt động/tạm dừng), staff, createdAt`
+- **Department:** `id, name, code (mã phòng ban do hệ thống tự sinh PB-0001, client không tự nhập), description, manager (tên hiển thị), status (hoạt động/tạm dừng), staff, createdAt`
 
-- **Employee:** `id, name, email, phone, gender, birthDate, province, ward, street, cccd, issueDate, issuePlace, cccdFront, cccdBack, branch (slug chi nhánh, ví dụ "HN-1"), department (tên phòng ban), role (chức danh hiển thị), systemRole (admin/manager/staff), status (đang làm/vô hiệu hóa), joinDate, baseSalary, salaryType (hourly/monthly), hourlySalary, bankName, bankAccountNumber, bankAccountName`
+- **Employee:** `id (mã nhân viên do hệ thống tự sinh NV-0001, client không tự nhập), name, email, phone, gender, birthDate, province, ward, street, cccd, issueDate, issuePlace, cccdFront, cccdBack, branch (slug chi nhánh, ví dụ "CN-0001"), department (tên phòng ban), role (chức danh hiển thị), systemRole (admin/manager/staff), status (đang làm/vô hiệu hóa), joinDate, baseSalary, salaryType (hourly/monthly), hourlySalary, bankName, bankAccountNumber, bankAccountName`
 
 - **Shift (lịch sử ca / phân ca):** `id, employeeId, branch (slug), date (DD-MM-YYYY), template (tên ca), scheduledStart (HH:MM), scheduledEnd (HH:MM), checkIn (HH:MM), checkOut (HH:MM), status (hoàn thành/đang làm/vắng/trễ)`
 

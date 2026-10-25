@@ -128,7 +128,6 @@ export default function DepartmentsPage() {
       if (editing && editing.id) {
         const updated = await apiPut<Department>(`/api/departments/${encodeURIComponent(editing.id)}`, {
           name: data.name,
-          code: data.code,
           manager: data.manager,
           status: data.status,
           staff: data.staff,
@@ -140,7 +139,6 @@ export default function DepartmentsPage() {
       } else {
         const created = await apiPost<Department>("/api/departments", {
           name: data.name,
-          code: data.code,
           manager: data.manager,
           status: data.status || "hoạt động",
           staff: data.staff ?? 0,

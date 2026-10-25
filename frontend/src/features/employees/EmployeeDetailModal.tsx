@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPencil,
@@ -15,12 +15,20 @@ import {
   faInfoCircle,
   faLocationDot,
   faHouse,
+  faCloudArrowUp,
+  faTrashCan,
+  faEye,
+  faImage,
+  faSpinner,
+  faRotateRight,
+  faCamera,
 } from "@fortawesome/free-solid-svg-icons";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import { Field, Input, Select } from "@/components/ui/Form";
 import { StatusBadge } from "@/components/ui/Badge";
 import type { Employee, UserRole, Branch, Department } from "@/types";
+import { apiPost } from "@/lib/api";
 
 interface Props {
   open: boolean;
@@ -99,6 +107,19 @@ export default function EmployeeDetailModal({
   const [cccd, setCccd] = useState("");
   const [issueDate, setIssueDate] = useState("");
   const [issuePlace, setIssuePlace] = useState("");
+  const [cccdFront, setCccdFront] = useState("");
+  const [cccdBack, setCccdBack] = useState("");
+  const [uploadingFront, setUploadingFront] = useState(false);
+  const [uploadingBack, setUploadingBack] = useState(false);
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
+
+  // Avatar
+  const [avatar, setAvatar] = useState("");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const frontInputRef = useRef<HTMLInputElement>(null);
+  const backInputRef = useRef<HTMLInputElement>(null);
 
   // Đồng bộ dữ liệu khi mở modal hoặc thay đổi employee
   useEffect(() => {
@@ -130,6 +151,13 @@ export default function EmployeeDetailModal({
       setCccd(employee.cccd || "");
       setIssueDate(employee.issueDate || "");
       setIssuePlace(employee.issuePlace || "");
+      setCccdFront(typeof employee.cccdFront === "string" ? employee.cccdFront : "");
+      setCccdBack(typeof employee.cccdBack === "string" ? employee.cccdBack : "");
+      setAvatar(employee.avatar || "");
+      setUploadingFront(false);
+      setUploadingBack(false);
+      setUploadingAvatar(false);
+      setPreviewImage(null);
 
       setIsEditing(false);
       setActiveTab("profile");
@@ -168,6 +196,12 @@ export default function EmployeeDetailModal({
     setCccd(employee.cccd || "");
     setIssueDate(employee.issueDate || "");
     setIssuePlace(employee.issuePlace || "");
+    setCccdFront(typeof employee.cccdFront === "string" ? employee.cccdFront : "");
+    setCccdBack(typeof employee.cccdBack === "string" ? employee.cccdBack : "");
+    setAvatar(employee.avatar || "");
+    setUploadingFront(false);
+    setUploadingBack(false);
+    setUploadingAvatar(false);
 
     setSaveError("");
     setIsEditing(false);
@@ -208,6 +242,9 @@ export default function EmployeeDetailModal({
       cccd,
       issueDate,
       issuePlace,
+      cccdFront: cccdFront.trim(),
+      cccdBack: cccdBack.trim(),
+      avatar: avatar.trim(),
     };
 
     try {
@@ -219,6 +256,93 @@ export default function EmployeeDetailModal({
       setSaveError(e instanceof Error ? e.message : "Không thể lưu thay đổi vào cơ sở dữ liệu");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAvatarUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setSaveError("Vui lòng chọn file hình ảnh hợp lệ (PNG, JPG, WEBP)");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setSaveError("Dung lượng ảnh đại diện tối đa 5MB");
+      return;
+    }
+
+    try {
+      setUploadingAvatar(true);
+      setSaveError("");
+
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error("Không thể đọc file ảnh"));
+        reader.readAsDataURL(file);
+      });
+
+      try {
+        const res = await apiPost<{ url: string }>("/api/upload", {
+          file: dataUrl,
+          folder: "hrm/avatars",
+        });
+        if (res && res.url) {
+          setAvatar(res.url);
+          return;
+        }
+      } catch (uploadErr) {
+        console.warn("Upload API không khả dụng, dùng data URL:", uploadErr);
+      }
+
+      setAvatar(dataUrl);
+    } catch (err: unknown) {
+      setSaveError(err instanceof Error ? err.message : "Lỗi khi xử lý ảnh đại diện");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleFileUpload = async (file: File, side: "front" | "back") => {
+    if (!file.type.startsWith("image/")) {
+      setSaveError("Vui lòng chọn file hình ảnh hợp lệ (PNG, JPG, WEBP)");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setSaveError("Dung lượng ảnh tối đa 10MB");
+      return;
+    }
+
+    const setUploading = side === "front" ? setUploadingFront : setUploadingBack;
+    const setTarget = side === "front" ? setCccdFront : setCccdBack;
+
+    try {
+      setUploading(true);
+      setSaveError("");
+
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error("Không thể đọc file ảnh"));
+        reader.readAsDataURL(file);
+      });
+
+      try {
+        const res = await apiPost<{ url: string }>("/api/upload", {
+          file: dataUrl,
+          folder: "hrm/cccd",
+        });
+        if (res && res.url) {
+          setTarget(res.url);
+          return;
+        }
+      } catch (uploadErr) {
+        console.warn("Upload API không khả dụng, dùng data URL:", uploadErr);
+      }
+
+      setTarget(dataUrl);
+    } catch (err: unknown) {
+      setSaveError(err instanceof Error ? err.message : "Lỗi khi xử lý ảnh CCCD");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -234,7 +358,13 @@ export default function EmployeeDetailModal({
     }
   };
 
-  const fullAddress = [street, ward, province].filter(Boolean).join(", ");
+  const fullAddress = (
+    isEditing
+      ? [street, ward, province]
+      : [employee.street, employee.ward, employee.province]
+  )
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <Modal
@@ -299,9 +429,80 @@ export default function EmployeeDetailModal({
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-gray-50 via-white to-gray-50 border border-gray-200 p-5 sm:p-6 shadow-2xs">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
             <div className="flex items-center gap-4 min-w-0">
-              {/* Avatar circle */}
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 border-2 border-primary/20 text-primary flex items-center justify-center text-2xl font-black shadow-inner shrink-0">
-                {employee.name.charAt(0)}
+              {/* Hidden avatar input */}
+              <input
+                type="file"
+                ref={avatarInputRef}
+                className="hidden"
+                accept="image/png,image/jpeg,image/webp,image/jpg"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleAvatarUpload(f);
+                  e.target.value = "";
+                }}
+              />
+
+              {/* Avatar frame */}
+              <div className="relative group shrink-0">
+                <div
+                  onClick={() => {
+                    if (isEditing) {
+                      avatarInputRef.current?.click();
+                    } else if (avatar || employee.avatar) {
+                      setPreviewImage({
+                        url: avatar || employee.avatar || "",
+                        title: `Ảnh đại diện — ${employee.name}`,
+                      });
+                    }
+                  }}
+                  className={`w-16 h-16 rounded-2xl overflow-hidden border-2 flex items-center justify-center transition-all ${
+                    isEditing
+                      ? "cursor-pointer border-primary/40 hover:border-primary shadow-md hover:shadow-lg"
+                      : (avatar || employee.avatar)
+                      ? "cursor-pointer border-primary/20 hover:border-primary/50 shadow-inner"
+                      : "border-primary/20 bg-primary/10 text-primary shadow-inner"
+                  }`}
+                  title={isEditing ? "Bấm để chọn ảnh đại diện mới" : "Ảnh đại diện"}
+                >
+                  {uploadingAvatar ? (
+                    <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary text-xs">
+                      <FontAwesomeIcon icon={faSpinner} className="animate-spin text-lg" />
+                    </div>
+                  ) : (isEditing ? avatar : (employee.avatar || avatar)) ? (
+                    <img
+                      src={isEditing ? avatar : (employee.avatar || avatar)}
+                      alt={employee.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-2xl font-black text-primary">
+                      {(isEditing ? name || employee.name : employee.name).charAt(0)}
+                    </span>
+                  )}
+
+                  {/* Overlay camera icon in edit mode */}
+                  {isEditing && !uploadingAvatar && (
+                    <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity rounded-2xl">
+                      <FontAwesomeIcon icon={faCamera} className="text-sm mb-0.5" />
+                      <span className="text-[9px] font-bold uppercase tracking-wider">Đổi ảnh</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Nút nhỏ xóa avatar khi đang edit nếu đã có avatar */}
+                {isEditing && avatar && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAvatar("");
+                    }}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center text-[10px] shadow-sm cursor-pointer transition-transform hover:scale-110"
+                    title="Xóa ảnh đại diện"
+                  >
+                    <FontAwesomeIcon icon={faXmark} />
+                  </button>
+                )}
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2.5 flex-wrap">
@@ -482,7 +683,7 @@ export default function EmployeeDetailModal({
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
-                      <span className="text-gray-500 text-xs">Xã / Phường / Quận:</span>
+                      <span className="text-gray-500 text-xs">Phường:</span>
                       <span className="font-semibold text-gray-800 text-xs">
                         {employee.ward || "Chưa cập nhật"}
                       </span>
@@ -493,12 +694,11 @@ export default function EmployeeDetailModal({
                         {employee.street || "Chưa cập nhật"}
                       </span>
                     </div>
-                    <div className="pt-2">
-                      <span className="text-gray-500 text-xs block mb-1">Địa chỉ đầy đủ:</span>
-                      <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-gray-800 flex items-start gap-2">
-                        <FontAwesomeIcon icon={faLocationDot} className="text-primary mt-0.5" />
-                        <span>{fullAddress || "Chưa cập nhật"}</span>
-                      </div>
+                    <div className="flex justify-between items-center py-1.5">
+                      <span className="text-gray-500 text-xs">Địa chỉ:</span>
+                      <span className="font-semibold text-gray-800 text-xs text-right max-w-[65%]">
+                        {fullAddress || "Chưa cập nhật"}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -562,7 +762,7 @@ export default function EmployeeDetailModal({
                       placeholder="Hà Nội / TP. Hồ Chí Minh / Đà Nẵng..."
                     />
                   </Field>
-                  <Field label="Quận / Xã / Phường" required>
+                  <Field label="Phường" required>
                     <Input
                       value={ward}
                       onChange={(e) => setWard(e.target.value)}
@@ -944,10 +1144,7 @@ export default function EmployeeDetailModal({
                     <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-sm">
                       <FontAwesomeIcon icon={faIdCard} />
                     </div>
-                    <div>
-                      <h4 className="font-bold text-gray-900 text-sm">Thông tin Căn cước công dân</h4>
-                      <p className="text-xs text-gray-500">Định danh cá nhân và giấy tờ tùy thân</p>
-                    </div>
+                    <h4 className="font-bold text-gray-900 text-sm">Thông tin Căn cước công dân</h4>
                   </div>
 
                   <div className="space-y-3 text-sm">
@@ -984,10 +1181,97 @@ export default function EmployeeDetailModal({
                     </div>
                   </div>
                 </div>
+
+                {/* Hình ảnh Căn cước công dân */}
+                <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-2xs flex flex-col">
+                  <div className="flex items-center gap-2 pb-3 border-b border-gray-100 mb-4">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-sm">
+                      <FontAwesomeIcon icon={faImage} />
+                    </div>
+                    <h4 className="font-bold text-gray-900 text-sm">Hình ảnh Căn cước công dân</h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
+                    {/* Mặt trước view */}
+                    <div className="flex flex-col h-full">
+                      <div className="flex items-center justify-between text-xs font-semibold text-gray-700 mb-2">
+                        <span>Mặt trước</span>
+                        {employee.cccdFront && (
+                          <span className="text-emerald-600 flex items-center gap-1 text-[11px]">
+                            <FontAwesomeIcon icon={faCheck} className="text-[10px]" /> Đã có ảnh
+                          </span>
+                        )}
+                      </div>
+                      {typeof employee.cccdFront === "string" && employee.cccdFront ? (
+                        <div
+                          onClick={() =>
+                            setPreviewImage({
+                              url: employee.cccdFront as string,
+                              title: `CCCD Mặt trước — ${employee.name}`,
+                            })
+                          }
+                          className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-50 flex-1 w-full min-h-[170px] cursor-pointer hover:border-primary transition-all shadow-2xs"
+                        >
+                          <img
+                            src={employee.cccdFront}
+                            alt="CCCD Mặt trước"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity text-white text-xs font-medium">
+                            <FontAwesomeIcon icon={faEye} /> Xem ảnh lớn
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 flex-1 w-full min-h-[170px] flex flex-col items-center justify-center p-3 text-center text-gray-400 gap-1.5">
+                          <FontAwesomeIcon icon={faIdCard} className="text-2xl text-gray-300" />
+                          <span className="text-xs">Chưa tải lên mặt trước</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Mặt sau view */}
+                    <div className="flex flex-col h-full">
+                      <div className="flex items-center justify-between text-xs font-semibold text-gray-700 mb-2">
+                        <span>Mặt sau</span>
+                        {employee.cccdBack && (
+                          <span className="text-emerald-600 flex items-center gap-1 text-[11px]">
+                            <FontAwesomeIcon icon={faCheck} className="text-[10px]" /> Đã có ảnh
+                          </span>
+                        )}
+                      </div>
+                      {typeof employee.cccdBack === "string" && employee.cccdBack ? (
+                        <div
+                          onClick={() =>
+                            setPreviewImage({
+                              url: employee.cccdBack as string,
+                              title: `CCCD Mặt sau — ${employee.name}`,
+                            })
+                          }
+                          className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-50 flex-1 w-full min-h-[170px] cursor-pointer hover:border-primary transition-all shadow-2xs"
+                        >
+                          <img
+                            src={employee.cccdBack}
+                            alt="CCCD Mặt sau"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity text-white text-xs font-medium">
+                            <FontAwesomeIcon icon={faEye} /> Xem ảnh lớn
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 flex-1 w-full min-h-[170px] flex flex-col items-center justify-center p-3 text-center text-gray-400 gap-1.5">
+                          <FontAwesomeIcon icon={faIdCard} className="text-2xl text-gray-300" />
+                          <span className="text-xs">Chưa tải lên mặt sau</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             ) : (
               /* Edit mode Tab 4 */
-              <div className="grid grid-cols-1 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Cột 1: Thông tin số CCCD */}
                 <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
                   <h5 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-2">
                     <FontAwesomeIcon icon={faIdCard} /> Thông tin số CCCD
@@ -1014,11 +1298,196 @@ export default function EmployeeDetailModal({
                     />
                   </Field>
                 </div>
+
+                {/* Cột 2: Upload ảnh CCCD */}
+                <div className="bg-white rounded-2xl border border-gray-200 p-5 flex flex-col">
+                  <h5 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-2 mb-4">
+                    <FontAwesomeIcon icon={faImage} /> Ảnh chụp Căn cước công dân
+                  </h5>
+
+                  <input
+                    type="file"
+                    ref={frontInputRef}
+                    className="hidden"
+                    accept="image/png,image/jpeg,image/webp,image/jpg"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleFileUpload(f, "front");
+                      e.target.value = "";
+                    }}
+                  />
+                  <input
+                    type="file"
+                    ref={backInputRef}
+                    className="hidden"
+                    accept="image/png,image/jpeg,image/webp,image/jpg"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleFileUpload(f, "back");
+                      e.target.value = "";
+                    }}
+                  />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
+                    {/* Upload Mặt trước */}
+                    <div className="flex flex-col h-full">
+                      <div className="flex items-center justify-between text-xs font-semibold text-gray-700 mb-2">
+                        <span>Mặt trước</span>
+                        {cccdFront && (
+                          <button
+                            type="button"
+                            onClick={() => setCccdFront("")}
+                            className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1 cursor-pointer"
+                          >
+                            <FontAwesomeIcon icon={faTrashCan} /> Xóa ảnh
+                          </button>
+                        )}
+                      </div>
+
+                      {uploadingFront ? (
+                        <div className="rounded-xl border border-primary/30 bg-primary/5 flex-1 w-full min-h-[190px] flex flex-col items-center justify-center gap-2 text-primary text-xs">
+                          <FontAwesomeIcon icon={faSpinner} className="animate-spin text-lg" />
+                          <span>Đang tải ảnh lên...</span>
+                        </div>
+                      ) : cccdFront ? (
+                        <div className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-50 flex-1 w-full min-h-[190px] shadow-2xs">
+                          <img
+                            src={cccdFront}
+                            alt="CCCD Mặt trước"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
+                            <button
+                              type="button"
+                              onClick={() => frontInputRef.current?.click()}
+                              className="px-2.5 py-1.5 rounded-lg bg-white/90 hover:bg-white text-gray-800 text-xs font-semibold shadow-xs flex items-center gap-1 cursor-pointer"
+                            >
+                              <FontAwesomeIcon icon={faRotateRight} /> Đổi ảnh
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPreviewImage({ url: cccdFront, title: "CCCD Mặt trước" })}
+                              className="p-1.5 rounded-lg bg-white/90 hover:bg-white text-gray-800 text-xs shadow-xs cursor-pointer"
+                              title="Xem lớn"
+                            >
+                              <FontAwesomeIcon icon={faEye} />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => frontInputRef.current?.click()}
+                          className="rounded-xl border-2 border-dashed border-gray-300 hover:border-primary bg-gray-50 hover:bg-primary/5 flex-1 w-full min-h-[190px] flex flex-col items-center justify-center p-3 text-center cursor-pointer transition-colors gap-2 group"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-white shadow-xs border border-gray-200 group-hover:border-primary/40 flex items-center justify-center text-gray-500 group-hover:text-primary transition-colors">
+                            <FontAwesomeIcon icon={faCloudArrowUp} className="text-base" />
+                          </div>
+                          <span className="text-xs font-semibold text-gray-700 group-hover:text-primary transition-colors">
+                            Tải ảnh mặt trước
+                          </span>
+                          <span className="text-[10px] text-gray-400">PNG, JPG, WEBP (tối đa 10MB)</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Upload Mặt sau */}
+                    <div className="flex flex-col h-full">
+                      <div className="flex items-center justify-between text-xs font-semibold text-gray-700 mb-2">
+                        <span>Mặt sau</span>
+                        {cccdBack && (
+                          <button
+                            type="button"
+                            onClick={() => setCccdBack("")}
+                            className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1 cursor-pointer"
+                          >
+                            <FontAwesomeIcon icon={faTrashCan} /> Xóa ảnh
+                          </button>
+                        )}
+                      </div>
+
+                      {uploadingBack ? (
+                        <div className="rounded-xl border border-primary/30 bg-primary/5 flex-1 w-full min-h-[190px] flex flex-col items-center justify-center gap-2 text-primary text-xs">
+                          <FontAwesomeIcon icon={faSpinner} className="animate-spin text-lg" />
+                          <span>Đang tải ảnh lên...</span>
+                        </div>
+                      ) : cccdBack ? (
+                        <div className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-50 flex-1 w-full min-h-[190px] shadow-2xs">
+                          <img
+                            src={cccdBack}
+                            alt="CCCD Mặt sau"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
+                            <button
+                              type="button"
+                              onClick={() => backInputRef.current?.click()}
+                              className="px-2.5 py-1.5 rounded-lg bg-white/90 hover:bg-white text-gray-800 text-xs font-semibold shadow-xs flex items-center gap-1 cursor-pointer"
+                            >
+                              <FontAwesomeIcon icon={faRotateRight} /> Đổi ảnh
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPreviewImage({ url: cccdBack, title: "CCCD Mặt sau" })}
+                              className="p-1.5 rounded-lg bg-white/90 hover:bg-white text-gray-800 text-xs shadow-xs cursor-pointer"
+                              title="Xem lớn"
+                            >
+                              <FontAwesomeIcon icon={faEye} />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => backInputRef.current?.click()}
+                          className="rounded-xl border-2 border-dashed border-gray-300 hover:border-primary bg-gray-50 hover:bg-primary/5 flex-1 w-full min-h-[190px] flex flex-col items-center justify-center p-3 text-center cursor-pointer transition-colors gap-2 group"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-white shadow-xs border border-gray-200 group-hover:border-primary/40 flex items-center justify-center text-gray-500 group-hover:text-primary transition-colors">
+                            <FontAwesomeIcon icon={faCloudArrowUp} className="text-base" />
+                          </div>
+                          <span className="text-xs font-semibold text-gray-700 group-hover:text-primary transition-colors">
+                            Tải ảnh mặt sau
+                          </span>
+                          <span className="text-[10px] text-gray-400">PNG, JPG, WEBP (tối đa 10MB)</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
         )}
       </div>
+
+      {/* Lightbox xem ảnh phóng to */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-xs"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="relative max-w-4xl max-h-[90vh] bg-white rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50">
+              <h4 className="text-sm font-bold text-gray-800">{previewImage.title}</h4>
+              <button
+                type="button"
+                onClick={() => setPreviewImage(null)}
+                className="w-8 h-8 rounded-full hover:bg-gray-200 text-gray-500 flex items-center justify-center cursor-pointer transition-colors"
+              >
+                <FontAwesomeIcon icon={faXmark} />
+              </button>
+            </div>
+            <div className="p-4 overflow-auto flex items-center justify-center bg-gray-900/5">
+              <img
+                src={previewImage.url}
+                alt={previewImage.title}
+                className="max-h-[75vh] max-w-full object-contain rounded-lg shadow-md"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </Modal>
   );
 }

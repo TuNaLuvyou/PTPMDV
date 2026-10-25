@@ -1,8 +1,5 @@
 "use client";
 
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCalendarCheck } from "@fortawesome/free-solid-svg-icons";
-import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import Table, { Column } from "@/components/ui/Table";
 import type { WeeklyRegistration } from "@/features/shifts/types";
 
@@ -73,21 +70,8 @@ export default function WeeklyRegistrationSection({ registrations, onAssignFromR
   ];
 
   return (
-    <Card>
-      <CardHeader>
-        <div>
-          <CardTitle className="flex items-center gap-2">
-            <FontAwesomeIcon icon={faCalendarCheck} fontSize={20} className="text-primary" />
-            Nguyện vọng Đăng ký Ca Tuần tới (Tham khảo để Xếp ca)
-          </CardTitle>
-          <p className="text-xs text-gray-500 mt-1">
-            Dữ liệu tổng hợp từ App di động cho tuần tới. Quản lý căn cứ vào nguyện vọng đăng ký của nhân viên để xếp ca chủ động, tránh trùng lặp hoặc xung đột ca làm việc.
-          </p>
-        </div>
-      </CardHeader>
-      <CardBody className="pt-2">
-        <Table columns={columns} data={registrations} rowKey={(r) => r.id} emptyMessage="Chưa có nhân viên nào gửi đăng ký ca" />
-      </CardBody>
-    </Card>
+    <div className="pt-1">
+      <Table columns={columns} data={registrations} rowKey={(r) => r.id} emptyMessage="Chưa có nhân viên nào gửi đăng ký ca" />
+    </div>
   );
 }

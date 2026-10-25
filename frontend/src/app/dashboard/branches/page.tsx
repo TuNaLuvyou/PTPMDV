@@ -128,9 +128,7 @@ export default function BranchesPage() {
         // Cập nhật chi nhánh hiện có qua PUT /api/branches/:slug
         const updated = await apiPut<Branch>(`/api/branches/${encodeURIComponent(editing.slug)}`, {
           name: data.name,
-          slug: data.slug,
           address: data.address,
-          phone: data.phone,
           manager: data.manager,
           status: data.status,
           staff: data.staff,
@@ -143,9 +141,7 @@ export default function BranchesPage() {
         // Tạo chi nhánh mới qua POST /api/branches
         const created = await apiPost<Branch>("/api/branches", {
           name: data.name,
-          slug: data.slug,
           address: data.address,
-          phone: data.phone,
           manager: data.manager,
           status: data.status || "hoạt động",
           staff: data.staff ?? 0,

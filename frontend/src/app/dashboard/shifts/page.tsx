@@ -12,11 +12,10 @@ import {
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
 import { apiGet, apiPost, GatewayError, GATEWAY_URL } from "@/lib/api";
-import type { Employee } from "@/types";
+import type { Employee, Branch } from "@/types";
 import type { ShiftTemplate, WorkShift, WeeklyRegistration } from "@/features/shifts/types";
 import ShiftTemplateSection from "@/features/shifts/ShiftTemplates";
 import WorkShiftSection from "@/features/shifts/ShiftList";
-import WeeklyRegistrationSection from "@/features/shifts/WeekWishes";
 import GeneralScheduleSection from "@/features/shifts/ScheduleOverview";
 import RegistrationTimetableSection from "@/features/shifts/RegTimetable";
 import TemplateModal from "@/features/shifts/TemplateForm";
@@ -137,7 +136,7 @@ function mapBackendRegistration(r: any, empMap?: Map<string, string>): WeeklyReg
     id: r.id || `reg-${Date.now()}`,
     employeeName: empName,
     role: r.role || "Nhân viên",
-    branch: r.branchSlug || r.branch || "HN-1",
+    branch: r.branchSlug || r.branch || "—",
     requestedCount: r.requestedCount || (r.days ? Object.values(r.days).filter((v) => v !== "Nghỉ").length : 5),
     registeredAt: r.registeredAt || (r.createdAt ? new Date(r.createdAt).toLocaleDateString("vi-VN") : "—"),
     order: r.order || 1,
@@ -170,10 +169,10 @@ export default function ShiftsPage() {
     return `${String(n.getDate()).padStart(2, "0")}/${String(n.getMonth() + 1).padStart(2, "0")}/${n.getFullYear()}`;
   })();
   const [schedulerDate, setSchedulerDate] = useState(todayStr);
-  const [schedulerBranch, setSchedulerBranch] = useState(isManager ? managerBranch : "HN-1");
+  const [branches, setBranches] = useState<Branch[]>([]);
 
   const [assignEmployee, setAssignEmployee] = useState("");
-  const [assignBranch, setAssignBranch] = useState("HN-1");
+  const [assignBranch, setAssignBranch] = useState("");
   const [assignDate, setAssignDate] = useState(todayStr);
   const [assignTemplateId, setAssignTemplateId] = useState("");
   const [assignNote, setAssignNote] = useState("");
@@ -199,18 +198,23 @@ export default function ShiftsPage() {
       setLoading(true);
       setError(null);
 
-      const effectiveBranch = isManager ? managerBranch : (schedulerBranch === "all" ? "" : schedulerBranch);
+      // Admin/staff xem toàn chi nhánh (không lọc); manager chỉ xem chi nhánh phụ trách.
+      const effectiveBranch = isManager ? managerBranch : "";
       const queryParams = new URLSearchParams();
       if (effectiveBranch) queryParams.set("branchSlug", effectiveBranch);
 
       const queryString = queryParams.toString() ? `?${queryParams.toString()}` : "";
 
-      const [shiftsRes, regRes, employeesRes, templatesRes] = await Promise.allSettled([
+      const [shiftsRes, regRes, employeesRes, templatesRes, branchesRes] = await Promise.allSettled([
         apiGet<any[]>(`/api/shifts${queryString}`),
         apiGet<any[]>(`/api/shifts/registrations${queryString}`),
         apiGet<Employee[]>("/api/employees"),
         apiGet<any[]>(`/api/shift-templates`),
+        apiGet<Branch[]>("/api/branches"),
       ]);
+      if (branchesRes.status === "fulfilled" && Array.isArray(branchesRes.value)) {
+        setBranches(branchesRes.value);
+      }
 
       let employeesData: Employee[] = [];
       if (employeesRes.status === "fulfilled" && Array.isArray(employeesRes.value)) {
@@ -241,7 +245,7 @@ export default function ShiftsPage() {
     } finally {
       setLoading(false);
     }
-  }, [isManager, managerBranch, schedulerBranch]);
+  }, [isManager, managerBranch]);
 
   useEffect(() => {
     fetchData();
@@ -253,6 +257,21 @@ export default function ShiftsPage() {
       setAssignEmployee(empList[0].name);
     }
   }, [empList, assignEmployee]);
+
+  // Reset assignBranch nếu bị giữ lệnh chi nhánh không còn tồn tại trong DB.
+  // assignBranch rỗng = "chọn chi nhánh khi phân công", không tự gán.
+  const validBranchSlugs = useMemo(
+    () => new Set(branches.map((b) => b.slug.toUpperCase())),
+    [branches]
+  );
+  useEffect(() => {
+    if (branches.length === 0) return;
+    const firstSlug = branches[0].slug.toUpperCase();
+    if (!isManager && assignBranch && !validBranchSlugs.has(assignBranch.toUpperCase())) {
+      setAssignBranch(firstSlug);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branches, isManager, validBranchSlugs]);
 
   // Mặc định khung ca đầu tiên cho modal phân ca
   useEffect(() => {
@@ -381,22 +400,13 @@ export default function ShiftsPage() {
     }
   };
 
-  // Xếp ca nhanh từ bảng Nguyện vọng đăng ký
-  const handleAssignFromRegistration = (reg: WeeklyRegistration) => {
-    setAssignEmployee(reg.employeeName);
-    setAssignBranch(reg.branch);
-    setAssignDate(schedulerDate);
-    setAssignIsRecurring(true);
-    const firstActiveShift = Object.entries(reg.days).find(([_, shift]) => shift !== "Nghỉ");
-    if (firstActiveShift) {
-      const match = templates.find((t) => t.name.toLowerCase() === firstActiveShift[1].toLowerCase());
-      if (match) setAssignTemplateId(match.id);
-    }
-    setAssignShiftOpen(true);
-  };
 
   // Tạo & phân ca mới (POST /api/shifts)
   const handleAssignShift = async () => {
+    if (!assignBranch) {
+      showToast("Vui lòng chọn chi nhánh cho ca làm việc", "danger");
+      return;
+    }
     const template = templates.find((t) => t.id === assignTemplateId) || templates[0];
     const matchedEmp = empList.find((e) => e.name === assignEmployee);
     const payload = {
@@ -539,11 +549,13 @@ export default function ShiftsPage() {
             <GeneralScheduleSection
               workShifts={displayedWorkShifts}
               templates={templates}
-              defaultBranch={schedulerBranch}
+              defaultBranch="all"
               isManager={isManager}
               managerBranch={managerBranch}
               onOpenAssignModal={(templateId, date, branch) => {
-                const effectiveBranch = isManager ? managerBranch : branch;
+                // "all" = admin đang xem toàn chi nhánh -> mở khóa để chọn chi nhánh trong modal;
+                // lọc cụ thể 1 chi nhánh -> khóa cứng luôn chi nhánh đó.
+                const effectiveBranch = isManager ? managerBranch : (branch === "all" ? "" : branch);
                 setAssignTemplateId(templateId);
                 setAssignDate(date);
                 setAssignBranch(effectiveBranch);
@@ -558,29 +570,11 @@ export default function ShiftsPage() {
             <div className="flex flex-col gap-6">
               <RegistrationTimetableSection
                 registrations={displayedRegistrations}
-                defaultBranch={schedulerBranch}
+                templates={templates}
+                defaultBranch="all"
                 isManager={isManager}
                 managerBranch={managerBranch}
               />
-
-              {/* Bảng tổng hợp nguyện vọng cả tuần */}
-              <details className="group bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
-                <summary className="px-5 py-3.5 flex items-center justify-between cursor-pointer select-none hover:bg-gray-50/80 transition-colors font-bold text-xs text-gray-700">
-                  <span className="flex items-center gap-2">
-                    <FontAwesomeIcon icon={faCalendarDay} fontSize={16} className="text-primary" />
-                    <span>Bảng ma trận nguyện vọng cả tuần của toàn bộ nhân viên (Thứ 2 - CN)</span>
-                  </span>
-                  <span className="text-[11px] text-gray-400 group-open:hidden">
-                    Bấm để mở rộng bảng tổng hợp toàn cảnh ▼
-                  </span>
-                </summary>
-                <div className="p-4 pt-2 border-t border-gray-100">
-                  <WeeklyRegistrationSection
-                    registrations={displayedRegistrations}
-                    onAssignFromRegistration={handleAssignFromRegistration}
-                  />
-                </div>
-              </details>
 
               {/* Bảng danh sách chi tiết phân công */}
               <WorkShiftSection
@@ -638,12 +632,9 @@ export default function ShiftsPage() {
         isRecurring={assignIsRecurring}
         isManager={isManager}
         managerBranch={managerBranch}
-        lockedBranch={schedulerBranch}
         employees={empList}
         onEmployeeChange={setAssignEmployee}
         onBranchChange={setAssignBranch}
-        onDateChange={setAssignDate}
-        onTemplateChange={setAssignTemplateId}
         onNoteChange={setAssignNote}
         onRecurringChange={setAssignIsRecurring}
         onSave={handleAssignShift}

@@ -8,7 +8,7 @@ async function main() {
   const { PrismaClient } = require("@prisma/client");
   const prisma = new PrismaClient();
   const seeds = [
-    { id: "e-admin", email: "admin@company.com", name: "Trần Minh Tuấn", role: "admin", roleTitle: "Quản trị viên", branchSlug: null },
+    { id: "NV-0001", email: "admin@company.com", name: "Trần Minh Tuấn", role: "admin", roleTitle: "Quản trị viên", branchSlug: null },
   ];
   // Không xoá tài khoản khác khi seed: giữ nguyên dữ liệu thật trong DB.
   for (const s of seeds) {

@@ -22,7 +22,6 @@ export default function DashboardLayout({
       userName={user.name}
       userRole={roleName}
       logoutHref="/login"
-      profileHref="/dashboard/employees"
     >
       {children}
     </DashboardShell>
