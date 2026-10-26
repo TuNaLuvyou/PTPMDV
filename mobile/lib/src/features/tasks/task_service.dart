@@ -67,7 +67,7 @@ class TaskModel {
   }
 
   String get sourceLabel => sourceType == TaskSourceType.manager
-      ? 'Quản lý giao riêng'
+      ? 'Giao riêng'
       : 'Cố định theo ca';
 
   String get shortSourceLabel => sourceType == TaskSourceType.manager

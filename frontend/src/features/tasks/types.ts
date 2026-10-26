@@ -6,7 +6,7 @@ export interface TaskItem {
   id: string;
   title: string;
   description: string;
-  sourceType: TaskSourceType; // "manager": Quản lý giao riêng, "shift": Cố định theo ca
+  sourceType: TaskSourceType; // "manager": Giao riêng, "shift": Cố định theo ca
   assignedByName: string;
   shiftName?: string;
   branch: string;
@@ -15,6 +15,8 @@ export interface TaskItem {
   priority: TaskPriority;
   assignedToEmail: string;
   assignedToName: string;
+  assignedToId?: string; // ID nhân sự trong bảng employees (khóa ngoại logic)
+  assignedToAvatar?: string; // Ảnh đại diện lấy từ hồ sơ nhân sự
   completedAt?: string;
   createdAt: string;
   requirePhoto?: boolean; // Quản trị viên yêu cầu chụp ảnh kết quả khi hoàn thành

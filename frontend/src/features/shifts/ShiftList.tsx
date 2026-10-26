@@ -12,6 +12,7 @@ import Button from "@/components/ui/Button";
 import { apiGet } from "@/lib/api";
 import type { Branch } from "@/types";
 import type { WorkShift } from "@/features/shifts/types";
+import { usePersistentState } from "@/hooks/usePersistentState";
 
 interface Props {
   workShifts: WorkShift[];
@@ -20,8 +21,9 @@ interface Props {
 
 export default function WorkShiftSection({ workShifts, onDelete }: Props) {
   const [selectedShift, setSelectedShift] = useState<WorkShift | null>(null);
-  const [branchFilter, setBranchFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("");
+  // Nhớ bộ lọc của bảng phân công qua localStorage.
+  const [branchFilter, setBranchFilter] = usePersistentState<string>("hrm.shifts.list.branch", "all");
+  const [dateFilter, setDateFilter] = usePersistentState<string>("hrm.shifts.list.date", "");
   const [branches, setBranches] = useState<Branch[]>([]);
 
   useEffect(() => {
@@ -32,7 +34,7 @@ export default function WorkShiftSection({ workShifts, onDelete }: Props) {
     return workShifts.filter((s) => {
       if (
         branchFilter !== "all" &&
-        s.branch.toLowerCase().replace("-", "") !== branchFilter.toLowerCase().replace("-", "")
+        (s.branch || "").toLowerCase().replace(/[\s-_]/g, "") !== branchFilter.toLowerCase().replace(/[\s-_]/g, "")
       ) {
         return false;
       }
@@ -46,7 +48,22 @@ export default function WorkShiftSection({ workShifts, onDelete }: Props) {
   }, [workShifts, branchFilter, dateFilter]);
 
   const columns: Column<WorkShift>[] = [
-    { key: "employee", header: "Nhân viên", render: (s) => <span className="font-semibold text-gray-800">{s.employee}</span> },
+    {
+      key: "employee",
+      header: "Nhân viên",
+      render: (s) => (
+        <div className="flex items-center gap-2">
+          <span className="w-7 h-7 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs font-bold overflow-hidden shrink-0">
+            {s.avatar ? (
+              <img src={s.avatar} alt={s.employee} className="w-full h-full object-cover" />
+            ) : (
+              s.employee.charAt(0)
+            )}
+          </span>
+          <span className="font-semibold text-gray-800">{s.employee}</span>
+        </div>
+      ),
+    },
     { key: "branch", header: "Chi nhánh", render: (s) => <Badge tone="gray">{s.branch}</Badge> },
     { key: "date", header: "Ngày", render: (s) => <span className="text-gray-600">{s.date}</span> },
     { key: "templateName", header: "Khung ca", render: (s) => <Badge tone="primary">{s.templateName}</Badge> },
@@ -80,7 +97,7 @@ export default function WorkShiftSection({ workShifts, onDelete }: Props) {
           <CardTitle>Lịch phân công nhân viên (Xếp ca)</CardTitle>
           <div className="flex items-center gap-2">
             <Select
-              className="w-auto py-1.5 text-sm"
+              className="w-auto h-[38px] text-xs"
               value={branchFilter}
               onChange={(e) => setBranchFilter(e.target.value)}
             >
@@ -93,7 +110,7 @@ export default function WorkShiftSection({ workShifts, onDelete }: Props) {
             </Select>
             <Input
               type="date"
-              className="w-auto py-1.5 text-sm"
+              className="w-auto h-[38px] text-xs"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
             />
@@ -143,9 +160,22 @@ export default function WorkShiftSection({ workShifts, onDelete }: Props) {
         {selectedShift && (
           <div className="space-y-4">
             <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between">
-              <div>
-                <h4 className="font-bold text-gray-900 text-base">{selectedShift.employee}</h4>
-                <p className="text-xs text-gray-500 mt-0.5">Mã ca: {selectedShift.id}</p>
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="w-10 h-10 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-sm font-bold overflow-hidden shrink-0">
+                  {selectedShift.avatar ? (
+                    <img
+                      src={selectedShift.avatar}
+                      alt={selectedShift.employee}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    selectedShift.employee.charAt(0)
+                  )}
+                </span>
+                <div className="min-w-0">
+                  <h4 className="font-bold text-gray-900 text-base truncate">{selectedShift.employee}</h4>
+                  <p className="text-xs text-gray-500 mt-0.5">Mã ca: {selectedShift.code || selectedShift.id}</p>
+                </div>
               </div>
               <Badge tone="primary">{selectedShift.templateName}</Badge>
             </div>

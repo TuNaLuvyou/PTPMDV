@@ -22,6 +22,7 @@ import TemplateModal from "@/features/shifts/TemplateForm";
 import AssignShiftModal from "@/features/shifts/ShiftAssign";
 import ExportModal from "@/features/shifts/ShiftExport";
 import { useCurrentUser } from "@/context/AuthContext";
+import { usePersistentState } from "@/hooks/usePersistentState";
 
 async function parseEnvelope(res: Response) {
   const text = await res.text();
@@ -77,9 +78,10 @@ async function apiDelete<T>(path: string): Promise<T> {
   }
 }
 
-function mapBackendShiftToWorkShift(s: any, empMap?: Map<string, string>): WorkShift {
+function mapBackendShiftToWorkShift(s: any, empMap?: Map<string, Employee>): WorkShift {
+  const emp = s.employeeId ? empMap?.get(s.employeeId) : undefined;
   const empName =
-    (s.employeeId && empMap?.get(s.employeeId)) ||
+    emp?.name ||
     s.employee ||
     s.employeeName ||
     s.employeeId ||
@@ -102,7 +104,10 @@ function mapBackendShiftToWorkShift(s: any, empMap?: Map<string, string>): WorkS
 
   return {
     id: s.id,
+    code: s.code || "",
+    employeeId: s.employeeId || undefined,
     employee: empName,
+    avatar: emp?.avatar || (typeof s.avatar === "string" ? s.avatar : ""),
     branch: s.branchSlug || s.branch || "—",
     date: s.date || "—",
     templateName: s.template || s.templateName || "Ca Sáng",
@@ -115,9 +120,10 @@ function mapBackendShiftToWorkShift(s: any, empMap?: Map<string, string>): WorkS
   };
 }
 
-function mapBackendRegistration(r: any, empMap?: Map<string, string>): WeeklyRegistration {
+function mapBackendRegistration(r: any, empMap?: Map<string, Employee>): WeeklyRegistration {
+  const emp = r.employeeId ? empMap?.get(r.employeeId) : undefined;
   const empName =
-    (r.employeeId && empMap?.get(r.employeeId)) ||
+    emp?.name ||
     r.employeeName ||
     r.employeeId ||
     "Nhân sự";
@@ -135,6 +141,7 @@ function mapBackendRegistration(r: any, empMap?: Map<string, string>): WeeklyReg
   return {
     id: r.id || `reg-${Date.now()}`,
     employeeName: empName,
+    avatar: emp?.avatar || (typeof r.avatar === "string" ? r.avatar : ""),
     role: r.role || "Nhân viên",
     branch: r.branchSlug || r.branch || "—",
     requestedCount: r.requestedCount || (r.days ? Object.values(r.days).filter((v) => v !== "Nghỉ").length : 5),
@@ -149,7 +156,11 @@ export default function ShiftsPage() {
   const { role, branchSlug } = useCurrentUser();
   const isManager = role === "manager";
   const managerBranch = branchSlug.toUpperCase();
-  const [activeTab, setActiveTab] = useState<"scheduling" | "general_schedule" | "templates">("scheduling");
+  // Tab đang xem được nhớ qua localStorage — F5 giữ nguyên tab thay vì nhảy về "Quản lý đăng ký ca".
+  const [activeTab, setActiveTab] = usePersistentState<"scheduling" | "general_schedule" | "templates">(
+    "hrm.shifts.activeTab",
+    "scheduling"
+  );
 
   const [templates, setTemplates] = useState<ShiftTemplate[]>([]);
   // Khung ca mẫu chưa có API backend -> giữ local state (xử lý sau).
@@ -173,6 +184,9 @@ export default function ShiftsPage() {
 
   const [assignEmployee, setAssignEmployee] = useState("");
   const [assignBranch, setAssignBranch] = useState("");
+  // Khóa ô chọn chi nhánh trong modal, chốt tại thời điểm bấm "Thêm NV"
+  // (admin đang lọc 1 chi nhánh -> khóa; đang xem "Tất cả" -> để tự chọn).
+  const [assignBranchLocked, setAssignBranchLocked] = useState(false);
   const [assignDate, setAssignDate] = useState(todayStr);
   const [assignTemplateId, setAssignTemplateId] = useState("");
   const [assignNote, setAssignNote] = useState("");
@@ -186,16 +200,16 @@ export default function ShiftsPage() {
   };
 
   const empNameMap = useMemo(() => {
-    const map = new Map<string, string>();
+    const map = new Map<string, Employee>();
     for (const e of empList) {
-      map.set(e.id, e.name);
+      map.set(e.id, e);
     }
     return map;
   }, [empList]);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError(null);
 
       // Admin/staff xem toàn chi nhánh (không lọc); manager chỉ xem chi nhánh phụ trách.
@@ -223,9 +237,9 @@ export default function ShiftsPage() {
       // Luôn đồng bộ (kể cả mảng rỗng) để hiện empty state thật thay vì mock.
       setEmpList(employeesData);
 
-      const currentEmpMap = new Map<string, string>();
+      const currentEmpMap = new Map<string, Employee>();
       for (const e of employeesData) {
-        currentEmpMap.set(e.id, e.name);
+        currentEmpMap.set(e.id, e);
       }
 
       if (templatesRes.status === "fulfilled" && Array.isArray(templatesRes.value)) {
@@ -243,7 +257,7 @@ export default function ShiftsPage() {
       const msg = e instanceof GatewayError ? e.message : e?.message || "Không thể tải dữ liệu ca làm việc từ gateway";
       setError(msg);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [isManager, managerBranch]);
 
@@ -281,11 +295,12 @@ export default function ShiftsPage() {
   }, [templates, assignTemplateId]);
 
   // Manager chỉ thấy dữ liệu chi nhánh mình
+  const targetBranch = (branchSlug || "").toLowerCase().replace(/[\s-_]/g, "");
   const displayedWorkShifts = isManager
-    ? workShiftList.filter((s) => s.branch.toLowerCase().replace("-", "") === branchSlug.replace("-", ""))
+    ? workShiftList.filter((s) => (s.branch || "").toLowerCase().replace(/[\s-_]/g, "") === targetBranch)
     : workShiftList;
   const displayedRegistrations = isManager
-    ? weeklyRegistrations.filter((r) => r.branch.toLowerCase().replace("-", "") === branchSlug.replace("-", ""))
+    ? weeklyRegistrations.filter((r) => (r.branch || "").toLowerCase().replace(/[\s-_]/g, "") === targetBranch)
     : weeklyRegistrations;
 
   const [exportOpen, setExportOpen] = useState(false);
@@ -523,7 +538,7 @@ export default function ShiftsPage() {
             <FontAwesomeIcon icon={faTriangleExclamation} className="text-red-500 text-base" />
             <span>{error}</span>
           </div>
-          <Button variant="white" size="sm" onClick={fetchData}>
+          <Button variant="white" size="sm" onClick={() => fetchData()}>
             Thử lại
           </Button>
         </div>
@@ -552,13 +567,17 @@ export default function ShiftsPage() {
               defaultBranch="all"
               isManager={isManager}
               managerBranch={managerBranch}
-              onOpenAssignModal={(templateId, date, branch) => {
+              onRefresh={() => fetchData(true)}
+              onNotify={showToast}
+              onOpenAssignModal={(templateId, date, branch, employee) => {
                 // "all" = admin đang xem toàn chi nhánh -> mở khóa để chọn chi nhánh trong modal;
                 // lọc cụ thể 1 chi nhánh -> khóa cứng luôn chi nhánh đó.
                 const effectiveBranch = isManager ? managerBranch : (branch === "all" ? "" : branch);
                 setAssignTemplateId(templateId);
                 setAssignDate(date);
                 setAssignBranch(effectiveBranch);
+                setAssignBranchLocked(!!effectiveBranch);
+                if (employee) setAssignEmployee(employee);
                 setAssignIsRecurring(true);
                 setAssignShiftOpen(true);
               }}
@@ -632,6 +651,7 @@ export default function ShiftsPage() {
         isRecurring={assignIsRecurring}
         isManager={isManager}
         managerBranch={managerBranch}
+        branchLocked={assignBranchLocked}
         employees={empList}
         onEmployeeChange={setAssignEmployee}
         onBranchChange={setAssignBranch}

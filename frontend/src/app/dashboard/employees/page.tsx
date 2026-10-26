@@ -476,7 +476,7 @@ export default function EmployeesPage() {
         cccdFront: typeof updated.cccdFront === "string" ? updated.cccdFront : "",
         cccdBack: typeof updated.cccdBack === "string" ? updated.cccdBack : "",
         avatar: typeof updated.avatar === "string" ? updated.avatar : "",
-      });
+      }, 60000);
 
       const normalized = normalizeEmployee(saved || updated);
       setRawEmployees((prev) => prev.map((e) => (e.id === normalized.id ? normalized : e)));

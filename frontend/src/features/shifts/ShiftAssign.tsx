@@ -20,6 +20,8 @@ interface Props {
   isRecurring: boolean;
   isManager?: boolean;
   managerBranch?: string;
+  /** Khóa chi nhánh theo bộ lọc lúc mở modal (trang cha quyết định). */
+  branchLocked?: boolean;
   employees?: Employee[];
   onEmployeeChange: (v: string) => void;
   onBranchChange: (v: string) => void;
@@ -40,6 +42,7 @@ export default function AssignShiftModal({
   isRecurring,
   isManager = false,
   managerBranch,
+  branchLocked = false,
   employees: employeesProp,
   onEmployeeChange,
   onBranchChange,
@@ -58,7 +61,9 @@ export default function AssignShiftModal({
   }, [open ]);
   // Chi nhánh: rỗng = admin xem "Tất cả chi nhánh" -> mở select để tự chọn lúc phân công;
   // có giá trị (hoặc manager) -> khóa cứng theo chi nhánh đang lọc.
-  const isBranchLocked = isManager || (!!branch && branch !== "all");
+  // Lưu ý: trạng thái khóa do trang cha chốt lúc MỞ modal (`branchLocked`), không suy ra từ
+  // `branch` đang chọn — nếu suy ra thì vừa chọn chi nhánh xong ô chọn sẽ tự khóa luôn.
+  const isBranchLocked = isManager || branchLocked;
   const branchDisplay = isManager ? (managerBranch ?? branch) : branch;
   return (
     <Modal open={open} onClose={onClose} title="Phân công nhân viên vào ca" size="lg" footer={<><Button variant="white" onClick={onClose}>Hủy</Button><Button onClick={onSave}>Phân công</Button></>}>

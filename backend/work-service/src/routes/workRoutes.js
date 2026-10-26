@@ -14,6 +14,7 @@ router.get("/shifts/registrations", WorkController.listRegistrations);
 router.post("/shifts/register", WorkController.registerShift);
 router.get("/shifts", WorkController.listShifts);
 router.post("/shifts", WorkController.createShift);
+router.put("/shifts/:id/attendance", WorkController.updateShiftAttendance);
 router.put("/shifts/:id", WorkController.updateShift);
 router.delete("/shifts/:id", WorkController.deleteShift);
 router.get("/shifts/:id", WorkController.getShift);

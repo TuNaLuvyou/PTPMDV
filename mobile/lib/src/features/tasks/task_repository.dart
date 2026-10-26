@@ -10,6 +10,9 @@ class ApiTaskModel {
   final String? priority;
   final String? dueDate;
   final String? assigneeId;
+  final String? assignedToName;
+  final String? assignedByName;
+  final String? sourceType;
   final String? createdAt;
   final String? proofUrl;
   final bool requirePhoto;
@@ -23,6 +26,9 @@ class ApiTaskModel {
     this.priority,
     this.dueDate,
     this.assigneeId,
+    this.assignedToName,
+    this.assignedByName,
+    this.sourceType,
     this.createdAt,
     this.proofUrl,
     this.requirePhoto = false,
@@ -36,7 +42,10 @@ class ApiTaskModel {
         status: j['status']?.toString(),
         priority: j['priority']?.toString(),
         dueDate: j['dueDate']?.toString(),
-        assigneeId: j['assigneeId']?.toString(),
+        assigneeId: j['assigneeId']?.toString() ?? j['assignedTo']?.toString(),
+        assignedToName: j['assignedToName']?.toString(),
+        assignedByName: j['assignedByName']?.toString(),
+        sourceType: j['sourceType']?.toString(),
         createdAt: j['createdAt']?.toString(),
         proofUrl: j['proofUrl']?.toString() ?? j['proofPhotoUrl']?.toString(),
         requirePhoto: j['requirePhoto'] == true,
@@ -58,23 +67,27 @@ class ApiTaskModel {
     }
 
     TaskStatus st = TaskStatus.pending;
-    if (status == 'completed' || status == 'đã xong') {
+    if (status == 'completed' || status == 'done' || status == 'đã xong') {
       st = TaskStatus.completed;
     } else if (status == 'in_progress' || status == 'đang làm') {
       st = TaskStatus.inProgress;
+    } else if (status == 'overdue') {
+      st = TaskStatus.overdue;
     }
 
     return TaskModel(
       id: id,
       title: title,
       description: description ?? '',
-      sourceType: TaskSourceType.manager,
-      assignedByName: 'Quản lý chi nhánh',
-      branch: branchSlug ?? 'HN-1',
+      sourceType:
+          sourceType == 'shift' ? TaskSourceType.shift : TaskSourceType.manager,
+      assignedByName: assignedByName ?? 'Quản lý chi nhánh',
+      branch: branchSlug ?? '',
       dueDate: parsedDueDate,
       status: st,
       priority: pri,
-      assignedToName: assigneeId != null ? 'Nhân viên #$assigneeId' : 'Bạn',
+      assignedToName:
+          assignedToName ?? (assigneeId != null ? 'Nhân viên #$assigneeId' : 'Bạn'),
       requirePhoto: requirePhoto,
       proofPhotoUrl: proofUrl,
     );

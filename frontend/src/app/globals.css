@@ -60,9 +60,9 @@
   --color-light: #f9fafb;
   --color-dark: #141a21;
 
-  /* Font */
-  --font-sans: var(--font-public-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Font: Font hệ thống chuẩn hóa (-apple-system / San Francisco trên macOS, Segoe UI trên Windows, Roboto) đồng bộ 100% tiếng Việt */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   /* Radius — Dasher: 0.5rem base, 1rem (xl) cho card */
   --radius-sm: 0.25rem;
@@ -79,6 +79,21 @@
 }
 
 /* ---------- Base ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scrollbar-gutter: stable;
+  overflow-y: scroll;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
 html,
 body {
   height: 100%;
@@ -92,6 +107,17 @@ body {
   font-weight: 500;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: inherit;
+  font-feature-settings: inherit;
+  font-variation-settings: inherit;
 }
 
 /* ---------- Typography Scale (Đồng bộ Web & Mobile) ---------- */
@@ -121,6 +147,20 @@ h4, .text-h4 {
   font-weight: 600;
   line-height: 1.4;
   color: var(--color-gray-800);
+}
+
+h5, .text-h5 {
+  font-size: 0.875rem; /* 14px */
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-gray-800);
+}
+
+h6, .text-h6 {
+  font-size: 0.75rem; /* 12px */
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-gray-700);
 }
 
 p, .text-body {

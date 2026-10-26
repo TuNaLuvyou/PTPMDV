@@ -143,7 +143,7 @@ export default function TaskFilterBar({
               className="px-3 py-2 border border-gray-300 rounded-lg text-xs md:text-sm bg-white focus:outline-hidden focus:ring-2 focus:ring-primary"
             >
               <option value="all">Toàn bộ nguồn việc</option>
-              <option value="manager">Quản lý giao riêng</option>
+              <option value="manager">Giao riêng</option>
               <option value="shift">Cố định theo ca</option>
             </select>
           </div>
