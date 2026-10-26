@@ -621,6 +621,14 @@ function applyEmployeeFilter(rows, query = {}) {
   return out;
 }
 
+function formatEmployeeRow(e) {
+  if (!e) return e;
+  return {
+    ...e,
+    branch: e.branch || e.branchSlug || "",
+  };
+}
+
 async function listEmployees(query = {}) {
   const prisma = database.getPrisma();
   if (prisma) {
@@ -633,10 +641,11 @@ async function listEmployees(query = {}) {
       if (query.departmentId || query.department) {
         where.department = { equals: query.departmentId || query.department, mode: "insensitive" };
       }
-      return await prisma.employee.findMany({ where, orderBy: { createdAt: "desc" } });
+      const rows = await prisma.employee.findMany({ where, orderBy: { createdAt: "desc" } });
+      return rows.map(formatEmployeeRow);
     } catch (_) {}
   }
-  return applyEmployeeFilter(memoryEmployees, query);
+  return applyEmployeeFilter(memoryEmployees, query).map(formatEmployeeRow);
 }
 
 async function getEmployee(id) {
@@ -644,11 +653,11 @@ async function getEmployee(id) {
   if (prisma) {
     try {
       const row = await prisma.employee.findUnique({ where: { id } });
-      if (row) return row;
+      if (row) return formatEmployeeRow(row);
     } catch (_) {}
   }
   const mem = memoryEmployees.find((e) => e.id === id) || null;
-  if (mem) return mem;
+  if (mem) return formatEmployeeRow(mem);
   const err = new NotFoundError("Không tìm thấy thông tin nhân sự trên hệ thống");
   err.code = "EMPLOYEE_NOT_FOUND";
   throw err;

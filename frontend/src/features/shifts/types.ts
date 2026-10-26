@@ -7,7 +7,10 @@ export interface ShiftTemplate {
 
 export interface WorkShift {
   id: string;
+  code?: string;
+  employeeId?: string;
   employee: string;
+  avatar?: string;
   branch: string;
   date: string;
   templateName: string;
@@ -22,6 +25,7 @@ export interface WorkShift {
 export interface WeeklyRegistration {
   id: string;
   employeeName: string;
+  avatar?: string;
   role: string;
   branch: string;
   requestedCount: number;

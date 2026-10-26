@@ -44,6 +44,16 @@ async function deleteShift(req, res, next) {
   }
 }
 
+async function updateShiftAttendance(req, res, next) {
+  try {
+    const row = await WorkService.updateShiftAttendance(req.params.id, req.body || {});
+    if (!row) throw new NotFoundError("Không tìm thấy ca làm việc");
+    return res.status(200).json({ data: row, message: "Lưu chấm công thành công" });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 async function assignShift(req, res, next) {
   try {
     if (!req.body.employeeId) throw new ValidationError("Thiếu employeeId để phân công");
@@ -145,13 +155,9 @@ async function createTask(req, res, next) {
 
 async function updateTask(req, res, next) {
   try {
-    const errors = validateTask({ title: "x", ...req.body });
-    if (errors.length && !req.body.title) {
-      // Cho phép update từng phần, chỉ check status
-      if (req.body.status && !["pending", "in_progress", "done"].includes(req.body.status)) {
-        throw new ValidationError(errors.join("; "));
-      }
-    } else if (errors.length) throw new ValidationError(errors.join("; "));
+    // Cho phép cập nhật từng phần: chỉ validate title khi client thực sự gửi lên.
+    const errors = validateTask({ ...req.body, title: req.body.title ?? "x" });
+    if (errors.length) throw new ValidationError(errors.join("; "));
     const row = await WorkService.updateTask(req.params.id, req.body);
     if (!row) throw new NotFoundError("Không tìm thấy tác vụ");
     return res.status(200).json({ data: row, message: "Thao tác thành công" });
@@ -240,6 +246,7 @@ module.exports = {
   createShift,
   updateShift,
   deleteShift,
+  updateShiftAttendance,
   assignShift,
   registerShift,
   listRegistrations,

@@ -76,9 +76,10 @@ export async function apiGet<T>(path: string): Promise<T> {
   }
 }
 
-export async function apiPost<T>(path: string, payload: unknown): Promise<T> {
+/** timeoutMs cho phép upload ảnh (base64 lớn) chờ lâu hơn các API CRUD thường. */
+export async function apiPost<T>(path: string, payload: unknown, timeoutMs = 5000): Promise<T> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 5000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(`${GATEWAY_URL}${path}`, {
       method: "POST",
@@ -93,15 +94,30 @@ export async function apiPost<T>(path: string, payload: unknown): Promise<T> {
   }
 }
 
-export async function apiPut<T>(path: string, payload?: unknown): Promise<T> {
+export async function apiPut<T>(path: string, payload?: unknown, timeoutMs = 5000): Promise<T> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 5000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(`${GATEWAY_URL}${path}`, {
       method: "PUT",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: payload !== undefined ? JSON.stringify(payload) : undefined,
+      signal: controller.signal,
+    });
+    return (await parseEnvelope(res)) as T;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function apiDelete<T>(path: string): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
+  try {
+    const res = await fetch(`${GATEWAY_URL}${path}`, {
+      method: "DELETE",
+      credentials: "include",
       signal: controller.signal,
     });
     return (await parseEnvelope(res)) as T;

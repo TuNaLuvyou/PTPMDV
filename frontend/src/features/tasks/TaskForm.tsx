@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import type { TaskItem, TaskPriority, TaskSourceType } from "./types";
@@ -27,9 +27,10 @@ export default function CreateTaskModal({
   const [description, setDescription] = useState("");
   const [sourceType, setSourceType] = useState<TaskSourceType>("manager");
   const [shiftName, setShiftName] = useState("Ca Sáng (07:00 - 14:00)");
-  const [assignedToEmail, setAssignedToEmail] = useState(
-    employees.length > 0 ? employees[0].email : ""
+  const [assignedToId, setAssignedToId] = useState(
+    employees.length > 0 ? employees[0].id : ""
   );
+  const [formError, setFormError] = useState<string | null>(null);
   const [priority, setPriority] = useState<TaskPriority>("normal");
   const [requirePhoto, setRequirePhoto] = useState(false);
   const [dueDate, setDueDate] = useState(() => {
@@ -43,17 +44,35 @@ export default function CreateTaskModal({
     return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
   });
 
+  // Danh sách nhân sự nạp bất đồng bộ: khi có dữ liệu thì chọn nhân sự đầu tiên
+  // (hoặc thay thế lựa chọn cũ nếu nhân sự đó không còn trong danh sách).
+  useEffect(() => {
+    if (employees.length === 0) {
+      if (assignedToId) setAssignedToId("");
+      return;
+    }
+    if (!employees.some((emp) => emp.id === assignedToId)) {
+      setAssignedToId(employees[0].id);
+    }
+  }, [employees, assignedToId]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
 
     const isShift = sourceType === "shift";
-    const selectedEmployee = employees.find((emp) => emp.email === assignedToEmail);
+    const selectedEmployee = employees.find((emp) => emp.id === assignedToId);
+    if (!isShift && !selectedEmployee) {
+      setFormError("Chưa có nhân sự để giao việc. Vui lòng kiểm tra lại danh sách nhân viên.");
+      return;
+    }
+    setFormError(null);
+
     const empName = isShift
       ? `Tất cả nhân sự trực ${shiftName.split("(")[0].trim()}`
-      : (selectedEmployee ? selectedEmployee.name : "Nhân viên");
-    const empEmail = isShift ? "shift_all" : assignedToEmail;
-    const empBranch = isShift ? currentBranch : (selectedEmployee ? selectedEmployee.branch : currentBranch);
+      : selectedEmployee!.name;
+    const empEmail = isShift ? "shift_all" : selectedEmployee!.email;
+    const empBranch = isShift ? currentBranch : selectedEmployee!.branch;
 
     const newTask: TaskItem = {
       id: `task-${Date.now()}`,
@@ -68,6 +87,7 @@ export default function CreateTaskModal({
       priority,
       assignedToEmail: empEmail,
       assignedToName: empName,
+      assignedToId: isShift ? undefined : selectedEmployee!.id,
       createdAt: new Date().toISOString().replace("T", " ").substring(0, 16),
       requirePhoto,
     };
@@ -121,7 +141,7 @@ export default function CreateTaskModal({
               onChange={(e) => setSourceType(e.target.value as TaskSourceType)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-hidden focus:ring-2 focus:ring-primary"
             >
-              <option value="manager">Quản lý giao riêng</option>
+              <option value="manager">Giao riêng</option>
               <option value="shift">Cố định theo ca làm việc</option>
             </select>
           </div>
@@ -166,16 +186,26 @@ export default function CreateTaskModal({
                 Người thực hiện (Nhân sự) <span className="text-red-500">*</span>
               </label>
               <select
-                value={assignedToEmail}
-                onChange={(e) => setAssignedToEmail(e.target.value)}
+                value={assignedToId}
+                onChange={(e) => {
+                  setAssignedToId(e.target.value);
+                  setFormError(null);
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-hidden focus:ring-2 focus:ring-primary"
               >
+                {employees.length === 0 && <option value="">Chưa có nhân sự</option>}
                 {employees.map((emp) => (
-                  <option key={emp.id} value={emp.email}>
-                    {emp.name} ({emp.role} - {emp.branch})
+                  <option key={emp.id} value={emp.id}>
+                    {emp.name}
+                    {emp.role || emp.branch
+                      ? ` (${[emp.role, emp.branch].filter(Boolean).join(" - ")})`
+                      : ""}
                   </option>
                 ))}
               </select>
+              {formError && (
+                <p className="mt-1.5 text-xs font-medium text-red-600">{formError}</p>
+              )}
             </div>
 
             <div>

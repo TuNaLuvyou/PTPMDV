@@ -11,7 +11,9 @@ const app = express();
 
 app.use(morgan("dev"));
 app.use(cors({ origin: config.corsOrigin, credentials: true }));
-app.use(express.json({ limit: "1mb" }));
+// Hồ sơ nhân sự có thể chứa ảnh CCCD/avatar dạng data URL (khi upload
+// Cloudinary không khả dụng). Để dư dung lượng thay vì trả 413 cho ảnh đã nén.
+app.use(express.json({ limit: "10mb" }));
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok", service: config.serviceName, time: new Date().toISOString() });

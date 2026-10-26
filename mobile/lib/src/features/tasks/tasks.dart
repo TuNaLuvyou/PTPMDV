@@ -783,7 +783,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   items: const [
-                    DropdownMenuItem(value: TaskSourceType.manager, child: Text('📌 Quản lý giao riêng')),
+                    DropdownMenuItem(value: TaskSourceType.manager, child: Text('Giao riêng')),
                     DropdownMenuItem(value: TaskSourceType.shift, child: Text('🔄 Giao cố định theo ca')),
                   ],
                   onChanged: (val) {

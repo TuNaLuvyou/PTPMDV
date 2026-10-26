@@ -7,11 +7,13 @@ function validateShift(body = {}) {
   return errors;
 }
 
+const TASK_STATUSES = ["pending", "in_progress", "overdue", "done", "completed"];
+
 function validateTask(body = {}) {
   const errors = [];
-  if (!body.title) errors.push("Tiêu đề tác vụ là bắt buộc");
-  if (body.status && !["pending", "in_progress", "done"].includes(body.status)) {
-    errors.push("Trạng thái chỉ nhận pending/in_progress/done");
+  if (!body.title || !String(body.title).trim()) errors.push("Tiêu đề tác vụ là bắt buộc");
+  if (body.status && !TASK_STATUSES.includes(body.status)) {
+    errors.push(`Trạng thái chỉ nhận ${TASK_STATUSES.join("/")}`);
   }
   return errors;
 }

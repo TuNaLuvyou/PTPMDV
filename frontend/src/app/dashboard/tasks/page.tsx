@@ -71,6 +71,17 @@ async function apiDelete<T>(path: string): Promise<T> {
   }
 }
 
+function normBranch(str?: string | null): string {
+  return (str || "").toLowerCase().replace(/[\s-_]/g, "");
+}
+
+function matchBranch(b1?: string | null, b2?: string | null): boolean {
+  const n1 = normBranch(b1);
+  const n2 = normBranch(b2);
+  if (!n1 || !n2) return false;
+  return n1 === n2;
+}
+
 function mapBackendTaskToTaskItem(raw: any, empMap?: Map<string, Employee>): TaskItem {
   let status: TaskStatus = "pending";
   if (raw.status === "done" || raw.status === "completed") {
@@ -80,19 +91,18 @@ function mapBackendTaskToTaskItem(raw: any, empMap?: Map<string, Employee>): Tas
   } else if (raw.status === "overdue") {
     status = "overdue";
   } else {
-    if (raw.dueDate && new Date(raw.dueDate).getTime() < Date.now()) {
-      status = "overdue";
-    } else {
-      status = "pending";
-    }
+    const dueMs = raw.dueDate ? new Date(String(raw.dueDate).replace(" ", "T")).getTime() : NaN;
+    status = Number.isFinite(dueMs) && dueMs < Date.now() ? "overdue" : "pending";
   }
 
-  let assignedToName = raw.assignedToName || raw.assignedTo || "Tất cả nhân sự";
-  let assignedToEmail = raw.assignedToEmail || "shift_all";
+  let assignedToName = raw.assignedToName || "Chưa xác định";
+  let assignedToEmail = raw.assignedToEmail || "";
+  let assignedToAvatar = "";
   if (raw.assignedTo && empMap?.has(raw.assignedTo)) {
     const emp = empMap.get(raw.assignedTo)!;
     assignedToName = emp.name;
     assignedToEmail = emp.email;
+    assignedToAvatar = emp.avatar || "";
   }
 
   return {
@@ -101,13 +111,15 @@ function mapBackendTaskToTaskItem(raw: any, empMap?: Map<string, Employee>): Tas
     description: raw.description || "",
     sourceType: (raw.sourceType as TaskSourceType) || (raw.shiftName ? "shift" : "manager"),
     assignedByName: raw.assignedByName || "Ban Quản lý",
-    shiftName: raw.shiftName,
-    branch: raw.branchSlug || raw.branch || "HN-1",
+    shiftName: raw.shiftName || undefined,
+    branch: raw.branchSlug || raw.branch || "",
     dueDate: raw.dueDate ? String(raw.dueDate).replace("T", " ") : "—",
     status,
     priority: raw.priority || "normal",
     assignedToEmail,
     assignedToName,
+    assignedToId: raw.assignedTo || undefined,
+    assignedToAvatar,
     completedAt: raw.completedAt,
     createdAt: raw.createdAt
       ? new Date(raw.createdAt).toISOString().replace("T", " ").substring(0, 16)
@@ -146,20 +158,10 @@ export default function TasksPage() {
     }, 4000);
   };
 
-  const empMap = useMemo(() => {
-    const map = new Map<string, Employee>();
-    for (const e of empList) {
-      map.set(e.id, e);
-      map.set(e.name, e);
-      map.set(e.email, e);
-    }
-    return map;
-  }, [empList]);
-
   // Load danh sách tasks & employees từ gateway
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError(null);
 
       const effectiveBranch = isAdmin
@@ -177,7 +179,10 @@ export default function TasksPage() {
 
       let employeesData: Employee[] = [];
       if (empRes.status === "fulfilled" && Array.isArray(empRes.value)) {
-        employeesData = empRes.value;
+        employeesData = empRes.value.map((e: any) => ({
+          ...e,
+          branch: e.branch || e.branchSlug || "",
+        }));
       }
       setEmpList(employeesData);
 
@@ -195,7 +200,7 @@ export default function TasksPage() {
       const msg = e instanceof GatewayError ? e.message : e?.message || "Không thể tải danh sách nhiệm vụ từ gateway";
       setError(msg);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [isAdmin, branchFilter, branchSlug]);
 
@@ -207,14 +212,10 @@ export default function TasksPage() {
   const branchFilteredTasks = useMemo(() => {
     if (isAdmin) {
       if (branchFilter === "all") return tasks;
-      return tasks.filter(
-        (t) => t.branch.toLowerCase().replace("-", "") === branchFilter.toLowerCase().replace("-", "")
-      );
+      return tasks.filter((t) => matchBranch(t.branch, branchFilter));
     }
     return tasks.filter(
-      (t) =>
-        t.branch.toLowerCase().replace("-", "") === branchSlug.toLowerCase().replace("-", "") ||
-        t.branch === "HN-1"
+      (t) => matchBranch(t.branch, branchSlug) || !t.branch
     );
   }, [tasks, isAdmin, branchSlug, branchFilter]);
 
@@ -248,11 +249,11 @@ export default function TasksPage() {
       }
       // Search query
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchTitle = t.title.toLowerCase().includes(q);
-        const matchDesc = t.description.toLowerCase().includes(q);
-        const matchAssignee = t.assignedToName.toLowerCase().includes(q);
-        const matchAssigner = t.assignedByName.toLowerCase().includes(q);
+        const q = searchQuery.toLowerCase().trim();
+        const matchTitle = (t.title || "").toLowerCase().includes(q);
+        const matchDesc = (t.description || "").toLowerCase().includes(q);
+        const matchAssignee = (t.assignedToName || "").toLowerCase().includes(q);
+        const matchAssigner = (t.assignedByName || "").toLowerCase().includes(q);
         return matchTitle || matchDesc || matchAssignee || matchAssigner;
       }
       return true;
@@ -265,23 +266,11 @@ export default function TasksPage() {
     try {
       setActionInProgress(true);
       await apiPut(`/api/tasks/${encodeURIComponent(taskId)}`, {
-        status: "done",
+        status: "completed",
         proofPhotoUrl: photoUrl,
         completedAt,
       });
-      setTasks((prev) =>
-        prev.map((t) => {
-          if (t.id === taskId) {
-            return {
-              ...t,
-              status: "completed",
-              proofPhotoUrl: photoUrl || t.proofPhotoUrl,
-              completedAt,
-            };
-          }
-          return t;
-        })
-      );
+      await fetchData(true);
       showToast("Đã duyệt hoàn thành nhiệm vụ thành công", "success");
     } catch (e: any) {
       const msg = e instanceof GatewayError ? e.message : e?.message || "Lỗi khi duyệt hoàn thành";
@@ -296,7 +285,7 @@ export default function TasksPage() {
     try {
       setActionInProgress(true);
       await apiDelete(`/api/tasks/${encodeURIComponent(taskId)}`);
-      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      await fetchData(true);
       showToast("Đã xóa nhiệm vụ thành công", "success");
     } catch (e: any) {
       const msg = e instanceof GatewayError ? e.message : e?.message || "Lỗi khi xóa nhiệm vụ";
@@ -311,26 +300,26 @@ export default function TasksPage() {
     const payload = {
       title: newTask.title,
       description: newTask.description,
-      assignedTo: newTask.assignedToName,
-      branchSlug: newTask.branch,
+      // `assignedTo` phải là ID nhân sự thật trong DB, không phải tên hiển thị.
+      assignedTo: newTask.assignedToId || null,
+      assignedToName: newTask.assignedToName,
+      assignedToEmail: newTask.assignedToEmail,
+      assignedByName: newTask.assignedByName,
+      branchSlug: newTask.branch || null,
+      shiftName: newTask.shiftName || null,
       dueDate: newTask.dueDate,
       status: "pending",
       sourceType: newTask.sourceType,
-      assignedByName: newTask.assignedByName,
-      shiftName: newTask.shiftName,
       priority: newTask.priority,
-      assignedToEmail: newTask.assignedToEmail,
-      assignedToName: newTask.assignedToName,
-      requirePhoto: newTask.requirePhoto,
-      proofPhotoUrl: newTask.proofPhotoUrl,
+      requirePhoto: Boolean(newTask.requirePhoto),
+      proofPhotoUrl: newTask.proofPhotoUrl || null,
     };
 
     try {
       setActionInProgress(true);
-      const res = await apiPost<any>("/api/tasks", payload);
-      const createdTask = res && typeof res === "object" && "data" in res ? res.data : res;
-      const mapped = mapBackendTaskToTaskItem(createdTask || newTask, empMap);
-      setTasks((prev) => [mapped, ...prev]);
+      await apiPost<any>("/api/tasks", payload);
+      // Tải lại từ DB để hiển thị đúng dữ liệu thật (id, thời gian, trạng thái).
+      await fetchData(true);
       showToast(`Đã giao nhiệm vụ "${newTask.title}" thành công`, "success");
     } catch (e: any) {
       const msg = e instanceof GatewayError ? e.message : e?.message || "Lỗi khi giao nhiệm vụ";
@@ -391,7 +380,7 @@ export default function TasksPage() {
             <FontAwesomeIcon icon={faTriangleExclamation} className="text-red-500 text-base" />
             <span>{error}</span>
           </div>
-          <Button variant="white" size="sm" onClick={fetchData}>
+          <Button variant="white" size="sm" onClick={() => fetchData()}>
             Thử lại
           </Button>
         </div>
@@ -408,7 +397,7 @@ export default function TasksPage() {
         branchFilter={branchFilter}
         onBranchFilterChange={setBranchFilter}
         isManager={!isAdmin}
-        managerBranch={branchSlug.toUpperCase()}
+        managerBranch={(branchSlug || "").toUpperCase()}
         statusCounts={statusCounts}
       />
 
@@ -440,11 +429,15 @@ export default function TasksPage() {
         employees={
           isAdmin
             ? (branchFilter !== "all"
-                ? empList.filter((e) => e.branch.toLowerCase().replace("-", "") === branchFilter.toLowerCase().replace("-", ""))
+                ? empList.filter((e) => matchBranch(e.branch || (e as any).branchSlug, branchFilter))
                 : empList)
-            : empList.filter((e) => e.branch.toLowerCase().replace("-", "") === branchSlug.toLowerCase().replace("-", ""))
+            : empList.filter((e) => matchBranch(e.branch || (e as any).branchSlug, branchSlug))
         }
-        currentBranch={isAdmin && branchFilter !== "all" ? branchFilter.toUpperCase() : branchSlug.toUpperCase()}
+        currentBranch={
+          isAdmin && branchFilter !== "all"
+            ? (branchFilter || "").toUpperCase()
+            : (branchSlug || "").toUpperCase()
+        }
         currentUserName={currentUserName}
         onCreated={handleCreateTask}
       />

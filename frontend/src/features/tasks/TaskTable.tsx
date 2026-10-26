@@ -1,7 +1,7 @@
 "use client";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheck, faCircleExclamation, faClock, faFire, faRotateRight, faThumbtack } from "@fortawesome/free-solid-svg-icons";
+import { faCheck, faCircleExclamation, faClock, faFire, faRotateRight } from "@fortawesome/free-solid-svg-icons";
 import type { TaskItem, TaskPriority, TaskStatus } from "./types";
 
 interface TaskTableProps {
@@ -117,9 +117,8 @@ export default function TaskTable({
                   {/* Cột 1: Nguồn việc */}
                   <td className="py-3.5 px-4 whitespace-nowrap">
                     {task.sourceType === "manager" ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-200">
-                        <FontAwesomeIcon icon={faThumbtack} fontSize={13} className="text-rose-600" />
-                        Quản lý giao riêng
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-200">
+                        Giao riêng
                       </span>
                     ) : (
                       <div className="inline-flex flex-col">
@@ -139,8 +138,16 @@ export default function TaskTable({
                   {/* Cột 3: Người thực hiện */}
                   <td className="py-3.5 px-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-                        {task.assignedToName.charAt(0)}
+                      <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs overflow-hidden shrink-0">
+                        {task.assignedToAvatar ? (
+                          <img
+                            src={task.assignedToAvatar}
+                            alt={task.assignedToName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          task.assignedToName.charAt(0)
+                        )}
                       </div>
                       <div>
                         <div className="font-medium text-gray-900 text-xs">

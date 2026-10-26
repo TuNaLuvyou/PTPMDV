@@ -30,6 +30,38 @@ import { StatusBadge } from "@/components/ui/Badge";
 import type { Employee, UserRole, Branch, Department } from "@/types";
 import { apiPost } from "@/lib/api";
 
+/**
+ * Thu nhỏ ảnh trước khi gửi lên server. Ảnh gốc từ điện thoại thường vài MB,
+ * base64 còn lớn hơn ~33% — dễ vượt giới hạn body và làm phình bản ghi DB khi
+ * phải fallback sang data URL (integration-service chưa chạy / Cloudinary lỗi).
+ */
+async function compressImageDataUrl(dataUrl: string, maxDim: number, quality = 0.8): Promise<string> {
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("Không thể đọc file ảnh"));
+      el.src = dataUrl;
+    });
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+    // Ảnh đã nhỏ và data URL gọn thì giữ nguyên (tránh mất chất lượng vô ích).
+    if (scale === 1 && dataUrl.length < 400_000) return dataUrl;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(img.width * scale));
+    canvas.height = Math.max(1, Math.round(img.height * scale));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return dataUrl;
+    // JPEG không có alpha: tô trắng để ảnh PNG nền trong suốt không bị đen.
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", quality);
+  } catch {
+    return dataUrl;
+  }
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -208,6 +240,10 @@ export default function EmployeeDetailModal({
   };
 
   const handleSave = async () => {
+    if (uploadingAvatar) {
+      setSaveError("Ảnh đại diện đang được xử lý, vui lòng đợi trong giây lát");
+      return;
+    }
     if (!name.trim()) {
       setSaveError("Vui lòng nhập họ và tên nhân viên");
       return;
@@ -273,18 +309,20 @@ export default function EmployeeDetailModal({
       setUploadingAvatar(true);
       setSaveError("");
 
-      const dataUrl = await new Promise<string>((resolve, reject) => {
+      const raw = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
         reader.onerror = () => reject(new Error("Không thể đọc file ảnh"));
         reader.readAsDataURL(file);
       });
+      const dataUrl = await compressImageDataUrl(raw, 512);
 
       try {
-        const res = await apiPost<{ url: string }>("/api/upload", {
-          file: dataUrl,
-          folder: "hrm/avatars",
-        });
+        const res = await apiPost<{ url: string }>(
+          "/api/upload",
+          { file: dataUrl, folder: "hrm/avatars" },
+          60000
+        );
         if (res && res.url) {
           setAvatar(res.url);
           return;
@@ -318,18 +356,20 @@ export default function EmployeeDetailModal({
       setUploading(true);
       setSaveError("");
 
-      const dataUrl = await new Promise<string>((resolve, reject) => {
+      const raw = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
         reader.onerror = () => reject(new Error("Không thể đọc file ảnh"));
         reader.readAsDataURL(file);
       });
+      const dataUrl = await compressImageDataUrl(raw, 1600);
 
       try {
-        const res = await apiPost<{ url: string }>("/api/upload", {
-          file: dataUrl,
-          folder: "hrm/cccd",
-        });
+        const res = await apiPost<{ url: string }>(
+          "/api/upload",
+          { file: dataUrl, folder: "hrm/cccd" },
+          60000
+        );
         if (res && res.url) {
           setTarget(res.url);
           return;
