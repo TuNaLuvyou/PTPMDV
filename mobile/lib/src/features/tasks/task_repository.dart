@@ -13,6 +13,7 @@ class ApiTaskModel {
   final String? assignedToName;
   final String? assignedByName;
   final String? sourceType;
+  final String? shiftName;
   final String? createdAt;
   final String? proofUrl;
   final bool requirePhoto;
@@ -29,6 +30,7 @@ class ApiTaskModel {
     this.assignedToName,
     this.assignedByName,
     this.sourceType,
+    this.shiftName,
     this.createdAt,
     this.proofUrl,
     this.requirePhoto = false,
@@ -46,6 +48,7 @@ class ApiTaskModel {
         assignedToName: j['assignedToName']?.toString(),
         assignedByName: j['assignedByName']?.toString(),
         sourceType: j['sourceType']?.toString(),
+        shiftName: j['shiftName']?.toString(),
         createdAt: j['createdAt']?.toString(),
         proofUrl: j['proofUrl']?.toString() ?? j['proofPhotoUrl']?.toString(),
         requirePhoto: j['requirePhoto'] == true,
@@ -81,6 +84,7 @@ class ApiTaskModel {
       description: description ?? '',
       sourceType:
           sourceType == 'shift' ? TaskSourceType.shift : TaskSourceType.manager,
+      shiftName: shiftName,
       assignedByName: assignedByName ?? 'Quản lý chi nhánh',
       branch: branchSlug ?? '',
       dueDate: parsedDueDate,
@@ -121,6 +125,9 @@ class TaskRepository {
     String priority = 'normal',
     String? dueDate,
     String? assigneeId,
+    String? sourceType,
+    String? shiftName,
+    bool? requirePhoto,
   }) async {
     await api.postJson('/api/tasks', {
       'title': title,
@@ -128,8 +135,11 @@ class TaskRepository {
       'branchSlug': branchSlug,
       'status': status,
       'priority': priority,
+      'sourceType': sourceType ?? 'manager',
+      if (shiftName != null) 'shiftName': shiftName,
       if (dueDate != null) 'dueDate': dueDate,
       if (assigneeId != null) 'assigneeId': assigneeId,
+      if (requirePhoto != null) 'requirePhoto': requirePhoto,
     });
   }
 

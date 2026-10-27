@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import type { TaskItem, TaskPriority, TaskSourceType } from "./types";
+import type { ShiftTemplate } from "@/features/shifts/types";
+import { apiGet, GatewayError } from "@/lib/api";
 import type { Employee } from "@/types";
 
 interface CreateTaskModalProps {
@@ -26,7 +28,10 @@ export default function CreateTaskModal({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [sourceType, setSourceType] = useState<TaskSourceType>("manager");
-  const [shiftName, setShiftName] = useState("Ca Sáng (07:00 - 14:00)");
+  const [shiftName, setShiftName] = useState<string>("");
+  // Danh sách ca lấy từ DB (GET /api/shift-templates), không dùng mockdata.
+  const [shiftTemplates, setShiftTemplates] = useState<ShiftTemplate[]>([]);
+  const [shiftLoadError, setShiftLoadError] = useState<string | null>(null);
   const [assignedToId, setAssignedToId] = useState(
     employees.length > 0 ? employees[0].id : ""
   );
@@ -56,11 +61,52 @@ export default function CreateTaskModal({
     }
   }, [employees, assignedToId]);
 
+  // Label hiển thị cho 1 ca mẫu: "Tên ca (07:00 - 14:00)"
+  const shiftLabel = (t: ShiftTemplate) =>
+    t.startTime && t.endTime ? `${t.name} (${t.startTime} - ${t.endTime})` : t.name;
+
+  // Lấy khung ca thật từ DB mỗi lần mở modal
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setShiftLoadError(null);
+    apiGet<ShiftTemplate[]>("/api/shift-templates")
+      .then((rows) => {
+        if (cancelled) return;
+        const loaded = Array.isArray(rows)
+          ? rows.filter((t) => t && (t.name || "").trim())
+          : [];
+        setShiftTemplates(loaded);
+        // Đồng bộ lựa chọn hiện tại theo dữ liệu DB
+        setShiftName((prev) => {
+          const options = loaded.map((t) => shiftLabel(t));
+          return options.includes(prev) ? prev : options[0] ?? "";
+        });
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setShiftTemplates([]);
+        setShiftLoadError(
+          e instanceof GatewayError ? e.message : "Không tải được danh sách ca từ DB"
+        );
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const shiftOptions = shiftTemplates.map((t) => shiftLabel(t));
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
 
     const isShift = sourceType === "shift";
+    if (isShift && !shiftName) {
+      setFormError("Chưa có ca làm việc trong DB. Vui lòng tạo khung ca ở mục Quản lý ca trước.");
+      return;
+    }
     const selectedEmployee = employees.find((emp) => emp.id === assignedToId);
     if (!isShift && !selectedEmployee) {
       setFormError("Chưa có nhân sự để giao việc. Vui lòng kiểm tra lại danh sách nhân viên.");
@@ -111,7 +157,7 @@ export default function CreateTaskModal({
             Hủy bỏ
           </Button>
           <Button variant="primary" onClick={handleSubmit}>
-            Tạo & Giao việc
+            Tạo
           </Button>
         </div>
       }
@@ -156,10 +202,20 @@ export default function CreateTaskModal({
                 onChange={(e) => setShiftName(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-hidden focus:ring-2 focus:ring-primary"
               >
-                <option value="Ca Sáng (07:00 - 14:00)">Ca Sáng (07:00 - 14:00)</option>
-                <option value="Ca Chiều (14:00 - 22:00)">Ca Chiều (14:00 - 22:00)</option>
-                <option value="Ca Tối (18:00 - 23:00)">Ca Tối (18:00 - 23:00)</option>
+                {shiftOptions.length === 0 && (
+                  <option value="" disabled>
+                    {shiftLoadError ? "Lỗi tải ca từ DB" : "Chưa có ca trong DB"}
+                  </option>
+                )}
+                {shiftOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
               </select>
+              {shiftLoadError && (
+                <p className="mt-1.5 text-xs font-medium text-red-600">{shiftLoadError}</p>
+              )}
             </div>
           ) : (
             <div>

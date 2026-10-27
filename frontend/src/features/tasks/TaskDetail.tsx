@@ -77,11 +77,7 @@ export default function TaskDetailModal({
               {!isCompleted && (
                 <Button variant="primary" onClick={handleConfirmComplete}>
                   <FontAwesomeIcon icon={faCheck} fontSize={16} className="mr-1 inline" />
-                  {task.requirePhoto
-                    ? photoUrl
-                      ? "Xác nhận duyệt ảnh & Hoàn thành"
-                      : "Duyệt hoàn thành đặc cách"
-                    : "Xác nhận hoàn thành"}
+                  Duyệt
                 </Button>
               )}
             </div>

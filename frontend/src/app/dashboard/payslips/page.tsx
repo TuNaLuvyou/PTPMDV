@@ -296,7 +296,7 @@ export default function PayslipsPage() {
           !isManager ? (
             <div className="flex items-center gap-2">
               <Button variant="white" onClick={() => setAttendanceOpen(true)}>
-                <FontAwesomeIcon icon={faGear} fontSize={15} /> Cấu hình chấm công
+                <FontAwesomeIcon icon={faGear} fontSize={16} /> Cấu hình chấm công
               </Button>
             </div>
           ) : undefined

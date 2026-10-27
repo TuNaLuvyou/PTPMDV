@@ -211,14 +211,10 @@ export default function RegistrationTimetableSection({
       return "morning";
     };
 
+    // Chỉ dùng khung ca thật từ DB — chưa tạo cấu hình ca thì để rỗng,
+    // hiển thị empty state, không fallback mockdata.
     const baseTemplates =
-      templates && templates.length > 0
-        ? templates
-        : [
-            { id: "t-sang", name: "Ca Sáng", startTime: "07:00", endTime: "14:00" },
-            { id: "t-chieu", name: "Ca Chiều", startTime: "14:00", endTime: "22:00" },
-            { id: "t-toi", name: "Ca Tối", startTime: "18:00", endTime: "23:00" },
-          ];
+      templates && templates.length > 0 ? templates : [];
 
     return baseTemplates.map((t, ti) => {
       const matchesTemplate = (regShiftVal?: string) => {
@@ -460,7 +456,11 @@ export default function RegistrationTimetableSection({
         {dayGroups.length === 0 && (
           <div className="bg-white border border-gray-200 rounded-xl p-10 text-center">
             <FontAwesomeIcon icon={faCalendar} fontSize={30} className="text-gray-200" />
-            <p className="text-sm text-gray-400 mt-3">Chưa có ca làm việc nào trong ngày này</p>
+            <p className="text-sm text-gray-400 mt-3">
+              {templates.length === 0
+                ? "Chưa có cấu hình ca làm việc — hãy tạo khung ca ở tab Quản lý & cấu hình ca trước."
+                : "Chưa có ca làm việc nào trong ngày này"}
+            </p>
           </div>
         )}
         {dayGroups.map((group) => {

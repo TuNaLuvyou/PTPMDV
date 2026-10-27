@@ -23,8 +23,9 @@ export function Field({
   hint?: string;
   className?: string;
 }) {
+  const hasMarginBottom = className && /\bmb-/.test(className);
   return (
-    <div className={cn("mb-4", className)}>
+    <div className={cn(!hasMarginBottom && "mb-4", className)}>
       <label className="block text-sm font-medium text-gray-800 mb-1.5">
         {label} {required && <span className="text-danger">*</span>}
       </label>
