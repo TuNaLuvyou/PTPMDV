@@ -94,20 +94,20 @@ export default function LoginPage() {
 
   return (
     <main className="w-full max-w-md py-6">
-      {/* Toast: hết phiên làm việc — màu đỏ nổi bật, không border, tự mất sau ~6s */}
+      {/* Toast: hết phiên làm việc — nền đỏ nhạt, viền đỏ, tự mất sau ~6s */}
       {expToast && (
         <div
-          className={`fixed top-4 right-4 z-50 max-w-sm w-[calc(100vw-2rem)] sm:w-auto flex items-start gap-3.5 px-4 py-3.5 rounded-2xl shadow-xl shadow-red-600/25 bg-red-600 text-white border-0 ${
+          className={`fixed top-4 right-4 z-50 max-w-sm w-[calc(100vw-2rem)] sm:w-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg shadow-red-600/10 bg-red-50 text-gray-900 border border-red-300 ${
             expToastExit ? "hrm-toast-anim-exit" : "hrm-toast-anim"
           }`}
           role="alert"
         >
-          <div className="w-9 h-9 rounded-xl bg-white/20 text-white flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-red-100 text-red-600 border border-red-200 flex items-center justify-center shrink-0">
             <FontAwesomeIcon icon={faCircleExclamation} fontSize={17} />
           </div>
-          <div className="min-w-0 flex-1 pt-0.5">
-            <div className="text-sm font-bold text-white leading-tight">Phiên làm việc đã hết hạn</div>
-            <div className="text-xs text-red-100 mt-1 leading-snug">Vui lòng đăng nhập lại để tiếp tục phiên trực.</div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-bold text-red-900 leading-tight">Phiên làm việc đã hết hạn</div>
+            <div className="text-xs text-red-700 mt-0.5 leading-snug">Vui lòng đăng nhập lại để tiếp tục phiên trực.</div>
           </div>
           <button
             type="button"
@@ -118,7 +118,7 @@ export default function LoginPage() {
                 setExpToastExit(false);
               }, 300);
             }}
-            className="text-white/80 hover:text-white transition-colors cursor-pointer p-1 text-sm leading-none shrink-0"
+            className="text-red-400 hover:text-red-600 transition-colors cursor-pointer -mx-1 p-1 text-sm leading-none shrink-0"
             aria-label="Đóng thông báo"
           >
             ✕

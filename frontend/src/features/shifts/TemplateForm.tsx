@@ -15,6 +15,7 @@ interface Props {
   onStartChange: (v: string) => void;
   onEndChange: (v: string) => void;
   onSave: () => void;
+  onDelete?: () => void;
 }
 
 export default function TemplateModal({
@@ -28,6 +29,7 @@ export default function TemplateModal({
   onStartChange,
   onEndChange,
   onSave,
+  onDelete,
 }: Props) {
   return (
     <Modal
@@ -36,10 +38,19 @@ export default function TemplateModal({
       title={editing ? "Sửa Khung Ca Mẫu" : "Thêm Khung Ca Mẫu"}
       size="md"
       footer={
-        <>
-          <Button variant="white" onClick={onClose}>Hủy</Button>
-          <Button onClick={onSave}>Lưu khung ca</Button>
-        </>
+        <div className="flex justify-between items-center w-full">
+          <span>
+            {editing && onDelete && (
+              <Button variant="danger" onClick={onDelete}>
+                Xóa khung ca
+              </Button>
+            )}
+          </span>
+          <div className="flex gap-3">
+            <Button variant="white" onClick={onClose}>Hủy</Button>
+            <Button onClick={onSave}>Lưu</Button>
+          </div>
+        </div>
       }
     >
       <div className="flex flex-col gap-5">

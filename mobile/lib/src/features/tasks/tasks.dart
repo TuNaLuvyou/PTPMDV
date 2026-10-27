@@ -6,6 +6,7 @@ import '../../core/state/branch_scope.dart';
 import '../../core/widgets/branch_selector.dart';
 import '../../core/models/user.dart';
 import '../profile/employee_repository.dart';
+import '../schedule/shift_repository.dart';
 import 'task_service.dart';
 import 'task_repository.dart';
 
@@ -706,13 +707,36 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
     );
   }
 
+  /// Format nhãn hiển thị cho 1 shift template: "Tên ca (BĐ - BK)"
+  String _shiftTemplateLabel(Map<String, dynamic> t) {
+    final name = t['name']?.toString() ?? 'Ca làm việc';
+    final start = t['startTime']?.toString() ?? '';
+    final end = t['endTime']?.toString() ?? '';
+    return start.isNotEmpty && end.isNotEmpty ? '$name ($start - $end)' : name;
+  }
+
   /// Dialog giao việc mới dành cho Quản lý & Quản trị viên
-  void _showCreateTaskDialog() {
+  Future<void> _showCreateTaskDialog() async {
     final titleCtrl = TextEditingController();
     final descCtrl = TextEditingController();
     TaskSourceType selectedSource = TaskSourceType.manager;
     TaskPriority selectedPriority = TaskPriority.normal;
-    String selectedShift = 'Ca Sáng (07:00 - 14:00)';
+
+    // Load danh sách ca từ DB qua API (GET /api/shifts/templates) thay cho
+    // mockdata cứng. Định dạng hiển thị: "Tên ca (BĐ - BK)".
+    List<String> shiftOptions = [];
+    try {
+      final tpls = await ShiftRepository().getTemplates();
+      shiftOptions = [
+        for (final t in tpls)
+          if ((t['name']?.toString() ?? '').isNotEmpty)
+            _shiftTemplateLabel(t),
+      ];
+    } catch (_) {
+      // API lỗi để rỗng — dropdown hiện hint, không fallback mock.
+    }
+    if (!mounted) return;
+    String? selectedShift = shiftOptions.isNotEmpty ? shiftOptions.first : null;
     final String? initialStaff = _employeeList.isNotEmpty
         ? _employeeList.first['name']?.toString()
         : null;
@@ -796,13 +820,12 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                     initialValue: selectedShift,
                     decoration: InputDecoration(
                       labelText: 'Ca làm việc áp dụng',
+                      hintText: shiftOptions.isEmpty ? 'Chưa có ca trong DB' : null,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    items: const [
-                      DropdownMenuItem(value: 'Ca Sáng (07:00 - 14:00)', child: Text('Ca Sáng (07:00 - 14:00)')),
-                      DropdownMenuItem(value: 'Ca Chiều (14:00 - 22:00)', child: Text('Ca Chiều (14:00 - 22:00)')),
-                      DropdownMenuItem(value: 'Ca Tối (18:00 - 23:00)', child: Text('Ca Tối (18:00 - 23:00)')),
-                    ],
+                    items: shiftOptions
+                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                        .toList(),
                     onChanged: (val) {
                       if (val != null) setDialogState(() => selectedShift = val);
                     },
@@ -895,6 +918,12 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                     }
 
                     final bool isShift = selectedSource == TaskSourceType.shift;
+                    if (isShift && (selectedShift == null || selectedShift!.isEmpty)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Vui lòng chọn ca làm việc áp dụng')),
+                      );
+                      return;
+                    }
                     final branch = BranchScope.selectedBranch(context);
                     final branchSlug = branch?.slug ?? 'hn-1';
 
@@ -920,6 +949,10 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                         branchSlug: branchSlug,
                         priority: priStr,
                         assigneeId: assigneeId,
+                        // Giao cố định theo ca: gửi sourceType + ca được chọn
+                        sourceType: isShift ? 'shift' : 'manager',
+                        shiftName: isShift ? selectedShift : null,
+                        requirePhoto: requirePhoto,
                       );
                       if (sheetCtx.mounted) {
                         Navigator.pop(sheetCtx);
@@ -929,7 +962,11 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
 
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('✓ Đã giao việc thành công cho ${assignedPerson ?? 'nhân sự đã chọn'}!'),
+                          content: Text(
+                            isShift
+                                ? '✓ Đã giao việc cố định theo ca "$selectedShift"!'
+                                : '✓ Đã giao việc thành công cho ${assignedPerson ?? 'nhân sự đã chọn'}!',
+                          ),
                           backgroundColor: AppColors.success,
                         ),
                       );

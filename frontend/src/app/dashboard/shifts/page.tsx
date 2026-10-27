@@ -368,6 +368,21 @@ export default function ShiftsPage() {
     setNewTemplateName("");
   };
 
+  // Xóa khung ca mẫu (chỉ hiện trong modal Sửa) — có xác nhận trước khi xóa
+  const handleDeleteTemplate = async (id: string, name?: string) => {
+    if (!confirm(`Bạn có chắc chắn muốn xóa khung ca "${name ?? ""}" không?`)) return;
+    try {
+      await apiDelete(`/api/shift-templates/${encodeURIComponent(id)}`);
+      setTemplates((prev) => prev.filter((t) => t.id !== id));
+      setAddTemplateOpen(false);
+      setEditingTemplate(null);
+      showToast("Đã xóa khung ca mẫu", "success");
+    } catch (e: any) {
+      const msg = e instanceof GatewayError ? e.message : e?.message || "Lỗi khi xóa khung ca mẫu";
+      showToast(msg, "danger");
+    }
+  };
+
   // Xóa phân công ca (DELETE /api/shifts/:id)
   const handleRemoveShift = async (workShiftId: string) => {
     try {
@@ -610,15 +625,9 @@ export default function ShiftsPage() {
                 templates={templates}
                 onAdd={openAddTemplate}
                 onEdit={openEditTemplate}
-                onDelete={async (id) => {
-                  try {
-                    await apiDelete(`/api/shift-templates/${encodeURIComponent(id)}`);
-                    setTemplates((prev) => prev.filter((t) => t.id !== id));
-                    showToast("Đã xóa khung ca mẫu", "success");
-                  } catch (e: any) {
-                    const msg = e instanceof GatewayError ? e.message : e?.message || "Lỗi khi xóa khung ca mẫu";
-                    showToast(msg, "danger");
-                  }
+                onDelete={(id) => {
+                  const t = templates.find((x) => x.id === id);
+                  handleDeleteTemplate(id, t?.name);
                 }}
               />
             </div>
@@ -637,6 +646,11 @@ export default function ShiftsPage() {
         onStartChange={setNewTemplateStart}
         onEndChange={setNewTemplateEnd}
         onSave={handleSaveTemplate}
+        onDelete={
+          editingTemplate
+            ? () => handleDeleteTemplate(editingTemplate.id, editingTemplate.name)
+            : undefined
+        }
       />
 
       <AssignShiftModal

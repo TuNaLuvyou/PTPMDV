@@ -102,10 +102,6 @@ export default function GeneratePayslipModal({ open, onClose, employees, default
             {error}
           </div>
         )}
-        <div className="rounded-lg bg-gray-50 px-4 py-3 text-xs text-gray-500">
-          Gọi <span className="font-mono">POST /api/payroll/payslips/generate</span> — chống trùng cặp
-          nhân viên + tháng (trùng trả 409). Công thức: thực lĩnh = cơ bản + thưởng − phạt.
-        </div>
       </div>
     </Modal>
   );
